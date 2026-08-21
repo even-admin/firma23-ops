@@ -2,9 +2,9 @@
 
 ## Intent
 
-The user is an operator moving between leads, client visits, production tasks, and collections. The interface must let them log work in seconds and immediately understand what needs attention and what money is actually approved.
+The user is a talented young operator moving between leads, client visits, production tasks, and collections. They open the app to see what they can work on, how their friends are performing, what they have earned, and what action moves them forward.
 
-The product should feel fast, ambitious, precise, and private. Take inspiration from Whop's app density, clear balances, compact navigation, avatars, and quick actions without copying its brand or marketplace structure.
+The product should feel fast, ambitious, social, precise, and private. Take inspiration from Whop's app density, clear balances, compact navigation, avatars, quick actions, and builder energy without copying its brand or marketplace structure.
 
 ## Product world
 
@@ -15,6 +15,9 @@ The product should feel fast, ambitious, precise, and private. Take inspiration 
 - Program deadlines.
 - Collections.
 - Allocation and settlement.
+- Skill growth.
+- Portfolios.
+- Friendly competition.
 
 ## Color world
 
@@ -30,21 +33,25 @@ No gradients. No decorative rainbow metrics. Use a borders-first depth system wi
 
 ## Signature component: Revenue Rail
 
-Each engagement includes a horizontal financial rail. Its segments represent house participation, closer allocation, and delivery pool. Each segment contains the assigned person's avatar or initials. The rail must distinguish projection from approved settlement and explain the selected distributable base.
+Each opportunity includes a horizontal financial rail. Its segments represent house participation, closer allocation, and delivery roles. Each segment contains the assigned person's avatar or initials. The rail must distinguish projection from approved settlement and explain the project-specific distributable base.
 
 The same signature appears in:
 
-1. Engagement list rows.
-2. Engagement financial detail.
+1. Opportunity list rows.
+2. Opportunity financial detail.
 3. Founder finance dashboard.
 4. Settlement approval dialog.
 5. Leaderboard provenance view.
 
+## Community signature: Operator Card
+
+Member identity is not a generic avatar and title. Each Operator Card combines verified skills, recent project evidence, approved earnings, close and delivery stats, availability, and the next capability being built. It should make a member feel that real work is compounding into a professional reputation.
+
 ## Replace generic dashboard defaults
 
 - Replace four disconnected KPI cards with one operational header combining approved money, pending money, active work, and the primary action.
-- Replace a spreadsheet-style master table with a stage-based operations queue.
-- Replace a wide SaaS sidebar with a compact rail that prioritizes Home, Operations, Leaderboard, and Admin.
+- Replace a spreadsheet-style master table with opportunity and assignment flows.
+- Replace a wide SaaS sidebar with a compact rail that prioritizes Home, Opportunities, Network, Leaderboard, and Admin.
 - Replace decorative charts with actionable queues and exact amounts.
 
 ## Typography and spacing
@@ -58,4 +65,3 @@ The same signature appears in:
 ## Required states
 
 Every screen and data component needs loading, empty, error, disabled, focus, hover, and successful completion states. Mobile layouts must preserve the primary action and financial status without horizontal page scrolling.
-
