@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "70000000-0000-4000-8000-000000000031",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000033",
+      "label": "Tablero de monitoreo en producción",
+      "url": "https://evidencia.firma23.test/aiops-0007/monitoreo",
+      "kind": "link",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000006",
+      "submittedAt": "2026-07-12"
+    }
+  ]
+}

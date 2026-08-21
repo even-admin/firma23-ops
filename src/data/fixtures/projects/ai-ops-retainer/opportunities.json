@@ -1,0 +1,16 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "f0000000-0000-4000-8000-000000000011",
+      "projectId": "c0000000-0000-4000-8000-000000000002",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000012",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000002",
+      "code": "AIOPS-0007",
+      "beneficiaryName": "Grupo Industrial Peninsular",
+      "beneficiaryLocation": "Umán, Yucatán",
+      "status": "paid",
+      "openedAt": "2026-04-14"
+    }
+  ]
+}

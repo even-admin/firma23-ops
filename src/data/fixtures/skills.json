@@ -1,0 +1,137 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "key": "closing",
+      "name": "Cierre comercial",
+      "family": "Comercial"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000002",
+      "key": "discovery",
+      "name": "Descubrimiento de necesidades",
+      "family": "Comercial"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000003",
+      "key": "account-mgmt",
+      "name": "Gestión de cuenta",
+      "family": "Comercial"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000004",
+      "key": "brand-identity",
+      "name": "Identidad de marca",
+      "family": "Diseño"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000005",
+      "key": "graphic-design",
+      "name": "Diseño gráfico",
+      "family": "Diseño"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000006",
+      "key": "motion",
+      "name": "Motion graphics",
+      "family": "Diseño"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000007",
+      "key": "video-production",
+      "name": "Producción de video",
+      "family": "Audiovisual"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000008",
+      "key": "video-editing",
+      "name": "Edición de video",
+      "family": "Audiovisual"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000009",
+      "key": "photography",
+      "name": "Fotografía",
+      "family": "Audiovisual"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000a",
+      "key": "copywriting",
+      "name": "Copywriting",
+      "family": "Contenido"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000b",
+      "key": "scripting",
+      "name": "Guionismo",
+      "family": "Contenido"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000c",
+      "key": "content-strategy",
+      "name": "Estrategia de contenido",
+      "family": "Contenido"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000d",
+      "key": "web-build",
+      "name": "Armado de sitios",
+      "family": "Producto"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000e",
+      "key": "frontend",
+      "name": "Frontend",
+      "family": "Producto"
+    },
+    {
+      "id": "80000000-0000-4000-8000-00000000000f",
+      "key": "automation",
+      "name": "Automatización de procesos",
+      "family": "IA y datos"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000010",
+      "key": "agent-engineering",
+      "name": "Ingeniería de agentes",
+      "family": "IA y datos"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000011",
+      "key": "prompting",
+      "name": "Diseño de prompts",
+      "family": "IA y datos"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000012",
+      "key": "data-integration",
+      "name": "Integraciones de datos",
+      "family": "IA y datos"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000013",
+      "key": "project-coordination",
+      "name": "Coordinación de proyectos",
+      "family": "Operación"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000014",
+      "key": "quality-review",
+      "name": "Revisión de calidad",
+      "family": "Operación"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000015",
+      "key": "client-training",
+      "name": "Capacitación al cliente",
+      "family": "Operación"
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000016",
+      "key": "finance-ops",
+      "name": "Operación financiera",
+      "family": "Operación"
+    }
+  ]
+}

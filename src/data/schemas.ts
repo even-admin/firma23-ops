@@ -177,6 +177,104 @@ export const settlementLineRecordSchema = z
   })
   .strict();
 
+export const milestoneTemplateRecordSchema = z
+  .object({
+    id,
+    serviceVersionId: id,
+    position: z.number().int().positive(),
+    name: label,
+    description: label,
+  })
+  .strict();
+
+export const opportunityMilestoneRecordSchema = z
+  .object({
+    id,
+    opportunityId: id,
+    templateId: id,
+    position: z.number().int().positive(),
+    name: label,
+    status: z.enum(['pending', 'in_progress', 'done', 'blocked']),
+    dueAt: dateish.nullable(),
+    completedAt: dateish.nullable(),
+    assignedMemberId: id.nullable(),
+  })
+  .strict();
+
+const evidenceKind = z.enum(['link', 'image', 'video', 'document']);
+
+/** Evidence URLs are synthetic. A real host here would be a privacy leak. */
+const syntheticUrl = z
+  .string()
+  .url()
+  .refine((value) => value.includes('.test/') || value.endsWith('.test'), {
+    message: 'Fixture URLs must use a reserved .test host',
+  });
+
+export const evidenceLinkRecordSchema = z
+  .object({
+    id,
+    opportunityMilestoneId: id,
+    label,
+    url: syntheticUrl,
+    kind: evidenceKind,
+    submittedByMemberId: id,
+    submittedAt: dateish,
+  })
+  .strict();
+
+export const skillRecordSchema = z.object({ id, key: label, name: label, family: label }).strict();
+
+export const memberSkillRecordSchema = z
+  .object({
+    id,
+    memberId: id,
+    skillId: id,
+    level: z.enum(['learning', 'working', 'strong', 'lead']),
+    verification: z.enum(['self_reported', 'verified']),
+  })
+  .strict();
+
+export const memberProfileRecordSchema = z
+  .object({
+    memberId: id,
+    bio: label,
+    availability: z.enum(['open', 'limited', 'unavailable']),
+    nextCapability: label,
+    joinedAt: dateish,
+  })
+  .strict();
+
+export const portfolioItemRecordSchema = z
+  .object({
+    id,
+    memberId: id,
+    title: label,
+    roleLabel: label,
+    url: syntheticUrl,
+    kind: evidenceKind,
+    verification: z.enum(['self_reported', 'verified']),
+    completedAt: dateish,
+  })
+  .strict();
+
+export const statEventRecordSchema = z
+  .object({
+    id,
+    memberId: id,
+    opportunityId: id,
+    type: z.enum([
+      'opportunity_closed',
+      'delivery_completed',
+      'delivered_on_time',
+      'delivered_late',
+      'revision_requested',
+      'accepted_first_pass',
+    ]),
+    occurredAt: dateish,
+  })
+  .strict();
+
 export type OrganizationRecord = z.infer<typeof organizationRecordSchema>;
 export type MemberRecord = z.infer<typeof memberRecordSchema>;
 export type ProjectRecord = z.infer<typeof projectRecordSchema>;

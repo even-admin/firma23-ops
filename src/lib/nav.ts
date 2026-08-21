@@ -25,17 +25,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
     key: 'network',
     label: copy.nav.network,
     href: '/network',
-    available: false,
+    available: true,
     founderOnly: false,
   },
   {
     key: 'leaderboard',
     label: copy.nav.leaderboard,
     href: '/leaderboard',
-    available: false,
+    available: true,
     founderOnly: false,
   },
-  { key: 'admin', label: copy.nav.admin, href: '/admin', available: false, founderOnly: true },
+  { key: 'admin', label: copy.nav.admin, href: '/admin', available: true, founderOnly: true },
 ];
 
 export function isActive(pathname: string, href: string): boolean {

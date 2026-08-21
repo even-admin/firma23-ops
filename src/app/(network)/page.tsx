@@ -1,18 +1,39 @@
+import { Suspense } from 'react';
+
 import { OperationalHeader } from '@/components/chrome/OperationalHeader';
 import { AssignmentRow } from '@/components/operator/AssignmentRow';
 import { EmptyState } from '@/components/state/EmptyState';
+import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getPrototypeViewer } from '@/data/prototype-viewer-session';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
 import { cn } from '@/lib/cn';
 
+/*
+ * Loading UI lives in a Suspense boundary inside the page, not in a segment-level
+ * loading.tsx. A loading.tsx anywhere above a dynamic route flushes the stream
+ * immediately, which locks the response status at 200 and makes notFound() render
+ * the not-found UI with a 200 instead of a 404. Streaming from inside the page
+ * keeps the header instant, the body skeletoned, and the status honest.
+ */
+
 /** Personal home: what I have earned, what I am owed, what I can work on next. */
-export default async function HomePage() {
+export default function HomePage() {
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+      <Suspense fallback={<LoadingBlock rows={4} />}>
+        <HomeBody />
+      </Suspense>
+    </div>
+  );
+}
+
+async function HomeBody() {
   const viewer = await getPrototypeViewer();
   const home = await syntheticHomeRepository.getPersonalHome(viewer);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+    <>
       <OperationalHeader
         displayName={home.member.displayName}
         initials={home.member.initials}
@@ -63,6 +84,6 @@ export default async function HomePage() {
           </ul>
         )}
       </section>
-    </div>
+    </>
   );
 }

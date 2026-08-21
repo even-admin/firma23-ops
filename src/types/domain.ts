@@ -41,6 +41,95 @@ export interface Project {
   readonly activeAllocationRuleVersionId: string | null;
 }
 
+export interface MilestoneTemplate {
+  readonly id: string;
+  readonly serviceVersionId: string;
+  readonly position: number;
+  readonly name: string;
+  readonly description: string;
+}
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'done' | 'blocked';
+
+export interface OpportunityMilestone {
+  readonly id: string;
+  readonly opportunityId: string;
+  readonly templateId: string;
+  readonly position: number;
+  readonly name: string;
+  readonly status: MilestoneStatus;
+  readonly dueAt: string | null;
+  readonly completedAt: string | null;
+  readonly assignedMemberId: string | null;
+}
+
+export type EvidenceKind = 'link' | 'image' | 'video' | 'document';
+
+export interface EvidenceLink {
+  readonly id: string;
+  readonly opportunityMilestoneId: string;
+  readonly label: string;
+  readonly url: string;
+  readonly kind: EvidenceKind;
+  readonly submittedByMemberId: string;
+  readonly submittedAt: string;
+}
+
+export type SkillLevel = 'learning' | 'working' | 'strong' | 'lead';
+export type VerificationStatus = 'self_reported' | 'verified';
+
+export interface Skill {
+  readonly id: string;
+  readonly key: string;
+  readonly name: string;
+  readonly family: string;
+}
+
+export interface MemberSkill {
+  readonly id: string;
+  readonly memberId: string;
+  readonly skillId: string;
+  readonly level: SkillLevel;
+  readonly verification: VerificationStatus;
+}
+
+export type Availability = 'open' | 'limited' | 'unavailable';
+
+export interface MemberProfile {
+  readonly memberId: string;
+  readonly bio: string;
+  readonly availability: Availability;
+  readonly nextCapability: string;
+  readonly joinedAt: string;
+}
+
+export interface PortfolioItem {
+  readonly id: string;
+  readonly memberId: string;
+  readonly title: string;
+  readonly roleLabel: string;
+  readonly url: string;
+  readonly kind: EvidenceKind;
+  readonly verification: VerificationStatus;
+  readonly completedAt: string;
+}
+
+export type StatEventType =
+  | 'opportunity_closed'
+  | 'delivery_completed'
+  | 'delivered_on_time'
+  | 'delivered_late'
+  | 'revision_requested'
+  | 'accepted_first_pass';
+
+export interface StatEvent {
+  readonly id: string;
+  readonly memberId: string;
+  readonly opportunityId: string;
+  readonly type: StatEventType;
+  readonly occurredAt: string;
+}
+
 export interface ServiceVersion {
   readonly id: string;
   readonly projectId: string;

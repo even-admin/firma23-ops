@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "50000000-0000-4000-8000-000000000021",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000012",
+      "position": 1,
+      "name": "Descubrimiento técnico",
+      "description": "Accesos, datos disponibles y criterios de éxito"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000022",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000012",
+      "position": 2,
+      "name": "Construcción de flujos",
+      "description": "Dos flujos automatizados en ambiente de pruebas"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000023",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000012",
+      "position": 3,
+      "name": "Puesta en producción",
+      "description": "Despliegue, monitoreo y traspaso al cliente"
+    }
+  ]
+}

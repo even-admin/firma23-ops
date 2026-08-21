@@ -191,8 +191,13 @@ export function formatMoney(value: Money, options: FormatMoneyOptions = {}): str
   return options.withCurrencyCode === true ? `${signed} ${value.currency}` : signed;
 }
 
-/** Render basis points as a percentage label, e.g. 3000 -> "30%", 3550 -> "35.5%". */
-export function formatBasisPoints(bp: BasisPoints): string {
+/**
+ * Render basis points as a percentage label, e.g. 3000 -> "30%", 3550 -> "35.5%".
+ *
+ * Accepts a plain number because callers legitimately format unvalidated totals,
+ * such as a delivery pool whose weights do not yet add up to 10,000.
+ */
+export function formatBasisPoints(bp: BasisPoints | number): string {
   const whole = Math.trunc(bp / 100);
   const fraction = bp % 100;
   if (fraction === 0) return `${whole}%`;

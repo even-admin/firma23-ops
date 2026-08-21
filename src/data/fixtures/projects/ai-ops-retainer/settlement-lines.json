@@ -1,0 +1,69 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "40000000-0000-4000-8000-000000000011",
+      "settlementId": "20000000-0000-4000-8000-000000000011",
+      "shareKey": "house",
+      "recipientKind": "house",
+      "recipientLabel": "EVEN",
+      "memberId": null,
+      "roleLabel": "Casa",
+      "weightBp": 10000,
+      "amountCentavos": 625000,
+      "currency": "MXN",
+      "payoutStatus": "paid",
+      "paidAt": "2026-07-22",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000034",
+      "sequence": 1
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000012",
+      "settlementId": "20000000-0000-4000-8000-000000000011",
+      "shareKey": "closer",
+      "recipientKind": "closer",
+      "recipientLabel": "Diego Martínez Herrera",
+      "memberId": "b0000000-0000-4000-8000-000000000002",
+      "roleLabel": "Cierre",
+      "weightBp": 10000,
+      "amountCentavos": 625000,
+      "currency": "MXN",
+      "payoutStatus": "paid",
+      "paidAt": "2026-07-22",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000035",
+      "sequence": 2
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000013",
+      "settlementId": "20000000-0000-4000-8000-000000000011",
+      "shareKey": "delivery",
+      "recipientKind": "delivery_pool",
+      "recipientLabel": "Emiliano Pasos",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "roleLabel": "Ingeniería de agentes",
+      "weightBp": 6000,
+      "amountCentavos": 750000,
+      "currency": "MXN",
+      "payoutStatus": "paid",
+      "paidAt": "2026-07-22",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000036",
+      "sequence": 3
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000014",
+      "settlementId": "20000000-0000-4000-8000-000000000011",
+      "shareKey": "delivery",
+      "recipientKind": "delivery_pool",
+      "recipientLabel": "Diego Martínez Hernández",
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "roleLabel": "Integraciones",
+      "weightBp": 4000,
+      "amountCentavos": 500000,
+      "currency": "MXN",
+      "payoutStatus": "paid",
+      "paidAt": "2026-07-22",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000036",
+      "sequence": 4
+    }
+  ]
+}

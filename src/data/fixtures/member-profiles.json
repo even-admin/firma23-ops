@@ -1,0 +1,47 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000001",
+      "bio": "Fundador. Arma proyectos, negocia con sponsors y aprueba liquidaciones.",
+      "availability": "limited",
+      "nextCapability": "Modelado de márgenes por proyecto",
+      "joinedAt": "2026-01-10"
+    },
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000002",
+      "bio": "Fundador. Cierra cuentas y coordina la operación entre proyectos.",
+      "availability": "limited",
+      "nextCapability": "Automatización de reportes de avance",
+      "joinedAt": "2026-01-10"
+    },
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "bio": "Cierra beneficiarios en campo y produce el material audiovisual del paquete.",
+      "availability": "open",
+      "nextCapability": "Motion graphics para reels",
+      "joinedAt": "2026-02-03"
+    },
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "bio": "Construye los flujos automatizados y los agentes que sostienen la operación.",
+      "availability": "limited",
+      "nextCapability": "Evaluaciones automáticas de agentes",
+      "joinedAt": "2026-02-03"
+    },
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "bio": "Diseño gráfico e identidad. Responsable de la consistencia visual de las entregas.",
+      "availability": "open",
+      "nextCapability": "Sistemas de diseño reutilizables",
+      "joinedAt": "2026-02-17"
+    },
+    {
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "bio": "Copy y guion para el kit de contenido, más integraciones de datos.",
+      "availability": "open",
+      "nextCapability": "Frontend con React",
+      "joinedAt": "2026-03-02"
+    }
+  ]
+}

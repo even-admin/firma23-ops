@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "c0000000-0000-4000-8000-000000000002",
+      "slug": "ai-ops-retainer",
+      "name": "AI Ops Retainer",
+      "sponsorName": "Grupo Industrial Peninsular",
+      "status": "active",
+      "currency": "MXN",
+      "activeAllocationRuleVersionId": "e0000000-0000-4000-8000-000000000002"
+    }
+  ]
+}

@@ -1,12 +1,15 @@
+import { Suspense } from 'react';
+
 import { OpportunityRow } from '@/components/opportunity/OpportunityRow';
 import { EmptyState } from '@/components/state/EmptyState';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
+import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getPrototypeViewer } from '@/data/prototype-viewer-session';
 import { syntheticSettlementRepository } from '@/data/repositories/synthetic/settlements';
 import { isFounder } from '@/lib/viewer';
 
-export default async function OpportunitiesPage() {
+async function OpportunitiesBody() {
   const viewer = await getPrototypeViewer();
 
   // Full financial detail is founder-only. In M2 this is a Postgres policy, not a
@@ -54,6 +57,28 @@ export default async function OpportunitiesPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/*
+ * Loading UI lives in a Suspense boundary inside the page, not a segment-level
+ * loading.tsx. A loading.tsx anywhere above a dynamic route flushes the stream
+ * immediately, which locks the response status at 200 and makes notFound() serve
+ * the not-found UI with a 200 instead of a 404.
+ */
+export default function OpportunitiesPage() {
+  return (
+    <Suspense fallback={<LoadingWrap />}>
+      <OpportunitiesBody />
+    </Suspense>
+  );
+}
+
+function LoadingWrap() {
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      <LoadingBlock rows={4} />
     </div>
   );
 }

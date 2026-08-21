@@ -1,0 +1,32 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "10000000-0000-4000-8000-000000000021",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "memberId": "b0000000-0000-4000-8000-000000000002",
+      "roleKey": "closer",
+      "roleLabel": "Cierre",
+      "weightBp": 10000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000022",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "roleKey": "delivery",
+      "roleLabel": "Ingeniería de agentes",
+      "weightBp": 6000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000023",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "roleKey": "delivery",
+      "roleLabel": "Integraciones",
+      "weightBp": 4000,
+      "status": "approved"
+    }
+  ]
+}

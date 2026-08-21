@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "c0000000-0000-4000-8000-000000000003",
+      "slug": "even-internal-2026",
+      "name": "EVEN Interno 2026",
+      "sponsorName": "EVEN",
+      "status": "draft",
+      "currency": "MXN",
+      "activeAllocationRuleVersionId": null
+    }
+  ]
+}

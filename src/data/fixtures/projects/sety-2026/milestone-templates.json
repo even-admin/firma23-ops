@@ -1,0 +1,96 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "50000000-0000-4000-8000-000000000001",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "name": "Kickoff y brief",
+      "description": "Reunión inicial, objetivos y accesos del beneficiario"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000002",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 2,
+      "name": "Guion y calendario",
+      "description": "Guiones aprobados y calendario de publicación"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000003",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "name": "Ocho posts estáticos",
+      "description": "Ocho piezas gráficas fijas listas para publicar"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000004",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 4,
+      "name": "Ocho videos o reels",
+      "description": "Ocho piezas audiovisuales verticales"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000005",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 5,
+      "name": "Ocho carruseles",
+      "description": "Ocho carruseles de tres láminas cada uno"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000006",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 6,
+      "name": "Manual de uso",
+      "description": "Guía de publicación y buenas prácticas"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000007",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "position": 7,
+      "name": "Entrega y aceptación",
+      "description": "Entrega final y confirmación del beneficiario"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000008",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000001",
+      "position": 1,
+      "name": "Investigación de marca",
+      "description": "Referencias, competencia y territorio visual"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000009",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000001",
+      "position": 2,
+      "name": "Propuesta de identidad",
+      "description": "Logotipo, paleta y tipografía"
+    },
+    {
+      "id": "50000000-0000-4000-8000-00000000000a",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000001",
+      "position": 3,
+      "name": "Manual de marca",
+      "description": "Reglas de uso y entrega de archivos"
+    },
+    {
+      "id": "50000000-0000-4000-8000-00000000000b",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000002",
+      "position": 1,
+      "name": "Estructura y copy",
+      "description": "Arquitectura de la página y textos"
+    },
+    {
+      "id": "50000000-0000-4000-8000-00000000000c",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "name": "Diseño y armado",
+      "description": "Maquetado responsivo"
+    },
+    {
+      "id": "50000000-0000-4000-8000-00000000000d",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000002",
+      "position": 3,
+      "name": "Publicación",
+      "description": "Dominio, formulario y puesta en línea"
+    }
+  ]
+}

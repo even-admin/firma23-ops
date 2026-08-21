@@ -1,0 +1,23 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "d0000000-0000-4000-8000-000000000011",
+      "projectId": "c0000000-0000-4000-8000-000000000002",
+      "key": "ops-audit",
+      "name": "Auditoría de operación",
+      "version": 1,
+      "deliverablesSummary": "Mapa de procesos, cuellos de botella y plan de automatización",
+      "immutable": true
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000012",
+      "projectId": "c0000000-0000-4000-8000-000000000002",
+      "key": "agent-buildout",
+      "name": "Implementación de agentes",
+      "version": 2,
+      "deliverablesSummary": "Dos flujos automatizados en producción con monitoreo",
+      "immutable": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "60000000-0000-4000-8000-000000000031",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "templateId": "50000000-0000-4000-8000-000000000021",
+      "position": 1,
+      "name": "Descubrimiento técnico",
+      "status": "done",
+      "dueAt": "2026-05-15",
+      "completedAt": "2026-05-12",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000032",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "templateId": "50000000-0000-4000-8000-000000000022",
+      "position": 2,
+      "name": "Construcción de flujos",
+      "status": "done",
+      "dueAt": "2026-06-15",
+      "completedAt": "2026-06-12",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000033",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "templateId": "50000000-0000-4000-8000-000000000023",
+      "position": 3,
+      "name": "Puesta en producción",
+      "status": "done",
+      "dueAt": "2026-07-15",
+      "completedAt": "2026-07-12",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    }
+  ]
+}

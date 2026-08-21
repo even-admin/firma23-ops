@@ -15,6 +15,7 @@ import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { money } from '@/lib/money';
+import { NAV_ITEMS } from '@/lib/nav';
 import type { HomeAssignment, MemberMoney } from '@/types/views';
 
 const memberMoney: MemberMoney = {
@@ -90,13 +91,19 @@ describe('NavRail', () => {
     );
   });
 
-  it('disables routes that do not exist yet instead of linking to a 404', () => {
+  it('links every built destination for a founder', () => {
     render(<NavRail role="founder" />);
-    for (const label of [copy.nav.network, copy.nav.leaderboard, copy.nav.admin]) {
-      const item = screen.getByText(label).closest('[aria-disabled="true"]');
-      expect(item).not.toBeNull();
+    for (const item of NAV_ITEMS) {
+      expect(screen.getByRole('link', { name: item.label })).toHaveAttribute('href', item.href);
     }
-    expect(screen.queryByRole('link', { name: copy.nav.network })).not.toBeInTheDocument();
+  });
+
+  it('renders an unreachable destination disabled rather than linking to a 404', () => {
+    // A member cannot reach Admin, so that item exercises the disabled path.
+    render(<NavRail role="member" />);
+    const admin = screen.getByText(copy.nav.admin).closest('[aria-disabled="true"]');
+    expect(admin).not.toBeNull();
+    expect(admin?.className).toContain('cursor-not-allowed');
   });
 
   it('withholds founder-only destinations from a member viewer', () => {

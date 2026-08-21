@@ -8,18 +8,31 @@ import { cn } from '@/lib/cn';
 /**
  * The Revenue Rail.
  *
- * One component, five contexts. Slice 1 implements the `row` variant only; the
- * detail, dashboard, approval, and provenance variants widen this union in later
- * slices rather than forking into separate components.
+ * One component, five contexts: the board row, the opportunity financial detail,
+ * the founder finance dashboard, the settlement approval preview, and leaderboard
+ * provenance. Variants change density and which provenance is spelled out; they
+ * never change what the rail is allowed to claim about the money.
  */
+export type RevenueRailVariant = 'row' | 'detail' | 'dashboard' | 'approval' | 'provenance';
+
 interface RevenueRailProps {
   readonly model: RailModel;
-  readonly variant?: 'row';
+  readonly variant?: RevenueRailVariant;
   readonly className?: string;
 }
 
+/** Dense variants stack segments; roomy ones let them sit side by side. */
+const SEGMENT_LAYOUT: Record<RevenueRailVariant, string> = {
+  row: 'flex flex-col gap-2 sm:flex-row sm:items-stretch',
+  detail: 'flex flex-col gap-3 lg:flex-row lg:items-stretch',
+  dashboard: 'flex flex-col gap-2 sm:flex-row sm:items-stretch',
+  approval: 'flex flex-col gap-3 lg:flex-row lg:items-stretch',
+  provenance: 'flex flex-col gap-2',
+};
+
 export function RevenueRail({ model, variant = 'row', className }: RevenueRailProps) {
   const settled = model.kind === 'settlement';
+  const showBase = variant === 'detail' || variant === 'approval' || variant === 'provenance';
 
   return (
     <section
@@ -41,12 +54,20 @@ export function RevenueRail({ model, variant = 'row', className }: RevenueRailPr
         ) : (
           <span className="text-muted text-xs">{copy.money.notEarnedYet}</span>
         )}
+        {showBase ? (
+          <span className="text-faint text-xs">
+            {copy.money.base}: <Amount value={model.base} />
+          </span>
+        ) : null}
+        {settled && showBase ? (
+          <span className="text-faint text-xs">{model.basePolicyLabel}</span>
+        ) : null}
         {!settled && !model.fullyAssigned ? (
           <span className="text-attention text-xs">{copy.rail.incompleteAssignment}</span>
         ) : null}
       </header>
 
-      <ul className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+      <ul className={SEGMENT_LAYOUT[variant]}>
         {model.segments.map((segment) => (
           <RailSegment key={segment.key} segment={segment} settled={settled} />
         ))}

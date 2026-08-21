@@ -52,6 +52,13 @@ const config = [
   },
   {
     rules: {
+      // A leading underscore marks a parameter kept deliberately. Repositories carry
+      // ViewerContext in every signature even where M1 does not read it, because M2
+      // will, and the call sites must not change then.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
       eqeqeq: ['error', 'always'],
