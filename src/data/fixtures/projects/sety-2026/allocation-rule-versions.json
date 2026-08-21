@@ -1,0 +1,42 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "e0000000-0000-4000-8000-000000000001",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "effectiveFrom": "2026-01-15",
+      "currency": "MXN",
+      "immutable": true,
+      "basePolicy": {
+        "kind": "cash_event_types",
+        "includeTypes": ["deposit"],
+        "label": "Depósito Secretaría únicamente",
+        "note": "La contribución del beneficiario se registra como efectivo recibido y queda fuera de la base distribuible."
+      },
+      "shares": [
+        {
+          "key": "house",
+          "kind": "house",
+          "label": "Casa",
+          "weightBp": 3000,
+          "recipientOrgId": "a0000000-0000-4000-8000-000000000002"
+        },
+        {
+          "key": "closer",
+          "kind": "closer",
+          "label": "Cierre",
+          "weightBp": 2000,
+          "recipientOrgId": null
+        },
+        {
+          "key": "delivery",
+          "kind": "delivery_pool",
+          "label": "Producción",
+          "weightBp": 5000,
+          "recipientOrgId": null
+        }
+      ]
+    }
+  ]
+}

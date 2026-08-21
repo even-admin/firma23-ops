@@ -1,0 +1,27 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "f0000000-0000-4000-8000-000000000001",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "code": "SETY-0142",
+      "beneficiaryName": "Tortillería La Ceiba",
+      "beneficiaryLocation": "Mérida, Yucatán",
+      "status": "in_delivery",
+      "openedAt": "2026-07-28"
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000000002",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "code": "SETY-0137",
+      "beneficiaryName": "Refaccionaria Maya Norte",
+      "beneficiaryLocation": "Progreso, Yucatán",
+      "status": "settled_approved",
+      "openedAt": "2026-06-19"
+    }
+  ]
+}
