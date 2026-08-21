@@ -15,7 +15,7 @@ describe('fixture validation', () => {
     expect(dataset.projects.size).toBe(1);
     expect(dataset.serviceVersions.size).toBe(3);
     expect(dataset.allocationRuleVersions.size).toBe(1);
-    expect(dataset.opportunities).toHaveLength(2);
+    expect(dataset.opportunities).toHaveLength(3);
   });
 
   it('memoises, so repeated loads are the same object', () => {
@@ -69,9 +69,9 @@ describe('referential integrity', () => {
     }
   });
 
-  it('has a pending settlement carrying no lines at all', () => {
+  it('has pending settlements carrying no lines at all', () => {
     const pending = dataset.settlements.filter((entry) => entry.status === 'pending');
-    expect(pending).toHaveLength(1);
+    expect(pending).toHaveLength(2);
     for (const settlement of pending) {
       expect(
         dataset.settlementLines.filter((line) => line.settlementId === settlement.id),
@@ -127,10 +127,14 @@ describe('referential integrity', () => {
 });
 
 describe('settlement repository', () => {
-  it('returns one projected rail and one approved rail', async () => {
+  it('returns a rail per opportunity, projected until a founder approves', async () => {
     const cards = await syntheticSettlementRepository.listOpportunityRails(PROTOTYPE_FOUNDER);
-    expect(cards).toHaveLength(2);
-    expect(cards.map((card) => card.rail.kind).sort()).toEqual(['projection', 'settlement']);
+    expect(cards).toHaveLength(3);
+    expect(cards.map((card) => card.rail.kind).sort()).toEqual([
+      'projection',
+      'projection',
+      'settlement',
+    ]);
   });
 
   it('reports the confirmed SETY base and cash received on both opportunities', async () => {

@@ -8,20 +8,7 @@
 import type { DistributableBase, RailModel } from '@/lib/allocation';
 import type { Money } from '@/lib/money';
 import type { ViewerContext } from '@/lib/viewer';
-import type { OpportunityStatus } from '@/types/domain';
-
-export interface OpportunitySummary {
-  readonly id: string;
-  readonly code: string;
-  readonly beneficiaryName: string;
-  readonly beneficiaryLocation: string;
-  readonly status: OpportunityStatus;
-  readonly projectName: string;
-  readonly projectSlug: string;
-  readonly serviceName: string;
-  readonly serviceVersion: number;
-  readonly openedAt: string;
-}
+import type { OpportunitySummary } from '@/types/views';
 
 export interface OpportunityRailCard {
   readonly opportunity: OpportunitySummary;

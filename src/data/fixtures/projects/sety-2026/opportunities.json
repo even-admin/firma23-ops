@@ -22,6 +22,17 @@
       "beneficiaryLocation": "Progreso, Yucatán",
       "status": "settled_approved",
       "openedAt": "2026-06-19"
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000000003",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "serviceVersionId": "d0000000-0000-4000-8000-000000000003",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "code": "SETY-0149",
+      "beneficiaryName": "Miel Kaab",
+      "beneficiaryLocation": "Tekax, Yucatán",
+      "status": "delivered",
+      "openedAt": "2026-08-05"
     }
   ]
 }
