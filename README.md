@@ -17,4 +17,12 @@ This repository is intentionally separate from the FIRMA23 public website.
 
 ## Current status
 
-Greenfield repository. No application code, dependencies, credentials, Supabase project, or Vercel project has been created yet.
+Milestone M1 is in progress. The Next.js application, dependencies, design tokens, and the money and allocation core exist and run locally on synthetic data.
+
+Cloud state, verified 2026-08-21:
+
+- GitHub repository connected.
+- Vercel project `firma23-ops` exists. No deployment has been created.
+- Supabase development project `firma23-ops` exists in `us-east-1`, project ref `agsfxtbgwlkcwfyrykfo`.
+
+M1 does not read, modify, migrate, or deploy either cloud resource. The application renders entirely from versioned fixture data with no credentials and no environment variables. Schema work begins in M2 and requires separate approval.

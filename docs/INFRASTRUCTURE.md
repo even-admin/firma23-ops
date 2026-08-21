@@ -26,18 +26,23 @@ Do not start parallel foundation workspaces. M1 shares application structure, da
 - Project: `firma23-ops`.
 - Git repository: `even-admin/firma23-ops`.
 - Local link metadata is stored under ignored `.vercel/`.
-- No deployment has been created yet.
+- No deployment has been created. M1 must not create one.
 
 Vercel generated an ignored `.env.local` containing local project credentials. Never commit or print that file. Git integration should create preview deployments only after the application exists and a non-production branch is pushed.
 
 ## Supabase
 
-Pending a separate `FIRMA23` organization. The currently connected Supabase account exposes only the `ATIAL` organization, which is intentionally out of scope for this project.
+- Development project: `firma23-ops`.
+- Region: `us-east-1`.
+- Project ref: `agsfxtbgwlkcwfyrykfo`.
 
-Before creating the Supabase project:
+The project exists and is empty. No schema, migration, seed, or Row Level Security policy has been applied.
 
-1. Create or connect the `FIRMA23` organization.
-2. Query and show the exact recurring project cost.
-3. Obtain explicit cost confirmation.
-4. Create the project in `us-east-1` unless a better approved region is selected.
-5. Do not apply schema until the M2 migration is reviewed.
+M1 must not access, modify, migrate, or deploy this project. The local prototype renders from versioned fixture data and requires no Supabase credentials.
+
+Before the first migration in M2:
+
+1. Confirm the organization and the exact recurring project cost.
+2. Review the migration for the invariants in `ARCHITECTURE.md`, in particular Row Level Security on every exposed table.
+3. Obtain explicit approval to apply schema.
+4. Keep a production project separate from this development project.
