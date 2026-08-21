@@ -12,12 +12,30 @@ This repository is intentionally separate from the FIRMA23 public website.
 
 1. Read `AGENTS.md`.
 2. Read every file under `docs/`.
-3. In Conductor, begin with the prompt in `docs/CONDUCTOR-START.md` using Plan Mode.
-4. Do not create a production Supabase project or Vercel deployment until the local prototype and financial rules have been approved.
+3. For UI and UX work on the current prototype, read `docs/M1-HANDOFF.md`.
+4. In Conductor, begin with the prompt in `docs/CONDUCTOR-START.md` using Plan Mode.
+5. Do not create a production Supabase project or Vercel deployment until the local prototype and financial rules have been approved.
+
+## Running it locally
+
+```bash
+npm install
+npm run dev
+```
+
+No environment variables and no external services are required. The prototype renders entirely from versioned fixture data. Visit `/dev/states` to see every data component in every state.
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Local development server |
+| `npm run lint` | ESLint, including the layer-boundary rules |
+| `npm run typecheck` | `tsc --noEmit` in strict mode |
+| `npm test` | Vitest, non-watch |
+| `npm run build` | Production build |
 
 ## Current status
 
-Milestone M1 is in progress. The Next.js application, dependencies, design tokens, and the money and allocation core exist and run locally on synthetic data.
+Milestone M1 engineering is complete and verified: fourteen routes, three synthetic projects, and the money and allocation core, all running locally with no external services. Visual and interaction polish is the next step; see `docs/M1-HANDOFF.md`.
 
 Cloud state, verified 2026-08-21:
 
