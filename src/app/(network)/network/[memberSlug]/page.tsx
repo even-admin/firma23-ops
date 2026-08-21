@@ -21,8 +21,7 @@ export default async function OperatorProfilePage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="sr-only">{profile.displayName}</h1>
-      <OperatorCard operator={profile} linkToProfile={false} />
+      <OperatorCard operator={profile} linkToProfile={false} headingLevel="h1" />
 
       <section className="flex flex-col gap-3">
         <h2 className="label-micro text-faint">Habilidades</h2>

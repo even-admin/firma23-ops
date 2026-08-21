@@ -42,7 +42,7 @@ export function RevenueRail({ model, variant = 'row', className }: RevenueRailPr
       aria-label={settled ? copy.rail.settlementAria : copy.rail.projectionAria}
     >
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 className="label-micro text-faint">{copy.rail.label}</h3>
+        <p className="label-micro text-faint">{copy.rail.label}</p>
         <RailStateBadge state={settled ? 'approved' : 'projected'} />
         <span className="text-faint text-xs">
           {copy.money.rulePrefix} v{model.ruleVersion}

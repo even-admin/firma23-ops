@@ -10,6 +10,8 @@ import type { OperatorCardView } from '@/types/views';
 interface OperatorCardProps {
   readonly operator: OperatorCardView;
   readonly linkToProfile?: boolean;
+  /** h2 inside a directory list; h1 when the card is the subject of its page. */
+  readonly headingLevel?: 'h1' | 'h2';
 }
 
 /**
@@ -21,7 +23,13 @@ interface OperatorCardProps {
  *
  * Approved earnings only. A projection never appears on an identity surface.
  */
-export function OperatorCard({ operator, linkToProfile = true }: OperatorCardProps) {
+export function OperatorCard({
+  operator,
+  linkToProfile = true,
+  headingLevel = 'h2',
+}: OperatorCardProps) {
+  const Heading = headingLevel;
+
   return (
     <article className="border-line bg-surface/40 flex flex-col gap-4 rounded-lg border p-4 sm:p-5">
       <header className="flex items-start gap-3">
@@ -32,7 +40,7 @@ export function OperatorCard({ operator, linkToProfile = true }: OperatorCardPro
           {operator.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-ink-strong truncate text-base font-medium">
+          <Heading className="text-ink-strong truncate text-base font-medium">
             {linkToProfile ? (
               <Link
                 href={`/network/${operator.slug}`}
@@ -43,7 +51,7 @@ export function OperatorCard({ operator, linkToProfile = true }: OperatorCardPro
             ) : (
               operator.displayName
             )}
-          </h3>
+          </Heading>
           <p className="text-faint text-xs">
             {operator.role === 'founder' ? copy.viewer.founder : copy.viewer.member} ·{' '}
             {copy.network.joined} {operator.joinedAt}

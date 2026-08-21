@@ -78,6 +78,10 @@ export const copy = {
   board: {
     title: 'Oportunidades',
     subtitle: 'Trabajo creado por fundadores, con su riel de ingresos.',
+    filterProject: 'Proyecto',
+    filterStatus: 'Estado',
+    filterAll: 'Todas',
+    noMatches: 'Ninguna oportunidad coincide con el filtro',
   },
   projects: {
     title: 'Proyectos',

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { StatusPill } from '@/components/opportunity/StatusPill';
@@ -6,6 +8,7 @@ import type { Money } from '@/lib/money';
 import type { OpportunityStatus } from '@/types/domain';
 
 interface OpportunityRowProps {
+  readonly id: string;
   readonly code: string;
   readonly beneficiaryName: string;
   readonly beneficiaryLocation: string;
@@ -22,6 +25,7 @@ interface OpportunityRowProps {
 
 /** A board row: identity, status, where the base came from, and the rail. */
 export function OpportunityRow({
+  id,
   code,
   beneficiaryName,
   beneficiaryLocation,
@@ -39,7 +43,14 @@ export function OpportunityRow({
     <article className="border-line bg-surface/40 flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <h2 className="text-ink-strong truncate text-lg font-medium">{beneficiaryName}</h2>
+          <h2 className="text-ink-strong truncate text-lg font-medium">
+            <Link
+              href={`/opportunities/${id}`}
+              className="hover:text-ink underline-offset-4 hover:underline"
+            >
+              {beneficiaryName}
+            </Link>
+          </h2>
           <p className="text-faint text-sm">
             {code} · {beneficiaryLocation} · {projectName} · {serviceName} v{serviceVersion}
           </p>
