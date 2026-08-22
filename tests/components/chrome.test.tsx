@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/opportunities',
@@ -176,6 +176,83 @@ describe('MobileTabBar', () => {
     render(<MobileTabBar role="member" />);
     expect(screen.getByRole('link', { name: copy.nav.home })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: copy.nav.opportunities })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * jsdom does not lay out real geometry (getBoundingClientRect is
+ * all-zero) or implement elementFromPoint meaningfully, so these mock both
+ * to exercise the actual hide/show decision — the thing that broke twice
+ * during manual verification (once by counting any DOM element as
+ * "content", once by measuring mid-transition geometry).
+ */
+describe('MobileTabBar hides only for real text behind its footprint', () => {
+  const navRect = {
+    top: 700,
+    bottom: 764,
+    left: 12,
+    right: 363,
+    width: 351,
+    height: 64,
+    x: 12,
+    y: 700,
+    toJSON() {
+      return this;
+    },
+  } as DOMRect;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // jsdom has no elementFromPoint at all, so it was assigned directly
+    // rather than spied on; restoreAllMocks does not undo a direct
+    // assignment, so each test must not leak it into the next one.
+    // @ts-expect-error -- deliberately deleting a property that does not
+    // exist on jsdom's Document type, to fully undo the test-only assignment.
+    delete document.elementFromPoint;
+  });
+
+  it('hides when a real text leaf sits behind it', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(navRect);
+    const leaf = document.createElement('span');
+    leaf.textContent = '$33,972.70';
+    document.elementFromPoint = vi.fn().mockReturnValue(leaf);
+
+    render(<MobileTabBar role="member" />);
+    const nav = await screen.findByRole('navigation', { name: copy.nav.mobile });
+    await waitFor(() => {
+      expect(nav.className).toContain('opacity-0');
+    });
+  });
+
+  it('does not hide for a wrapping container that merely contains text elsewhere', async () => {
+    // Regression test: elementFromPoint returning a non-leaf container
+    // (e.g. the flex row wrapping a label and an amount) must not count as
+    // "real content here" — the first version of this check did exactly
+    // that and left the bar hidden almost permanently on any page with
+    // more content below.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(navRect);
+    const wrapper = document.createElement('div');
+    const child = document.createElement('span');
+    child.textContent = 'Base aprobada';
+    wrapper.appendChild(child);
+    document.elementFromPoint = vi.fn().mockReturnValue(wrapper);
+
+    render(<MobileTabBar role="member" />);
+    const nav = await screen.findByRole('navigation', { name: copy.nav.mobile });
+    await waitFor(() => {
+      expect(nav.className).toContain('opacity-100');
+    });
+  });
+
+  it('stays visible when nothing is behind it', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(navRect);
+    document.elementFromPoint = vi.fn().mockReturnValue(null);
+
+    render(<MobileTabBar role="member" />);
+    const nav = await screen.findByRole('navigation', { name: copy.nav.mobile });
+    await waitFor(() => {
+      expect(nav.className).toContain('opacity-100');
+    });
   });
 });
 
