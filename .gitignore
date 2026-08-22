@@ -13,3 +13,5 @@ coverage/
 
 .vercel/
 .gstack/
+.vercel
+.env*
