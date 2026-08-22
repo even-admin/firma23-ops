@@ -58,9 +58,9 @@ async function NetworkBody({
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
           {copy.network.title}
         </h1>
         <p className="text-muted text-sm">{copy.network.subtitle}</p>
@@ -88,9 +88,9 @@ async function NetworkBody({
       {operators.length === 0 ? (
         <EmptyState title={copy.network.noMembers} />
       ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
+        <ul className="grid min-w-0 gap-4 lg:grid-cols-2">
           {operators.map((operator) => (
-            <li key={operator.memberId}>
+            <li key={operator.memberId} className="min-w-0">
               <OperatorCard operator={operator} />
             </li>
           ))}
@@ -116,7 +116,7 @@ export default function NetworkPage(props: Parameters<typeof NetworkBody>[0]) {
 
 function LoadingWrap() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
       <LoadingBlock rows={4} />
     </div>
   );

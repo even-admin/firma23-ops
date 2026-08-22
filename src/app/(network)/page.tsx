@@ -20,7 +20,7 @@ import { cn } from '@/lib/cn';
 /** Personal home: what I have earned, what I am owed, what I can work on next. */
 export default function HomePage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <Suspense fallback={<LoadingBlock rows={4} />}>
         <HomeBody />
       </Suspense>
@@ -39,6 +39,9 @@ async function HomeBody() {
         initials={home.member.initials}
         money={home.money}
         activeWorkCount={home.activeWorkCount}
+        activeAssignmentCodes={home.assignments
+          .filter((assignment) => assignment.active)
+          .map((assignment) => assignment.code)}
         primaryActionLabel={copy.home.primaryAction}
         primaryActionEnabled={home.activeWorkCount > 0}
       />

@@ -29,7 +29,7 @@ async function OpportunitiesBody({
   // branch; the branch exists so the denied state is reviewable now.
   if (!isFounder(viewer)) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 lg:px-10">
         <h1 className="text-ink-strong text-2xl font-medium tracking-tight">{copy.board.title}</h1>
         <PermissionDenied detail={copy.viewer.warning} />
       </div>
@@ -67,9 +67,9 @@ async function OpportunitiesBody({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
           {copy.board.title}
         </h1>
         <p className="text-muted text-sm">{copy.board.subtitle}</p>
@@ -138,7 +138,7 @@ export default function OpportunitiesPage(props: Parameters<typeof Opportunities
 
 function LoadingWrap() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
       <LoadingBlock rows={4} />
     </div>
   );

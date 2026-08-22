@@ -58,10 +58,10 @@ export function FilterChips({
             href={hrefFor(basePath, current, param, option.value)}
             aria-current={selected ? 'true' : undefined}
             className={cn(
-              'label-micro ease-firma flex min-h-9 items-center gap-1.5 rounded-sm border px-2.5 transition-colors duration-150',
+              'label-micro ease-firma flex min-h-11 items-center gap-1.5 rounded-sm border px-2.5 transition-colors duration-150 md:min-h-9',
               selected
-                ? 'border-line-strong bg-raised text-ink-strong'
-                : 'border-line text-muted hover:text-ink',
+                ? 'border-ink-950 bg-ink-950 text-paper-000'
+                : 'border-line bg-surface text-muted hover:border-line-strong hover:text-ink',
             )}
           >
             {option.label}

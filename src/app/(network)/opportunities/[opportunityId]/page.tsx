@@ -24,7 +24,7 @@ export default async function OpportunityDetailPage({
 
   if (!isFounder(viewer)) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
         <PermissionDenied detail={copy.viewer.warning} />
       </div>
     );
@@ -34,19 +34,19 @@ export default async function OpportunityDetailPage({
   if (detail === null) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-2">
         <p className="label-micro text-faint">
           <Link
             href={`/projects/${detail.summary.projectSlug}`}
-            className="hover:text-ink underline-offset-4 hover:underline"
+            className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
           >
             {detail.summary.projectName}
           </Link>{' '}
           · {detail.summary.serviceName} v{detail.summary.serviceVersion}
         </p>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+          <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
             {detail.summary.beneficiaryName}
           </h1>
           <StatusPill status={detail.summary.status} />

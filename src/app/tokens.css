@@ -18,28 +18,50 @@
   --color-graphite-600: #2e3439;
   --color-steel-500: #6b747c;
   --color-steel-400: #8b949c;
-  --color-paper-100: #e9ecef;
+  /* Warm-neutral, so a raised paper surface never reads cool against the canvas. */
+  --color-paper-100: #eaeae7;
+  --color-paper-050: #f5f5f2;
   --color-paper-000: #ffffff;
-  --color-ledger-500: #2e9e6b;
-  --color-amber-500: #c79226;
-  --color-red-500: #c0504a;
+  --color-ledger-500: #147a4b;
+  --color-amber-500: #a86f13;
+  --color-red-500: #b13b36;
 
   /* Semantic surfaces and text */
-  --color-bg: var(--color-ink-950);
-  --color-surface: var(--color-ink-900);
-  --color-raised: var(--color-ink-850);
-  --color-line: var(--color-graphite-700);
-  --color-line-strong: var(--color-graphite-600);
-  --color-ink: var(--color-paper-100);
-  --color-ink-strong: var(--color-paper-000);
-  --color-muted: var(--color-steel-400);
-  --color-faint: var(--color-steel-500);
+  --color-bg: var(--color-paper-000);
+  --color-surface: var(--color-paper-000);
+  --color-raised: var(--color-paper-100);
+  --color-line: #deded9;
+  --color-line-strong: #b9bbb7;
+  --color-ink: var(--color-ink-900);
+  --color-ink-strong: var(--color-ink-950);
+  --color-muted: #5f6467;
+  --color-faint: #858a8d;
+
+  /*
+   * Navigation chrome.
+   *
+   * The rail sits on the same white field as the product. Structure comes from
+   * the collapsed shape, restrained borders, and black type rather than a dark
+   * block behind the interface.
+   */
+  --color-rail: var(--color-paper-000);
+  --color-rail-hover: #f2f3f4;
+  --color-rail-raised: #eceff1;
+  --color-rail-line: #eceeed;
+  --color-rail-line-strong: #d7dcdf;
+  --color-rail-ink: var(--color-ink-950);
+  --color-rail-muted: #3f464b;
+  --color-rail-faint: #858d93;
 
   /* Reserved accents */
   --color-money: var(--color-ledger-500);
   --color-attention: var(--color-amber-500);
+  /* The same reserved amber, lifted to stay legible on the ink rail. */
+  --color-attention-rail: #e0a63a;
   --color-danger: var(--color-red-500);
-  --color-focus: var(--color-paper-100);
+  --color-focus: var(--color-ink-950);
+  /* An ink focus ring is invisible on the ink rail. */
+  --color-focus-inverse: var(--color-ink-950);
 
   /* Typography */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -56,10 +78,10 @@
   --ease-firma: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Light theme keeps the same semantic names. Dark is the default. */
+/* The private console uses FIRMA23's dominant paper field by default. */
 :root.light {
   --color-bg: var(--color-paper-000);
-  --color-surface: #f6f7f8;
+  --color-surface: var(--color-paper-000);
   --color-raised: var(--color-paper-100);
   --color-line: #d8dcdf;
   --color-line-strong: #bcc3c8;

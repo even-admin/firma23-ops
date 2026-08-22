@@ -20,7 +20,7 @@ export default async function OperatorProfilePage({
   if (profile === null) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <OperatorCard operator={profile} linkToProfile={false} headingLevel="h1" />
 
       <section className="flex flex-col gap-3">
@@ -44,7 +44,7 @@ export default async function OperatorProfilePage({
                   <a
                     href={item.url}
                     rel="noreferrer noopener"
-                    className="text-ink hover:text-ink-strong block truncate text-sm underline decoration-dotted underline-offset-4"
+                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline decoration-dotted underline-offset-4 md:min-h-0"
                   >
                     {item.title}
                   </a>

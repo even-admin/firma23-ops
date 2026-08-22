@@ -15,9 +15,9 @@ async function LeaderboardBody() {
   const rows = await syntheticLeaderboardRepository.list(viewer);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
           {copy.leaderboard.title}
         </h1>
         <p className="text-muted text-sm">{copy.leaderboard.subtitle}</p>
@@ -45,7 +45,7 @@ async function LeaderboardBody() {
                 <span className="min-w-0 flex-1">
                   <Link
                     href={`/network/${row.slug}`}
-                    className="text-ink hover:text-ink-strong block truncate text-sm font-medium underline-offset-4 hover:underline"
+                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm font-medium underline-offset-4 hover:underline md:min-h-0"
                   >
                     {row.displayName}
                   </Link>
@@ -83,7 +83,7 @@ async function LeaderboardBody() {
                 </span>
                 <Link
                   href={`/leaderboard/${row.slug}/provenance`}
-                  className="text-faint hover:text-ink ml-auto text-xs underline decoration-dotted underline-offset-4"
+                  className="text-faint hover:text-ink ml-auto inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 md:min-h-0"
                 >
                   {copy.leaderboard.provenance}
                 </Link>
@@ -114,7 +114,7 @@ export default function LeaderboardPage() {
 
 function LoadingWrap() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
       <LoadingBlock rows={4} />
     </div>
   );

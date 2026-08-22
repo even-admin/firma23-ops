@@ -23,11 +23,11 @@ interface RevenueRailProps {
 
 /** Dense variants stack segments; roomy ones let them sit side by side. */
 const SEGMENT_LAYOUT: Record<RevenueRailVariant, string> = {
-  row: 'flex flex-col gap-2 sm:flex-row sm:items-stretch',
-  detail: 'flex flex-col gap-3 lg:flex-row lg:items-stretch',
-  dashboard: 'flex flex-col gap-2 sm:flex-row sm:items-stretch',
-  approval: 'flex flex-col gap-3 lg:flex-row lg:items-stretch',
-  provenance: 'flex flex-col gap-2',
+  row: 'flex flex-col lg:flex-row lg:items-stretch',
+  detail: 'flex flex-col lg:flex-row lg:items-stretch',
+  dashboard: 'flex flex-col lg:flex-row lg:items-stretch',
+  approval: 'flex flex-col lg:flex-row lg:items-stretch',
+  provenance: 'flex flex-col',
 };
 
 export function RevenueRail({ model, variant = 'row', className }: RevenueRailProps) {
@@ -42,7 +42,7 @@ export function RevenueRail({ model, variant = 'row', className }: RevenueRailPr
       aria-label={settled ? copy.rail.settlementAria : copy.rail.projectionAria}
     >
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="label-micro text-faint">{copy.rail.label}</p>
+        <p className="label-micro text-ink-strong font-semibold">{copy.rail.label}</p>
         <RailStateBadge state={settled ? 'approved' : 'projected'} />
         <span className="text-faint text-xs">
           {copy.money.rulePrefix} v{model.ruleVersion}
@@ -67,7 +67,27 @@ export function RevenueRail({ model, variant = 'row', className }: RevenueRailPr
         ) : null}
       </header>
 
-      <ul className={SEGMENT_LAYOUT[variant]}>
+      <div aria-hidden="true" className="bg-line flex h-1 w-full overflow-hidden rounded-full">
+        {model.segments.map((segment) => (
+          <span
+            key={segment.key}
+            className={
+              settled
+                ? 'bg-money border-surface border-r last:border-r-0'
+                : 'bg-line-strong border-bg border-r last:border-r-0'
+            }
+            style={{ flexGrow: segment.weightBp, flexBasis: 0 }}
+          />
+        ))}
+      </div>
+
+      <ul
+        className={cn(
+          SEGMENT_LAYOUT[variant],
+          'overflow-hidden rounded-md border',
+          settled ? 'border-money/40' : 'border-line-strong border-dashed',
+        )}
+      >
         {model.segments.map((segment) => (
           <RailSegment key={segment.key} segment={segment} settled={settled} />
         ))}

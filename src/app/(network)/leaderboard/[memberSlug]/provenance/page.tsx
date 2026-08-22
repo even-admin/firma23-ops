@@ -25,10 +25,10 @@ export default async function ProvenancePage({
   if (provenance === null) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-2">
         <p className="label-micro text-faint">{copy.leaderboard.provenanceTitle}</p>
-        <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
           {provenance.displayName}
         </h1>
         <p className="text-muted text-sm">{copy.leaderboard.provenanceSubtitle}</p>
@@ -60,7 +60,7 @@ export default async function ProvenancePage({
               <span className="min-w-0 flex-1">
                 <Link
                   href={`/opportunities/${entry.opportunityId}`}
-                  className="text-ink hover:text-ink-strong block truncate text-sm underline-offset-4 hover:underline"
+                  className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline md:min-h-0"
                 >
                   {entry.beneficiaryName}
                 </Link>

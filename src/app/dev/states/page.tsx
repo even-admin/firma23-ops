@@ -103,7 +103,7 @@ export default async function StateGalleryPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-12 px-4 py-10 sm:px-6">
       <header className="flex flex-col gap-1">
         <p className="label-micro text-faint">Solo desarrollo</p>
         <h1 className="text-ink-strong text-2xl font-medium tracking-tight">Galería de estados</h1>

@@ -31,20 +31,20 @@ export function OperatorCard({
   const Heading = headingLevel;
 
   return (
-    <article className="border-line bg-surface/40 flex flex-col gap-4 rounded-lg border p-4 sm:p-5">
-      <header className="flex items-start gap-3">
+    <article className="border-line bg-surface ease-firma hover:border-line-strong flex h-full min-w-0 flex-col gap-4 rounded-lg border p-4 transition-colors duration-150 sm:p-5">
+      <header className="flex flex-wrap items-start gap-3">
         <span
           aria-hidden="true"
-          className="border-line-strong text-muted label-micro flex size-10 shrink-0 items-center justify-center rounded-full border font-medium"
+          className="bg-ink-950 text-paper-000 label-micro flex size-11 shrink-0 items-center justify-center rounded-full font-medium"
         >
           {operator.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <Heading className="text-ink-strong truncate text-base font-medium">
+          <Heading className="text-ink-strong truncate text-lg font-medium tracking-[-0.02em]">
             {linkToProfile ? (
               <Link
                 href={`/network/${operator.slug}`}
-                className="hover:text-ink underline-offset-4 hover:underline"
+                className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
               >
                 {operator.displayName}
               </Link>
@@ -66,7 +66,7 @@ export function OperatorCard({
 
       <StatGrid stats={operator.stats} />
 
-      <footer className="border-line flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t pt-3">
+      <footer className="border-line mt-auto grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-[auto_auto_1fr]">
         <span>
           <span className="label-micro text-faint block">{copy.money.approved}</span>
           <Amount value={operator.approvedEarnings} className="text-money text-base font-medium" />
@@ -75,7 +75,7 @@ export function OperatorCard({
           <span className="label-micro text-faint block">{copy.money.paid}</span>
           <Amount value={operator.paidEarnings} className="text-ink text-base font-medium" />
         </span>
-        <span className="ml-auto">
+        <span className="col-span-2 sm:col-span-1 sm:ml-auto sm:text-right">
           <span className="label-micro text-faint block">{copy.network.nextCapability}</span>
           <span className="text-muted text-xs">{operator.nextCapability}</span>
         </span>

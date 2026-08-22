@@ -1,38 +1,61 @@
-import type { NavKey } from '@/lib/nav';
+import { cn } from '@/lib/cn';
+import type { NavIconKey } from '@/lib/nav';
+
+export type NavIconName = NavIconKey;
+export type ChromeIconName =
+  | NavIconName
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'command'
+  | 'panel-left-close'
+  | 'panel-left-open'
+  | 'search'
+  | 'x';
 
 /**
- * Hand-authored 20px stroke icons.
- *
- * An icon library would be a dependency and a bundle for five glyphs, and none of
- * them would match the restrained line weight this interface uses.
+ * One local stroke glyph set for the whole chrome.
  */
-const PATHS: Record<NavKey, string> = {
-  home: 'M3 8.5 10 3l7 5.5V16a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1V8.5Z',
-  opportunities:
-    'M3 7h14v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Zm4 0V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 11h14',
-  network:
-    'M7 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm7 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM2.5 17v-1.5A3.5 3.5 0 0 1 6 12h2a3.5 3.5 0 0 1 3.5 3.5V17m3-5h.5a3 3 0 0 1 3 3V17',
-  leaderboard: 'M4 17V9m6 8V4m6 13v-6M2 17h16',
-  admin: 'M10 3l6 2.5V10c0 3.5-2.4 6-6 7-3.6-1-6-3.5-6-7V5.5L10 3Zm0 5v4',
+const PATHS: Record<ChromeIconName, readonly string[]> = {
+  home: ['M4 5h16v14H4z', 'M4 10h16', 'M10 10v9'],
+  opportunities: ['M5 8h14v10H5z', 'M9 8V6h6v2', 'M5 12h14'],
+  network: ['M9.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', 'M4 18a5.5 5.5 0 0 1 11 0', 'M16 10a2 2 0 1 0 0-4', 'M15.5 14.5A4.5 4.5 0 0 1 20 19'],
+  leaderboard: ['M5 18V9', 'M12 18V5', 'M19 18v-6'],
+  admin: ['M12 4 19 7v5c0 4-2.8 6.3-7 8-4.2-1.7-7-4-7-8V7z', 'm9 12 2 2 4-5'],
+  projects: ['M4 7h6l2 2h8v9H4z', 'M4 9h16'],
+  finance: ['M5 18h14', 'M7 16V9', 'M12 16V6', 'M17 16v-5', 'M4 9l8-5 8 5'],
+  child: ['M7 8h10', 'M7 16h10', 'M10 5 8 19', 'M16 5l-2 14'],
+  'chevron-down': ['m6 9 6 6 6-6'],
+  'chevron-right': ['m9 6 6 6-6 6'],
+  command: ['M9 9h6v6H9z', 'M9 9H7a2 2 0 1 1 2-2v2Z', 'M15 9V7a2 2 0 1 1 2 2h-2Z', 'M15 15h2a2 2 0 1 1-2 2v-2Z', 'M9 15v2a2 2 0 1 1-2-2h2Z'],
+  'panel-left-close': ['M4 5h16v14H4z', 'M9 5v14', 'm16 9-3 3 3 3'],
+  'panel-left-open': ['M4 5h16v14H4z', 'M9 5v14', 'm13 9 3 3-3 3'],
+  search: ['M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z', 'm15.5 15.5 4 4'],
+  x: ['M6 6l12 12', 'M18 6 6 18'],
 };
 
 interface NavIconProps {
-  readonly name: NavKey;
+  readonly name: ChromeIconName;
+  readonly className?: string;
+  readonly strokeWidth?: number;
 }
 
-export function NavIcon({ name }: NavIconProps) {
+export function NavIcon({ name, className, strokeWidth = 1.5 }: NavIconProps) {
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 20 20"
-      className="size-5 shrink-0"
+      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
+      className={cn('size-5 shrink-0', className)}
     >
-      <path d={PATHS[name]} />
+      {PATHS[name].map((path) => (
+        <path key={path} d={path} />
+      ))}
     </svg>
   );
 }
+
+export const ChromeIcon = NavIcon;

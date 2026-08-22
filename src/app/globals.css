@@ -13,9 +13,59 @@
   text-transform: uppercase;
 }
 
+/* The navigation rail scrolls without a visible track; its own border is the edge. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Marks a region whose background is ink. The focus ring inverts for everything
+ * inside, so a control on dark chrome cannot silently lose its ring by forgetting
+ * to override the colour itself.
+ */
+@utility on-rail {
+  &:focus-visible,
+  & :focus-visible {
+    outline-color: var(--color-focus-inverse);
+  }
+}
+
+@keyframes firma-mesh-plate {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.04);
+  }
+
+  to {
+    transform: translate3d(1.25%, 1.5%, 0) scale(1.08);
+  }
+}
+
+@keyframes firma-grain-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  33% {
+    transform: translate3d(-1.25%, 0.75%, 0);
+  }
+
+  66% {
+    transform: translate3d(0.75%, -1%, 0);
+  }
+
+  100% {
+    transform: translate3d(1.5%, 1.25%, 0);
+  }
+}
+
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   :root.light {
@@ -28,16 +78,35 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    background: var(--color-bg);
+    text-rendering: optimizeLegibility;
   }
 
   body {
     background-color: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: 1rem;
-    line-height: 1.65;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -0.006em;
     /* No layout may scroll the page sideways. */
     overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-ink-950);
+    color: var(--color-paper-000);
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  a {
+    cursor: pointer;
   }
 
   :focus-visible {

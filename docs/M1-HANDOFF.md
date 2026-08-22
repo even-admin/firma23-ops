@@ -127,6 +127,9 @@ Interesting fixture states worth designing against:
    of pulling in a primitive library that would then need restyling to match. If you
    want shadcn for dialogs, tooltips, or popovers as polish deepens, add it then —
    the token names in `tokens.css` are already shadcn-compatible semantic names.
+
+   *Update, 2026-08-21:* the chrome rebuild increased the icon count, but the app
+   still uses local stroke SVGs in `NavIcon` instead of adding an icon dependency.
 3. **No animation beyond colour transitions.** Tokens are there; the motion design
    is not.
 4. **`AssignmentRow` and `OperatorCard` are the two components most likely to need

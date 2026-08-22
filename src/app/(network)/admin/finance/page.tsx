@@ -17,7 +17,7 @@ async function FinanceBody() {
   const viewer = await getPrototypeViewer();
   if (!isFounder(viewer)) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
         <h1 className="text-ink-strong mb-6 text-2xl font-medium tracking-tight">
           {copy.finance.title}
         </h1>
@@ -29,9 +29,9 @@ async function FinanceBody() {
   const overview = await syntheticFinanceRepository.getOverview(viewer);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-ink-strong text-2xl font-medium tracking-tight sm:text-3xl">
+        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
           {copy.finance.title}
         </h1>
         <p className="text-muted text-sm">{copy.finance.subtitle}</p>
@@ -94,7 +94,7 @@ async function FinanceBody() {
                 <h2 className="text-ink-strong truncate text-base font-medium">
                   <Link
                     href={`/opportunities/${row.opportunity.id}`}
-                    className="hover:text-ink underline-offset-4 hover:underline"
+                    className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
                   >
                     {row.opportunity.beneficiaryName}
                   </Link>
@@ -107,7 +107,7 @@ async function FinanceBody() {
                 <StatusPill status={row.opportunity.status} />
                 <Link
                   href={`/admin/finance/${row.opportunity.id}/settle`}
-                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-9 items-center rounded-md border px-3 text-xs transition-colors duration-150"
+                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 md:min-h-9"
                 >
                   {copy.finance.review}
                 </Link>
@@ -148,7 +148,7 @@ export default function FinancePage() {
 
 function LoadingWrap() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
       <LoadingBlock rows={4} />
     </div>
   );

@@ -1,4 +1,5 @@
 import { Amount } from '@/components/money/Amount';
+import { MeshDriftCanvas } from '@/components/visual/MeshDriftCanvas';
 import { copy } from '@/copy/es-MX';
 import type { MemberMoney } from '@/types/views';
 import { cn } from '@/lib/cn';
@@ -8,6 +9,7 @@ interface OperationalHeaderProps {
   readonly initials: string;
   readonly money: MemberMoney;
   readonly activeWorkCount: number;
+  readonly activeAssignmentCodes?: readonly string[];
   readonly primaryActionLabel: string;
   readonly primaryActionEnabled: boolean;
 }
@@ -24,69 +26,121 @@ export function OperationalHeader({
   initials,
   money,
   activeWorkCount,
+  activeAssignmentCodes = [],
   primaryActionLabel,
   primaryActionEnabled,
 }: OperationalHeaderProps) {
-  return (
-    <header className="border-line bg-surface rounded-lg border">
-      <div className="flex flex-col gap-6 p-4 sm:p-6">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="border-line-strong text-muted label-micro flex size-9 items-center justify-center rounded-full border font-medium"
-          >
-            {initials}
-          </span>
-          <div className="min-w-0">
-            <p className="label-micro text-faint">{copy.home.greeting}</p>
-            <h1 className="text-ink-strong truncate text-lg font-medium">{displayName}</h1>
-          </div>
-        </div>
+  const paidShare =
+    money.approved.amount > 0 ? Math.round((money.paid.amount / money.approved.amount) * 100) : 0;
 
-        <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
+  return (
+    <header className="border-line bg-surface rounded-md border p-4 sm:p-5">
+      <div className="mb-5 flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="label-micro border-line-strong text-muted flex size-11 items-center justify-center rounded-full border font-medium"
+        >
+          {initials}
+        </span>
+        <div className="min-w-0">
+          <p className="label-micro text-faint">{copy.home.greeting}</p>
+          <h1 className="text-ink-strong truncate text-xl font-medium tracking-[-0.025em] sm:text-2xl">
+            {displayName}
+          </h1>
+        </div>
+        <span className="label-micro border-line text-faint ml-auto hidden rounded-sm border px-2 py-1 sm:inline-flex">
+          {copy.home.snapshot}
+        </span>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="border-line bg-bg flex min-h-52 flex-col justify-between rounded-md border p-4 sm:p-5">
           <div>
             <p className="label-micro text-faint">{copy.home.approved}</p>
-            <p className="text-money mt-1 text-3xl font-medium sm:text-4xl">
+            <p className="text-money mt-2 text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
               <Amount value={money.approved} />
             </p>
           </div>
-          <div>
-            <p className="label-micro text-faint">{copy.home.pendingPayout}</p>
-            <p className="text-ink mt-1 text-2xl font-medium">
-              <Amount value={money.approvedUnpaid} />
-            </p>
+
+          <div className="mt-8">
+            <div className="border-line-strong flex h-2 overflow-hidden rounded-full border bg-surface">
+              <span
+                aria-hidden="true"
+                className="bg-money h-full"
+                style={{ width: `${paidShare}%` }}
+              />
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <dt className="label-micro text-faint">{copy.home.paid}</dt>
+                <dd className="text-ink-strong mt-1 text-base font-medium">
+                  <Amount value={money.paid} />
+                </dd>
+              </div>
+              <div>
+                <dt className="label-micro text-faint">{copy.home.pendingPayout}</dt>
+                <dd className="text-ink-strong mt-1 text-base font-medium">
+                  <Amount value={money.approvedUnpaid} />
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div>
-            <p className="label-micro text-faint">{copy.home.activeWork}</p>
-            <p className="text-ink tnum mt-1 text-2xl font-medium">
-              {activeWorkCount}{' '}
-              <span className="text-faint text-sm font-normal">{copy.home.unitsActive}</span>
+        </section>
+
+        <section className="border-line relative flex min-h-52 flex-col justify-between overflow-hidden rounded-md border p-4 text-paper-000 sm:p-5">
+          <MeshDriftCanvas />
+          <div className="absolute inset-0 bg-ink-950/10" aria-hidden="true" />
+          <div className="relative">
+            <p className="label-micro text-paper-100/80">{copy.home.actionQueue}</p>
+            <p className="text-paper-000 mt-2 text-4xl font-medium tracking-[-0.04em]">
+              <span className="tnum">{activeWorkCount}</span>
+              <span className="text-paper-100/80 ml-2 text-sm font-normal">
+                {copy.home.unitsActive}
+              </span>
             </p>
           </div>
 
-          <button
-            type="button"
-            disabled={!primaryActionEnabled}
-            className={cn(
-              'ease-firma ml-auto min-h-11 rounded-md border px-4 text-sm font-medium transition-colors duration-150',
-              primaryActionEnabled
-                ? 'border-line-strong text-ink-strong hover:bg-raised'
-                : 'border-line text-faint cursor-not-allowed',
-            )}
-          >
-            {primaryActionLabel}
-          </button>
+          {activeAssignmentCodes.length > 0 ? (
+            <ul className="relative flex flex-wrap gap-2" aria-label={copy.home.assignments}>
+              {activeAssignmentCodes.slice(0, 4).map((code) => (
+                <li
+                  key={code}
+                  className="label-micro border-paper-000/50 text-paper-000 rounded-sm border px-2 py-1"
+                >
+                  {code}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="relative text-sm text-paper-100/80">{copy.home.noAssignments}</p>
+          )}
+        </section>
+      </div>
+
+      <section className="border-line bg-bg mt-3 flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Projected money lives in its own child, never beside approved money. */}
+        <div>
+          <p className="label-micro text-faint">{copy.home.projectedAside}</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
+            <span className="text-muted text-base font-medium">
+              <Amount value={money.projected} />
+            </span>
+            <span className="text-faint text-xs">{copy.money.notEarnedYet}</span>
+          </p>
         </div>
-      </div>
-
-      {/* Projected money lives below the rule, never beside approved money. */}
-      <div className="border-line flex flex-wrap items-baseline gap-x-3 border-t px-4 py-3 sm:px-6">
-        <span className="label-micro text-faint">{copy.home.projectedAside}</span>
-        <span className="text-muted text-base font-medium">
-          <Amount value={money.projected} />
-        </span>
-        <span className="text-faint text-xs">{copy.money.notEarnedYet}</span>
-      </div>
+        <button
+          type="button"
+          disabled={!primaryActionEnabled}
+          className={cn(
+            'ease-firma min-h-11 rounded-md border px-4 text-sm font-medium transition-colors duration-150',
+            primaryActionEnabled
+              ? 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900'
+              : 'border-line-strong text-faint cursor-not-allowed',
+          )}
+        >
+          {primaryActionLabel}
+        </button>
+      </section>
     </header>
   );
 }

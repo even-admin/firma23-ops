@@ -31,8 +31,8 @@ export function RailSegment({ segment, settled }: RailSegmentProps) {
   return (
     <li
       className={cn(
-        'bg-raised flex min-w-0 flex-col gap-3 rounded-md border p-3',
-        settled ? 'border-line-strong' : 'border-line-strong border-dashed',
+        'border-line flex min-w-0 flex-col gap-2 border-b p-3 last:border-b-0 lg:min-h-36 lg:border-r lg:border-b-0 lg:p-4 lg:last:border-r-0',
+        settled ? 'bg-surface' : 'bg-raised/45',
       )}
       style={{ flexGrow: segment.weightBp, flexBasis: 0 }}
       aria-label={`${segment.label}, ${formatBasisPoints(segment.weightBp)} ${
@@ -48,7 +48,10 @@ export function RailSegment({ segment, settled }: RailSegmentProps) {
 
       <Amount
         value={segment.amount}
-        className={cn('text-lg font-medium', settled ? 'text-ink-strong' : 'text-muted')}
+        className={cn(
+          'text-xl font-medium tracking-[-0.025em]',
+          settled ? 'text-ink-strong' : 'text-muted',
+        )}
       />
 
       {participants.length === 0 ? (

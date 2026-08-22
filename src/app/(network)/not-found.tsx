@@ -4,7 +4,7 @@ import { copy } from '@/copy/es-MX';
 
 export default function NetworkNotFound() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-4 py-16 sm:px-6">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col items-start gap-4 px-4 py-16 sm:px-6">
       <h1 className="text-ink-strong text-2xl font-medium tracking-tight">
         {copy.states.notFound}
       </h1>

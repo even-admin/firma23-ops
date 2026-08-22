@@ -17,7 +17,7 @@ export function AssignmentRow({ assignment }: AssignmentRowProps) {
   const projected = assignment.money.kind === 'projected';
 
   return (
-    <li className="border-line bg-surface flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md border p-4">
+    <li className="border-line bg-surface ease-firma hover:border-line-strong grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 rounded-md border p-4 transition-colors duration-150 sm:grid-cols-[1fr_auto_auto]">
       <div className="min-w-0 flex-1">
         <p className="text-ink truncate text-sm font-medium">{assignment.beneficiaryName}</p>
         <p className="text-faint truncate text-xs">
@@ -25,9 +25,9 @@ export function AssignmentRow({ assignment }: AssignmentRowProps) {
         </p>
       </div>
 
-      <StatusPill status={assignment.status} />
+      <StatusPill status={assignment.status} className="justify-self-start sm:justify-self-auto" />
 
-      <div className="flex flex-col items-end gap-1">
+      <div className="row-span-2 flex flex-col items-end gap-1 sm:row-span-1">
         <Amount
           value={assignment.money.amount}
           className={projected ? 'text-muted text-sm' : 'text-ink text-sm'}

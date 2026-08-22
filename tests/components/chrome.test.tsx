@@ -6,7 +6,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { MobileTabBar } from '@/components/chrome/MobileTabBar';
-import { NavRail } from '@/components/chrome/NavRail';
+import { Sidebar } from '@/components/chrome/Sidebar';
 import { OperationalHeader } from '@/components/chrome/OperationalHeader';
 import { ViewerSwitcher } from '@/components/chrome/ViewerSwitcher';
 import { AssignmentRow } from '@/components/operator/AssignmentRow';
@@ -15,7 +15,7 @@ import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { money } from '@/lib/money';
-import { NAV_ITEMS } from '@/lib/nav';
+import { buildNavGroups, NAV_ITEMS } from '@/lib/nav';
 import type { HomeAssignment, MemberMoney } from '@/types/views';
 
 const memberMoney: MemberMoney = {
@@ -82,9 +82,25 @@ describe('OperationalHeader', () => {
   });
 });
 
-describe('NavRail', () => {
+const NAV_PROJECTS = [
+  { slug: 'sety-2026', name: 'SETY 2026' },
+  { slug: 'ai-ops-retainer', name: 'AI Ops Retainer' },
+];
+
+function sidebar(role: 'founder' | 'member', pendingApprovals?: number) {
+  return (
+    <Sidebar
+      role={role}
+      groups={buildNavGroups({ projects: NAV_PROJECTS, pendingApprovals })}
+      viewerSwitcher={null}
+      onOpenSearch={() => undefined}
+    />
+  );
+}
+
+describe('Sidebar', () => {
   it('marks the current route for assistive technology', () => {
-    render(<NavRail role="founder" />);
+    render(sidebar('founder'));
     expect(screen.getByRole('link', { name: copy.nav.opportunities })).toHaveAttribute(
       'aria-current',
       'page',
@@ -92,7 +108,7 @@ describe('NavRail', () => {
   });
 
   it('links every built destination for a founder', () => {
-    render(<NavRail role="founder" />);
+    render(sidebar('founder'));
     for (const item of NAV_ITEMS) {
       expect(screen.getByRole('link', { name: item.label })).toHaveAttribute('href', item.href);
     }
@@ -100,21 +116,52 @@ describe('NavRail', () => {
 
   it('renders an unreachable destination disabled rather than linking to a 404', () => {
     // A member cannot reach Admin, so that item exercises the disabled path.
-    render(<NavRail role="member" />);
+    render(sidebar('member'));
     const admin = screen.getByText(copy.nav.admin).closest('[aria-disabled="true"]');
     expect(admin).not.toBeNull();
     expect(admin?.className).toContain('cursor-not-allowed');
   });
 
   it('withholds founder-only destinations from a member viewer', () => {
-    render(<NavRail role="member" />);
+    render(sidebar('member'));
     expect(screen.queryByRole('link', { name: copy.nav.opportunities })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: copy.nav.home })).toBeInTheDocument();
   });
 
   it('is a labelled navigation landmark', () => {
-    render(<NavRail role="founder" />);
+    render(sidebar('founder'));
     expect(screen.getByRole('navigation', { name: copy.nav.primary })).toBeInTheDocument();
+  });
+
+  it('nests each real project under Proyectos', () => {
+    render(sidebar('founder'));
+    const branch = screen.getByRole('button', {
+      name: `${copy.nav.expandGroup} ${copy.nav.projects}`,
+    });
+    expect(branch).toHaveAttribute('aria-expanded', 'false');
+    for (const project of NAV_PROJECTS) {
+      expect(screen.getByRole('link', { name: project.name })).toHaveAttribute(
+        'href',
+        `/projects/${project.slug}`,
+      );
+    }
+  });
+
+  it('never withholds a nested founder route from the rail but hides it from a member', () => {
+    render(sidebar('founder'));
+    expect(screen.getByRole('link', { name: copy.nav.finance })).toHaveAttribute(
+      'href',
+      '/admin/finance',
+    );
+  });
+
+  it('badges pending approvals with the real count, and nothing when there are none', () => {
+    const { unmount } = render(sidebar('founder', 2));
+    expect(screen.getByText(`2 ${copy.nav.pendingApprovals}`)).toBeInTheDocument();
+    unmount();
+
+    render(sidebar('founder', 0));
+    expect(screen.queryByText(`0 ${copy.nav.pendingApprovals}`)).not.toBeInTheDocument();
   });
 });
 
