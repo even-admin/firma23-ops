@@ -275,6 +275,82 @@ export const statEventRecordSchema = z
   })
   .strict();
 
+export const sourceDocumentKindSchema = z.enum([
+  'proposal',
+  'executive_report',
+  'deck',
+  'quote',
+  'sow',
+]);
+
+export const extractionConfidenceSchema = z.enum(['high', 'medium', 'low']);
+
+export const sourceEvidenceRecordSchema = z.object({ locationLabel: label, quote: label }).strict();
+
+const extractedTextFieldRecordSchema = z
+  .object({
+    value: label,
+    confidence: extractionConfidenceSchema,
+    evidence: z.array(sourceEvidenceRecordSchema).min(1),
+  })
+  .strict();
+
+const extractedMoneyFieldRecordSchema = z
+  .object({
+    amountCentavos: centavosValue,
+    currency,
+    confidence: extractionConfidenceSchema,
+    evidence: z.array(sourceEvidenceRecordSchema).min(1),
+  })
+  .strict();
+
+export const sourceDocumentRecordSchema = z
+  .object({
+    id,
+    orgId: id,
+    filename: label,
+    kind: sourceDocumentKindSchema,
+    uploadedAt: dateish,
+  })
+  .strict();
+
+export const reviewIssueRecordSchema = z
+  .object({
+    key: label,
+    severity: z.enum(['missing', 'ambiguous']),
+    fieldLabel: label,
+    detail: label,
+  })
+  .strict();
+
+export const draftAssignmentSuggestionRecordSchema = z
+  .object({
+    key: label,
+    roleKey: z.enum(['closer', 'delivery']),
+    rationale: label,
+    confidence: extractionConfidenceSchema,
+  })
+  .strict();
+
+export const aiContractDraftRecordSchema = z
+  .object({
+    id,
+    sourceDocumentId: id,
+    orgId: id,
+    matchedProjectId: id.nullable(),
+    matchedServiceVersionIds: z.array(id).min(1),
+    matchedAllocationRuleVersionId: id.nullable(),
+    extractedAt: dateish,
+    sponsorName: extractedTextFieldRecordSchema,
+    programName: extractedTextFieldRecordSchema,
+    currency,
+    exampleDistributableBase: extractedMoneyFieldRecordSchema,
+    exampleDistributableBaseNote: label,
+    reviewIssues: z.array(reviewIssueRecordSchema),
+    suggestedAssignments: z.array(draftAssignmentSuggestionRecordSchema),
+  })
+  .strict();
+
 export type OrganizationRecord = z.infer<typeof organizationRecordSchema>;
 export type MemberRecord = z.infer<typeof memberRecordSchema>;
 export type ProjectRecord = z.infer<typeof projectRecordSchema>;

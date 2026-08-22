@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PROTOTYPE_FOUNDER, PROTOTYPE_MEMBER } from '@/data/prototype-viewers';
 import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
+import { syntheticIntakeRepository } from '@/data/repositories/synthetic/intake';
 import { syntheticMemberRepository } from '@/data/repositories/synthetic/members';
 import { syntheticOpportunityRepository } from '@/data/repositories/synthetic/opportunities';
 import { syntheticProjectRepository } from '@/data/repositories/synthetic/projects';
@@ -10,6 +11,11 @@ import { PermissionError } from '@/lib/viewer';
 
 const SETY_SETTLED = 'f0000000-0000-4000-8000-000000000002';
 const SETY_PROJECTED = 'f0000000-0000-4000-8000-000000000001';
+
+const TEST_RUN_INPUT = {
+  sourceDocumentFilename: 'EVEN Collective Servicios SETY 2026.pdf',
+  idempotencyKey: 'test-run-1',
+};
 
 describe('project repository', () => {
   it('summarises all three projects', async () => {
@@ -213,5 +219,84 @@ describe('founder finance', () => {
         PROTOTYPE_FOUNDER,
       ),
     ).toBeNull();
+  });
+});
+
+describe('document intake', () => {
+  it('is founder-only', async () => {
+    await expect(syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_MEMBER)).rejects.toThrow(
+      PermissionError,
+    );
+  });
+
+  it('returns a ready, clearly synthetic draft built from real SETY fixture data', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    expect(run.status).toBe('ready');
+    expect(run.synthetic).toBe(true);
+    expect(run.draft).not.toBeNull();
+    expect(run.draft?.matchedProjectSlug).toBe('sety-2026');
+    expect(run.draft?.sourceDocumentName).toContain('SETY 2026');
+  });
+
+  it('carries the confirmed SETY services and their real milestone templates', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    expect(run.draft?.services).toHaveLength(3);
+    const kit = run.draft?.services.find((service) =>
+      service.deliverablesSummary.includes('24 entregables'),
+    );
+    expect(kit?.milestoneCount).toBe(7);
+    expect(run.draft?.milestones).toHaveLength(13);
+  });
+
+  it('never fabricates a fully assigned allocation and keeps it a projection', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    const rail = run.draft?.projectedAllocation;
+    if (rail === null || rail === undefined || rail.kind !== 'projection') {
+      throw new Error('expected a projection');
+    }
+    expect(rail.fullyAssigned).toBe(false);
+    expect(rail.base.amount).toBe(897_270);
+  });
+
+  it('surfaces the real missing-beneficiary and package-scope ambiguity as review issues', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    const severities = run.draft?.reviewIssues.map((issue) => issue.severity).sort();
+    expect(severities).toEqual(['ambiguous', 'missing']);
+  });
+
+  it('suggests roles from the confirmed 30/20/50 rule, never a specific person', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    expect(run.draft?.assignments.map((a) => a.shareOfBaseLabel).sort()).toEqual(['20%', '50%']);
+  });
+
+  it('exposes sponsorName/programName as first-class fields, not just display text', async () => {
+    const run = await syntheticIntakeRepository.runIntake(TEST_RUN_INPUT, PROTOTYPE_FOUNDER);
+    expect(run.draft?.sponsorName).toBe('Secretaría de Economía y Trabajo de Yucatán');
+    expect(run.draft?.programName).toBe('SETY 2026');
+  });
+
+  it('has no write path in the local adapter: confirm and discard are always unavailable', async () => {
+    const confirmed = await syntheticIntakeRepository.confirmContractDraft(
+      { draftId: '91000000-0000-4000-8000-000000000001', sponsorName: 'x', programName: 'y', currency: 'MXN' },
+      PROTOTYPE_FOUNDER,
+    );
+    expect(confirmed.kind).toBe('unavailable');
+    const discarded = await syntheticIntakeRepository.discardContractDraft(
+      '91000000-0000-4000-8000-000000000001',
+      PROTOTYPE_FOUNDER,
+    );
+    expect(discarded.kind).toBe('unavailable');
+  });
+
+  it('confirm and discard are founder-only even though they are unavailable', async () => {
+    await expect(
+      syntheticIntakeRepository.confirmContractDraft(
+        { draftId: null, sponsorName: 'x', programName: 'y', currency: 'MXN' },
+        PROTOTYPE_MEMBER,
+      ),
+    ).rejects.toThrow(PermissionError);
+    await expect(
+      syntheticIntakeRepository.discardContractDraft('any-id', PROTOTYPE_MEMBER),
+    ).rejects.toThrow(PermissionError);
   });
 });

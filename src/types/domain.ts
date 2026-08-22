@@ -250,3 +250,101 @@ export interface SettlementLine {
   /** Append-only ordering. Corrections append reversals, never rewrite. Invariant 7. */
   readonly sequence: number;
 }
+
+// ---------------------------------------------------------------------------
+// Document-first contract intake
+//
+// A founder starts a contract by dropping an existing proposal, executive
+// report, deck, quote, or SOW instead of filling a blank form. The AI adapter
+// reads that document and produces a draft: never a contract, opportunity,
+// assignment, or allocation a founder has not confirmed. These types mirror
+// the source-documents and intake-runs/drafts tables proposed for M2; M1 keeps
+// them as versioned fixture data read by a deterministic local adapter.
+// ---------------------------------------------------------------------------
+
+export type SourceDocumentKind = 'proposal' | 'executive_report' | 'deck' | 'quote' | 'sow';
+
+export interface SourceDocument {
+  readonly id: string;
+  readonly orgId: string;
+  readonly filename: string;
+  readonly kind: SourceDocumentKind;
+  readonly uploadedAt: string;
+}
+
+/** How sure the adapter is about one extracted value, never a fact about the value itself. */
+export type ExtractionConfidence = 'high' | 'medium' | 'low';
+
+/** Where in the source document a value came from. Lets a founder verify before trusting it. */
+export interface SourceEvidence {
+  readonly locationLabel: string;
+  readonly quote: string;
+}
+
+export interface ExtractedField<T> {
+  readonly value: T;
+  readonly confidence: ExtractionConfidence;
+  readonly evidence: readonly SourceEvidence[];
+}
+
+export type ReviewIssueSeverity = 'missing' | 'ambiguous';
+
+/** A field the founder must resolve before a draft can become canonical. */
+export interface ReviewIssue {
+  readonly key: string;
+  readonly severity: ReviewIssueSeverity;
+  readonly fieldLabel: string;
+  readonly detail: string;
+}
+
+/**
+ * A role the AI thinks the confirmed rule will need, never a specific person.
+ * Member matching needs a beneficiary and skill/availability filtering, which
+ * only exists once an opportunity is created from a confirmed contract.
+ */
+export interface DraftAssignmentSuggestion {
+  readonly key: string;
+  readonly roleKey: AssignmentRoleKey;
+  readonly rationale: string;
+  readonly confidence: ExtractionConfidence;
+}
+
+/**
+ * The AI's read of a source document.
+ *
+ * This is draft-only by construction: nothing here is an id an opportunity,
+ * assignment, or settlement can reference. A founder confirming a draft is a
+ * separate, human action this type cannot represent.
+ */
+export interface AiContractDraft {
+  readonly id: string;
+  readonly sourceDocumentId: string;
+  readonly orgId: string;
+  /** An existing project/contract the AI matched. AI never creates one. */
+  readonly matchedProjectId: string | null;
+  readonly matchedServiceVersionIds: readonly string[];
+  readonly matchedAllocationRuleVersionId: string | null;
+  readonly extractedAt: string;
+  readonly sponsorName: ExtractedField<string>;
+  readonly programName: ExtractedField<string>;
+  readonly currency: CurrencyCode;
+  /** An example base drawn from real, already-recorded cash events, not a contract total. */
+  readonly exampleDistributableBase: ExtractedField<Money>;
+  readonly exampleDistributableBaseNote: string;
+  readonly reviewIssues: readonly ReviewIssue[];
+  readonly suggestedAssignments: readonly DraftAssignmentSuggestion[];
+}
+
+export type IntakeRunStatus = 'idle' | 'processing' | 'ready' | 'error';
+
+export interface IntakeRun {
+  readonly id: string;
+  readonly orgId: string;
+  readonly status: IntakeRunStatus;
+  readonly sourceDocumentId: string | null;
+  readonly draftId: string | null;
+  readonly startedAt: string;
+  readonly completedAt: string | null;
+  /** True everywhere until a real document-parsing and AI provider boundary exists. */
+  readonly synthetic: true;
+}

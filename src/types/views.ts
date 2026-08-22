@@ -8,19 +8,22 @@
  */
 
 import type { RailModel } from '@/lib/allocation';
-import type { BasisPoints, Money } from '@/lib/money';
+import type { BasisPoints, CurrencyCode, Money } from '@/lib/money';
 import type {
   Availability,
   CashEventType,
   EvidenceKind,
+  ExtractionConfidence,
   MemberRole,
   MilestoneStatus,
   OpportunityStatus,
   PayoutStatus,
   ProjectStatus,
+  ReviewIssueSeverity,
   SkillLevel,
   VerificationStatus,
 } from '@/types/domain';
+export type { ExtractionConfidence, ReviewIssueSeverity };
 
 export interface MemberMoney {
   /** Settled by a founder. Real, owed or already paid. */
@@ -330,4 +333,136 @@ export interface SettlementPreview {
   readonly milestonesOutstanding: number;
   /** M1 never approves. This states why the control is disabled. */
   readonly approvalBlockedReason: string;
+}
+
+// ---------------------------------------------------------------------------
+// Document-first contract intake
+// ---------------------------------------------------------------------------
+
+export interface SourceEvidenceView {
+  readonly locationLabel: string;
+  readonly quote: string;
+}
+
+export interface DraftFieldView {
+  readonly label: string;
+  readonly value: string;
+  readonly confidence: ExtractionConfidence;
+  readonly evidence: readonly SourceEvidenceView[];
+}
+
+export interface DraftServiceView {
+  readonly name: string;
+  readonly version: number;
+  readonly deliverablesSummary: string;
+  readonly milestoneCount: number;
+}
+
+export interface DraftMilestoneView {
+  readonly position: number;
+  readonly name: string;
+  readonly description: string;
+  readonly serviceName: string;
+}
+
+export interface DraftAssignmentSuggestionView {
+  readonly roleLabel: string;
+  readonly shareOfBaseLabel: string;
+  readonly rationale: string;
+  readonly confidence: ExtractionConfidence;
+}
+
+export interface ReviewIssueView {
+  readonly severity: ReviewIssueSeverity;
+  readonly fieldLabel: string;
+  readonly detail: string;
+}
+
+/**
+ * Where a draft came from. A manual draft has no AI extraction at all — no
+ * confidence, no evidence — because a founder typed it directly; the review
+ * UI must not imply an AI read something that never happened.
+ */
+export type ContractDraftOrigin = 'ai_extracted' | 'manual';
+
+export interface ContractDraftView {
+  readonly id: string | null;
+  readonly origin: ContractDraftOrigin;
+  /**
+   * Structured for the confirmation action, which needs these two strings
+   * on their own. `fields` below carries the same values back out again for
+   * display, alongside every other extracted field with its confidence and
+   * evidence — display and confirmation input are different shapes on
+   * purpose, so the confirm action never has to search a display list by
+   * label text to recover a value it already has.
+   */
+  readonly sponsorName: string;
+  readonly programName: string;
+  readonly sourceDocumentName: string | null;
+  readonly sourceDocumentKindLabel: string | null;
+  readonly extractedAt: string | null;
+  /** An existing project/contract the draft matched. AI never creates one. */
+  readonly matchedProjectName: string | null;
+  readonly matchedProjectSlug: string | null;
+  readonly fields: readonly DraftFieldView[];
+  readonly services: readonly DraftServiceView[];
+  readonly milestones: readonly DraftMilestoneView[];
+  readonly assignments: readonly DraftAssignmentSuggestionView[];
+  /**
+   * Always a projection, never an approved settlement. Null for a manual
+   * draft naming a brand-new contract: there is no allocation rule yet to
+   * project against, and inventing one here would be exactly the kind of
+   * component-owned financial rule AGENTS.md forbids.
+   */
+  readonly projectedAllocation: RailModel | null;
+  readonly projectedAllocationNote: string | null;
+  readonly reviewIssues: readonly ReviewIssueView[];
+  readonly confidenceOverall: ExtractionConfidence | null;
+}
+
+export interface RunIntakeInput {
+  readonly sourceDocumentFilename: string;
+  /**
+   * Supplied by the client per upload attempt. Retrying the same attempt
+   * (a double-click, a retried request after a dropped connection) must
+   * never spawn a second run — the Supabase adapter's run_intake() enforces
+   * this with a unique constraint; the synthetic adapter has no persistence
+   * to dedupe against, so it simply always returns the one fixture draft.
+   */
+  readonly idempotencyKey: string;
+}
+
+/**
+ * Confirms a draft — AI-extracted (draftId set) or manually entered
+ * (draftId null) — into a real contract/project row. This is the one place
+ * in the whole intake surface that is allowed to create canonical state; AI
+ * output alone never reaches this without a founder calling it.
+ */
+export interface ConfirmContractDraftInput {
+  readonly draftId: string | null;
+  readonly sponsorName: string;
+  readonly programName: string;
+  readonly currency: CurrencyCode;
+}
+
+export type ConfirmContractDraftResult =
+  | { readonly kind: 'confirmed'; readonly projectId: string; readonly projectSlug: string }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+export type DiscardContractDraftResult =
+  | { readonly kind: 'discarded' }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+export type IntakeRunStatus = 'idle' | 'processing' | 'ready' | 'error';
+
+export interface IntakeRunView {
+  readonly id: string;
+  readonly status: IntakeRunStatus;
+  readonly sourceDocumentName: string | null;
+  readonly draft: ContractDraftView | null;
+  readonly errorMessage: string | null;
+  /** True everywhere until a real document-parsing and AI provider boundary exists. */
+  readonly synthetic: true;
 }

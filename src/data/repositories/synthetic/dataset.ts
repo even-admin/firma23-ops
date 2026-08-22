@@ -12,6 +12,7 @@
 import { basisPoints, money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import {
+  aiContractDraftRecordSchema,
   allocationRuleVersionRecordSchema,
   assignmentRecordSchema,
   cashEventRecordSchema,
@@ -30,6 +31,7 @@ import {
   settlementLineRecordSchema,
   settlementRecordSchema,
   skillRecordSchema,
+  sourceDocumentRecordSchema,
   statEventRecordSchema,
 } from '@/data/schemas';
 import type { ProjectFixtureBundle } from '@/data/repositories/synthetic/projects/bundle';
@@ -37,6 +39,7 @@ import { SETY_2026 } from '@/data/repositories/synthetic/projects/sety-2026';
 import { AI_OPS_RETAINER } from '@/data/repositories/synthetic/projects/ai-ops-retainer';
 import { EVEN_INTERNAL_2026 } from '@/data/repositories/synthetic/projects/even-internal-2026';
 import type {
+  AiContractDraft,
   AllocationRuleVersion,
   Assignment,
   CashEvent,
@@ -54,6 +57,7 @@ import type {
   Settlement,
   SettlementLine,
   Skill,
+  SourceDocument,
   StatEvent,
 } from '@/types/domain';
 
@@ -64,6 +68,8 @@ import skillsRaw from '@/data/fixtures/skills.json';
 import memberSkillsRaw from '@/data/fixtures/member-skills.json';
 import portfolioItemsRaw from '@/data/fixtures/portfolio-items.json';
 import statEventsRaw from '@/data/fixtures/stat-events.json';
+import sourceDocumentsRaw from '@/data/fixtures/source-documents.json';
+import aiContractDraftsRaw from '@/data/fixtures/ai-contract-drafts.json';
 
 const PROJECT_BUNDLES: readonly ProjectFixtureBundle[] = [
   SETY_2026,
@@ -90,6 +96,8 @@ export interface SyntheticDataset {
   readonly cashEvents: readonly CashEvent[];
   readonly settlements: readonly Settlement[];
   readonly settlementLines: readonly SettlementLine[];
+  readonly sourceDocuments: ReadonlyMap<string, SourceDocument>;
+  readonly aiContractDrafts: ReadonlyMap<string, AiContractDraft>;
 }
 
 function byId<T extends { id: string }>(records: readonly T[]): ReadonlyMap<string, T> {
@@ -120,6 +128,26 @@ function build(): SyntheticDataset {
     portfolioItemsRaw,
   );
   const statEvents: StatEvent[] = parseFixture('stat-events', statEventRecordSchema, statEventsRaw);
+  const sourceDocuments: SourceDocument[] = parseFixture(
+    'source-documents',
+    sourceDocumentRecordSchema,
+    sourceDocumentsRaw,
+  );
+  const aiContractDrafts: AiContractDraft[] = parseFixture(
+    'ai-contract-drafts',
+    aiContractDraftRecordSchema,
+    aiContractDraftsRaw,
+  ).map((record) => ({
+    ...record,
+    exampleDistributableBase: {
+      value: money(
+        record.exampleDistributableBase.amountCentavos,
+        record.exampleDistributableBase.currency,
+      ),
+      confidence: record.exampleDistributableBase.confidence,
+      evidence: record.exampleDistributableBase.evidence,
+    },
+  }));
 
   const projects: Project[] = [];
   const serviceVersions: ServiceVersion[] = [];
@@ -235,6 +263,8 @@ function build(): SyntheticDataset {
     cashEvents,
     settlements,
     settlementLines,
+    sourceDocuments: byId(sourceDocuments),
+    aiContractDrafts: byId(aiContractDrafts),
   };
 }
 

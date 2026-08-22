@@ -18,6 +18,8 @@ describe('fixture validation', () => {
     expect(dataset.opportunities).toHaveLength(4);
     expect(dataset.skills.size).toBe(22);
     expect(dataset.memberProfiles.size).toBe(6);
+    expect(dataset.sourceDocuments.size).toBe(1);
+    expect(dataset.aiContractDrafts.size).toBe(1);
   });
 
   it('memoises, so repeated loads are the same object', () => {
@@ -289,6 +291,38 @@ describe('milestones, evidence and the member layer', () => {
     for (const event of dataset.statEvents) {
       expect(dataset.members.has(event.memberId)).toBe(true);
       expect(opportunityIds.has(event.opportunityId)).toBe(true);
+    }
+  });
+});
+
+describe('document-first contract intake fixtures', () => {
+  it('points every AI contract draft at a real source document', () => {
+    for (const draft of dataset.aiContractDrafts.values()) {
+      expect(dataset.sourceDocuments.has(draft.sourceDocumentId)).toBe(true);
+    }
+  });
+
+  it('never matches a project, service version, or rule version that does not exist', () => {
+    for (const draft of dataset.aiContractDrafts.values()) {
+      if (draft.matchedProjectId !== null) {
+        expect(dataset.projects.has(draft.matchedProjectId)).toBe(true);
+      }
+      for (const serviceId of draft.matchedServiceVersionIds) {
+        expect(dataset.serviceVersions.has(serviceId)).toBe(true);
+      }
+      if (draft.matchedAllocationRuleVersionId !== null) {
+        expect(dataset.allocationRuleVersions.has(draft.matchedAllocationRuleVersionId)).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it('carries at least one evidence entry for every extracted field', () => {
+    for (const draft of dataset.aiContractDrafts.values()) {
+      expect(draft.sponsorName.evidence.length).toBeGreaterThan(0);
+      expect(draft.programName.evidence.length).toBeGreaterThan(0);
+      expect(draft.exampleDistributableBase.evidence.length).toBeGreaterThan(0);
     }
   });
 });
