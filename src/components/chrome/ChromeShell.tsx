@@ -1,7 +1,14 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 import { CommandPalette } from '@/components/chrome/CommandPalette';
 import { MobileTabBar } from '@/components/chrome/MobileTabBar';
@@ -30,8 +37,12 @@ function writeStoredSidebarMode(mode: SidebarMode): void {
   try {
     window.localStorage.setItem(SIDEBAR_MODE_KEY, mode);
   } catch {
-    // Storage is unavailable (private mode, quota, disabled). The toggle
-    // still works for this session; it just does not survive a reload.
+    // Storage is unavailable (private mode, quota, disabled). There is no
+    // separate in-memory mode — the rendered mode always comes from
+    // re-reading storage — so a failed write has no visible effect at all:
+    // the next read (see below) still fails the same way and falls back to
+    // compact. The toggle does not "still work this session"; it fails safe
+    // to compact for the rest of it.
   }
   window.dispatchEvent(new Event(SIDEBAR_MODE_EVENT));
 }
@@ -87,10 +98,17 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
   // the real opener. Both state updates come from this one synchronous
   // handler, so React batches them — the read below always happens before
   // the palette mounts or `inert` applies.
-  const openSearch = () => {
+  //
+  // Guarded on `searchOpen`: the ⌘K shortcut keeps firing even while the
+  // palette is open (its listener lives on `window`, which `inert` does not
+  // touch), and by then `document.activeElement` is inside the dialog
+  // itself. Without this guard, a repeated ⌘K would silently overwrite the
+  // real opener with the palette's own input.
+  const openSearch = useCallback(() => {
+    if (searchOpen) return;
     setSearchOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setSearchOpen(true);
-  };
+  }, [searchOpen]);
 
   const breadcrumb = useMemo(() => resolveBreadcrumb(pathname, groups), [pathname, groups]);
 
@@ -103,7 +121,10 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+    // `openSearch` closes over `searchOpen` to guard re-opening; re-running
+    // this effect whenever that identity changes keeps the check live
+    // instead of trapping the listener on the initial (always-false) closure.
+  }, [openSearch]);
 
   return (
     <div className="bg-bg flex min-h-dvh">

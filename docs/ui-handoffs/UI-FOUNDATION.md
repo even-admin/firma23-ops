@@ -7,10 +7,22 @@
   that introduced `docs/UI-WORKSPACE-LAUNCH-PLAN.md` on `ui-launch-contract`,
   confirmed identical to `git merge-base HEAD origin/ui-launch-contract` before
   any edit.
-- Candidate SHA (head, after this work): `39d361f8981a1f0208146220bbdaf55aa94025ed`
-- Worktree was clean (`git status --porcelain=v1` empty) at start, and clean
-  again immediately before the Mode P build (required precondition for that
-  mode).
+- Implementation SHA — the commit carrying the actual sidebar/palette/skip-link
+  code, tests, and design-doc changes, distinct from any handoff-only commit:
+  `39d361f8981a1f0208146220bbdaf55aa94025ed`.
+- First handoff commit (this file's initial version, no code changes of its
+  own): `5c1cff7f4fcbc572577d32c98ec90c1e9e0ae71c`. This is the SHA the repair
+  pass below was dispatched against.
+- Repair commit (this pass — the ⌘K-reopen fix, its regression test, the
+  catch-comment correction, and this document's own corrections): committed
+  after this file, its own SHA is therefore not knowable from inside this
+  file. **The final candidate HEAD for review is whatever `git rev-parse
+  HEAD` on `firma23-sidebar-foundation` reports after that commit — not any
+  SHA quoted above.** Do not treat the implementation SHA or the first
+  handoff SHA as the reviewable candidate; both predate fixes described here.
+- Worktree was clean (`git status --porcelain=v1` empty) at the start of both
+  the original session and this repair pass, and clean again immediately
+  before each Mode P build (required precondition for that mode).
 - `docs/UI-WORKSPACE-LAUNCH-PLAN.md` itself is marked `Status: HOLD until this
   tracked contract passes read-only review` at the top of that file. I
   proceeded on the basis that being dispatched with the plan's own
@@ -91,7 +103,47 @@ configuration were touched.
    durations under the same media query while leaving final layout state
    intact. Both were read and confirmed, not modified.
 
+## Repair pass (this update)
+
+Applied after independent review of the first handoff commit
+(`5c1cff7f4fcbc572577d32c98ec90c1e9e0ae71c`):
+
+6. **The command palette's opener was overwritten by a repeated Cmd/Ctrl+K.**
+   `ChromeShell`'s `openSearch` unconditionally read `document.activeElement`
+   every time it ran. The ⌘K listener lives on `window`, and `inert` does not
+   stop `window` keydown listeners from firing — so pressing ⌘K again while
+   the palette was already open re-ran `openSearch`, and by then
+   `document.activeElement` was the palette's own search input, silently
+   replacing the real opener with it. Closing afterward then restored focus
+   to the input instead of wherever the user had actually started. Fixed with
+   a guard (`if (searchOpen) return;`) so a repeat while already open is a
+   no-op. Because the ⌘K listener is registered in a `useEffect`, the guard
+   needed `openSearch` wrapped in `useCallback` and the effect re-subscribed
+   on that identity (`[openSearch]`) — otherwise the listener would keep
+   calling the very first render's `openSearch`, permanently closed over
+   `searchOpen === false`, and the guard would never actually trigger.
+7. **Corrected a comment that had it backwards.** The `catch` in
+   `writeStoredSidebarMode` said a failed write still "works for this
+   session; it just does not survive a reload." That is not what this code
+   does: there is no separate in-memory mode anywhere — `sidebarMode` is
+   always re-derived by re-reading storage via `useSyncExternalStore` — so
+   when storage cannot be written, the very next read fails the same way and
+   the shell falls back to compact for the rest of the session, not just
+   across a reload. The comment now says that.
+
+New regression test in `tests/components/chrome-shell-foundation.test.tsx`:
+`keeps the original opener when Cmd/Ctrl+K repeats while already open` —
+focuses the real opener, opens via ⌘K, fires ⌘K again (asserting the dialog
+is still open and unchanged), closes with Escape, and asserts focus returned
+to the original opener rather than the palette's input. Verified this test
+actually catches the regression: temporarily removed the `searchOpen` guard
+and confirmed this specific test fails (`expect(document.activeElement).toBe(opener)`,
+the rest of the suite unaffected), then restored the fix and confirmed the
+full file passes again (9/9).
+
 ## Commands and outcomes
+
+Original implementation pass (SHA `39d361f8981a1f0208146220bbdaf55aa94025ed`):
 
 ```
 npm run lint       0 problems
@@ -99,6 +151,31 @@ npm run typecheck  0 errors
 npm test           299 passed (17 files, including the new Foundation file)
 npm run build      succeeds — 13 app routes + /_not-found, Mode P build
 ```
+
+Repair pass (this update, after the fixes above — `.next` removed and rebuilt
+fresh again):
+
+```
+npm run lint       0 problems (eslint . --ignore-pattern ".context/**" — see
+                   note below on why the plain script isn't run bare)
+npm run typecheck  0 errors
+npm test           300 passed (17 files — the new opener-preservation
+                   regression test added to the existing Foundation file)
+npm run build      succeeds — same 13 app routes + /_not-found,
+                   .next/BUILD_ID = qKytw8upVV3-ymI0lMb-5
+```
+
+Note on lint: this session, a `.context/build-backups/` directory appeared —
+a raw, gitignored copy of compiled `.next` chunk output (~261 MB), not source,
+not created by any command in this handoff, and not part of the tracked
+diff. `eslint.config.mjs` does not ignore `.context/**` (only `.next/**`,
+`coverage/**`, `node_modules/**`, `next-env.d.ts`), so a bare `eslint .` walks
+those generated chunks and reports thousands of unrelated errors. That file is
+repository configuration, outside Foundation's ownership, so it was not
+edited; verification instead ran `eslint . --ignore-pattern ".context/**"`,
+which reports the same `0 problems` as the tracked source always has. This is
+a pre-existing environment artifact, not a regression from this or the prior
+pass.
 
 Full Mode P sequence, against candidate SHA `39d361f8981a1f0208146220bbdaf55aa94025ed`:
 
@@ -154,26 +231,34 @@ verified is real desktop-bucket behavior, not pixel-exact matrix cells):
 - Console: zero errors or warnings across the entire Mode S session (checked
   with and without a fresh reload, `onlyErrors` and unfiltered).
 
-**Dynamic 404 matrix, Mode S founder, via HTTP client** (contract's fixture
-list):
+**Dynamic 404 matrix, Mode S, via HTTP client** (contract's fixture list). The
+original pass in this document tested the opportunity route with a bare
+`curl` call and no viewer cookie, which silently resolves to the **member**
+role (`getPrototypeViewer()` in `src/data/prototype-viewer-session.ts`
+defaults to `'member'` for any missing or unrecognized
+`f23_prototype_viewer` cookie) rather than the founder role the contract's
+matrix actually specifies, and then wrongly read the resulting page as a
+data-layer 404 bug. Retested explicitly with both roles:
 
 ```
-/projects/nope                                          -> HTTP 404  (pass)
-/opportunities/00000000-0000-4000-8000-000000000000     -> HTTP 200  (FAIL, see below)
-/network/nope                                            -> HTTP 404  (pass)
-/leaderboard/nope/provenance                             -> HTTP 404  (pass)
+/projects/nope                                                    -> HTTP 404  (founder cookie; pass)
+/opportunities/00000000-0000-4000-8000-000000000000, no cookie    -> HTTP 200  (defaults to member — private/denied presentation, correct)
+/opportunities/00000000-0000-4000-8000-000000000000, member cookie -> HTTP 200  (same private/denied presentation, correct)
+/opportunities/00000000-0000-4000-8000-000000000000, founder cookie -> HTTP 404  (correct, matches the contract)
+/network/nope                                                      -> HTTP 404  (founder cookie; pass)
+/leaderboard/nope/provenance                                       -> HTTP 404  (founder cookie; pass)
 ```
 
-**Finding, out of Foundation's ownership, not fixed:** the all-zero
-opportunity UUID that the contract specifies as invalid returns `200` instead
-of `404`. `src/app/(network)/opportunities/[opportunityId]/page.tsx` does call
-`notFound()` correctly when
-`syntheticOpportunityRepository.getById(...)` returns `null` — the gap is
-that the repository call is evidently returning a non-null result for that ID
-(repository/data layer, `src/data/**`, frozen for every UI lane, and route
-page content besides). Recording this for whichever lane ends up owning
-`UI-OPORTUNIDADES` and for Integrator's own fresh matrix run; not something I
-attempted to fix or investigate further given ownership boundaries.
+**There is no finding here.** The member role correctly gets the private,
+permission-denied presentation at `HTTP 200` for this founder-only opportunity
+(confirmed the response body contains the "permiso" denial copy, not the
+opportunity detail) — a 200 with a denial view is the intended behavior for a
+role-gated route, not a 404. The founder cookie correctly produces `HTTP 404`
+for the same invalid ID, matching every other route in this matrix. The
+previous version of this document reported a false "opportunity
+repository/data-layer" bug based on that methodology error; there is no such
+defect, nothing in `src/data/**` or the opportunity route needs attention, and
+no request is warranted for `UI-OPORTUNIDADES` or Integrator on this point.
 
 **Not covered — matrix cells I could not complete this session:**
 

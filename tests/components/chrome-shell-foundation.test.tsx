@@ -164,6 +164,28 @@ describe('ChromeShell command palette', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('keeps the original opener when Cmd/Ctrl+K repeats while already open', () => {
+    render(shell());
+    const opener = firstSearchOpener();
+    opener.focus();
+
+    // Opens via the shortcut, with the real opener focused — same as a user
+    // pressing it once.
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // The shortcut's listener lives on `window`, which the palette's `inert`
+    // background does not silence, so this fires again while the dialog is
+    // still open and focus has moved to its input. Without the `searchOpen`
+    // guard in ChromeShell's `openSearch`, this would overwrite the captured
+    // opener with that input.
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('traps Tab within the dialog instead of leaking to the rest of the page', () => {
     render(shell());
     const opener = firstSearchOpener();
