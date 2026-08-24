@@ -386,7 +386,7 @@ fi
 echo
 echo "=== scenario 5: stat_events authority ==="
 
-expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" "row-level security policy" <<'SQL'
+expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" "permission denied for table stat_events" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 insert into public.stat_events (member_id, opportunity_id, metric_key, quantity, source_kind, source_id)
@@ -533,22 +533,22 @@ SQL
 echo
 echo "=== scenario 8b: anon must be refused at the grant layer, not the function body (H2) ==="
 
-expect_failure "record_cash_event as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "record_cash_event as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'x', 100, 'MXN', current_date, 'authz-anon-cash-1');
 SQL
 
-expect_failure "approve_settlement as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "approve_settlement as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-anon-approve-1');
 SQL
 
-expect_failure "reverse_settlement as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "reverse_settlement as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 'authz-anon-reverse-1');
 SQL
 
-expect_failure "record_payout as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "record_payout as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'x', current_date, '[{"settlementLineId":"40000000-0000-4000-8000-000000000001","amountCentavos":1}]'::jsonb, 'authz-anon-payout-1');
 SQL
@@ -1256,6 +1256,218 @@ else
 fi
 
 echo
+echo "=== scenario 20 (M2 Auth): redeem_invite() DB-level evidence ==="
+echo "Findings repaired: .context/architecture-council/m2-auth-adversarial-review.md (H2, H3, M1, M5)."
+
+expect_success "set up fresh, never-authenticated members with pending invites for redeem_invite() scenarios" <<'SQL'
+begin;
+insert into public.members (id, org_id, slug, display_name, initials, role) values
+  ('b0000000-0000-4000-8000-000000000020', 'a0000000-0000-4000-8000-000000000001', 'invite-pending-test', 'Invite Pending Test', 'IP', 'member'),
+  ('b0000000-0000-4000-8000-000000000021', 'a0000000-0000-4000-8000-000000000001', 'invite-expired-test', 'Invite Expired Test', 'IE', 'member'),
+  ('b0000000-0000-4000-8000-000000000022', 'a0000000-0000-4000-8000-000000000001', 'invite-mixedcase-test', 'Invite Mixedcase Test', 'IM', 'member'),
+  ('b0000000-0000-4000-8000-000000000023', 'a0000000-0000-4000-8000-000000000001', 'invite-concurrent-test', 'Invite Concurrent Test', 'IC', 'member');
+insert into public.memberships (org_id, member_id, status) values
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000020', 'invited'),
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000021', 'invited'),
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000022', 'invited'),
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000023', 'invited');
+insert into public.member_invites (member_id, email, expires_at) values
+  ('b0000000-0000-4000-8000-000000000020', 'invite-pending@test.local', now() + interval '14 days'),
+  ('b0000000-0000-4000-8000-000000000021', 'invite-expired@test.local', now() - interval '1 day'),
+  ('b0000000-0000-4000-8000-000000000022', 'Invite-MixedCase@Test.Local', now() + interval '14 days'),
+  ('b0000000-0000-4000-8000-000000000023', 'invite-concurrent@test.local', now() + interval '14 days');
+insert into auth.users (id, email) values
+  ('55555555-5555-4555-8555-000000000020', 'invite-pending@test.local'),
+  ('66666666-6666-4666-8666-000000000021', 'invite-expired@test.local'),
+  ('77777777-7777-4777-8777-000000000022', 'invite-mixedcase@test.local'),
+  ('88888888-8888-4888-8888-000000000023', 'invite-concurrent@test.local');
+commit;
+SQL
+
+expect_failure "redeem_invite requires an authenticated session" \
+  "redeem_invite requires an authenticated session" <<'SQL'
+set role authenticated;
+select public.redeem_invite();
+SQL
+
+REDEEM_UNAVAILABLE_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '99999999-9999-4999-8999-999999999999';
+  select state from public.redeem_invite();
+" | tail -n1)"
+if [ "$REDEEM_UNAVAILABLE_STATE" = "unavailable" ]; then
+  PASS=$((PASS + 1)); echo "PASS: an authenticated caller with no matching invite gets 'unavailable'"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: no invite -> unavailable")
+  echo "FAIL: expected 'unavailable', got '$REDEEM_UNAVAILABLE_STATE'"
+fi
+
+NOINVITE_LINKED_ROWS="$(query_scalar "select count(*) from public.members where auth_user_id = '99999999-9999-4999-8999-999999999999';")"
+if [ "$NOINVITE_LINKED_ROWS" = "0" ]; then
+  PASS=$((PASS + 1)); echo "PASS: an uninvited caller creates or links no member row"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: uninvited caller linked a row")
+  echo "FAIL: expected 0 linked rows, got $NOINVITE_LINKED_ROWS"
+fi
+
+expect_success "a valid pending invite redeems successfully" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-4555-8555-000000000020';
+select * from public.redeem_invite();
+SQL
+
+PENDING_LINK_CHECK="$(query_scalar "
+  select (m.auth_user_id = '55555555-5555-4555-8555-000000000020' and ms.status = 'active' and ms.activated_at is not null)
+  from public.members m
+  join public.memberships ms on ms.member_id = m.id
+  where m.id = 'b0000000-0000-4000-8000-000000000020';
+")"
+if [ "$PENDING_LINK_CHECK" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS: redemption linked auth_user_id and activated the membership exactly as promised"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: pending invite did not link/activate")
+  echo "FAIL: expected linked+active, got '$PENDING_LINK_CHECK'"
+fi
+
+PENDING_REDEEMED_AT_SET="$(query_scalar "select redeemed_at is not null from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000020';")"
+PENDING_AUDIT_COUNT_1="$(query_scalar "select count(*) from public.audit_events where action = 'redeem_invite' and target_id = (select id from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000020');")"
+if [ "$PENDING_REDEEMED_AT_SET" = "t" ] && [ "$PENDING_AUDIT_COUNT_1" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: redeemed_at set and exactly one audit_events row for the real redemption"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: redeemed_at/audit atomicity")
+  echo "FAIL: redeemed_at_set=$PENDING_REDEEMED_AT_SET (want t), audit_count=$PENDING_AUDIT_COUNT_1 (want 1)"
+fi
+
+REDEEM_REPLAY_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '55555555-5555-4555-8555-000000000020';
+  select state from public.redeem_invite();
+" | tail -n1)"
+PENDING_AUDIT_COUNT_2="$(query_scalar "select count(*) from public.audit_events where action = 'redeem_invite' and target_id = (select id from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000020');")"
+if [ "$REDEEM_REPLAY_STATE" = "redeemed" ] && [ "$PENDING_AUDIT_COUNT_2" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: a repeat call after redemption reports 'redeemed' and writes no additional audit row"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: replay after redemption")
+  echo "FAIL: state=$REDEEM_REPLAY_STATE (want redeemed), audit_count=$PENDING_AUDIT_COUNT_2 (want 1)"
+fi
+
+expect_success "an expired invite does not redeem" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000021';
+select * from public.redeem_invite();
+SQL
+
+EXPIRED_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000021';
+  select state from public.redeem_invite();
+" | tail -n1)"
+EXPIRED_STILL_UNLINKED="$(query_scalar "
+  select (m.auth_user_id is null and ms.status = 'invited')
+  from public.members m
+  join public.memberships ms on ms.member_id = m.id
+  where m.id = 'b0000000-0000-4000-8000-000000000021';
+")"
+if [ "$EXPIRED_STATE" = "expired" ] && [ "$EXPIRED_STILL_UNLINKED" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS: an expired invite reports 'expired' and never links or activates anything"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: expired invite")
+  echo "FAIL: state=$EXPIRED_STATE (want expired), still_unlinked=$EXPIRED_STILL_UNLINKED (want t)"
+fi
+
+expect_success "M1: an invite entered with different capitalization still redeems against Supabase's lowercased auth.users email" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-4777-8777-000000000022';
+select * from public.redeem_invite();
+SQL
+
+MIXEDCASE_LINKED="$(query_scalar "select auth_user_id = '77777777-7777-4777-8777-000000000022' from public.members where id = 'b0000000-0000-4000-8000-000000000022';")"
+if [ "$MIXEDCASE_LINKED" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS: 'Invite-MixedCase@Test.Local' matched the lowercased auth.users email and redeemed"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("redeem_invite: M1 case-insensitive match")
+  echo "FAIL: expected the mixed-case invite to link, got linked=$MIXEDCASE_LINKED"
+fi
+
+REVOKED_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '44444444-4444-4444-8444-444444444444';
+  select state from public.redeem_invite();
+" | tail -n1)"
+REVOKED_IDS_NULL="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '44444444-4444-4444-8444-444444444444';
+  select (member_id is null and org_id is null) from public.redeem_invite();
+" | tail -n1)"
+if [ "$REVOKED_STATE" = "revoked" ] && [ "$REVOKED_IDS_NULL" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS (AT-H2): a linked-but-revoked membership reports 'revoked' with null member_id/org_id, never 'redeemed'"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-H2: revoked membership must not report redeemed")
+  echo "FAIL: state=$REVOKED_STATE (want revoked), ids_null=$REVOKED_IDS_NULL (want t)"
+fi
+
+echo
+echo "=== scenario 20a (M2 Auth, M-A): the concurrent-fallback branch must not answer 'redeemed' when the membership row itself no longer exists ==="
+echo "A privileged delete (no policy exposes this — ops/service-role only), not a revoke, is what reaches this branch specifically."
+
+expect_success "prepare: a member linked and redeemed, then its membership row deleted by a privileged operation (not revoked — removed outright)" <<'SQL'
+begin;
+insert into public.members (id, org_id, slug, display_name, initials, role) values
+  ('b0000000-0000-4000-8000-000000000024', 'a0000000-0000-4000-8000-000000000001', 'invite-deleted-membership-test', 'Invite Deleted Membership Test', 'DM', 'member');
+insert into public.memberships (org_id, member_id, status) values
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000024', 'invited');
+insert into public.member_invites (member_id, email, expires_at) values
+  ('b0000000-0000-4000-8000-000000000024', 'invite-deleted-membership@test.local', now() + interval '14 days');
+insert into auth.users (id, email) values
+  ('66666666-6666-4666-8666-000000000024', 'invite-deleted-membership@test.local');
+update public.members set auth_user_id = '66666666-6666-4666-8666-000000000024'
+ where id = 'b0000000-0000-4000-8000-000000000024';
+update public.member_invites set redeemed_at = now()
+ where member_id = 'b0000000-0000-4000-8000-000000000024';
+delete from public.memberships where member_id = 'b0000000-0000-4000-8000-000000000024';
+commit;
+SQL
+
+MA_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000024';
+  select state from public.redeem_invite();
+" | tail -n1)"
+MA_IDS_NULL="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000024';
+  select (member_id is null and org_id is null) from public.redeem_invite();
+" | tail -n1)"
+MA_AUDIT_COUNT="$(query_scalar "select count(*) from public.audit_events where action = 'redeem_invite' and target_id = (select id from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000024');")"
+
+if [ "$MA_STATE" != "redeemed" ] && [ "$MA_STATE" != "invited" ] && [ "$MA_IDS_NULL" = "t" ] && [ "$MA_AUDIT_COUNT" = "0" ]; then
+  PASS=$((PASS + 1))
+  echo "PASS (AT-M-A): with the membership row gone, the fallback never reports a privileged state and writes no additional audit row (got state='$MA_STATE')"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-M-A: fallback branch answered privileged without an active membership")
+  echo "FAIL: state=$MA_STATE (must not be redeemed/invited), ids_null=$MA_IDS_NULL (want t), audit_count=$MA_AUDIT_COUNT (want 0)"
+fi
+
+echo
+echo "=== scenario 20b (M2 Auth, M5): 20-way concurrent first redemption must not duplicate membership or audit rows ==="
+CONCURRENT_REDEEM_DIR="$WORKDIR/concurrent_redeem"
+run_concurrent "$CONCURRENT_REDEEM_DIR" 20 "set role authenticated; set request.jwt.claim.sub = '88888888-8888-4888-8888-000000000023'; select state from public.redeem_invite();"
+
+REDEEM_CONCURRENT_ERRORS="$(concurrent_error_count "$CONCURRENT_REDEEM_DIR")"
+REDEEM_CONCURRENT_STATES="$(grep -hEo '^(invited|redeemed)$' "$CONCURRENT_REDEEM_DIR"/out_*.txt 2>/dev/null | sort | uniq -c | tr '\n' ' ')"
+REDEEM_CONCURRENT_AUDIT_COUNT="$(query_scalar "select count(*) from public.audit_events where action = 'redeem_invite' and target_id = (select id from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000023');")"
+REDEEM_CONCURRENT_MEMBERSHIP_ACTIVATIONS="$(query_scalar "select count(*) from public.memberships where member_id = 'b0000000-0000-4000-8000-000000000023' and status = 'active';")"
+
+if [ "$REDEEM_CONCURRENT_ERRORS" = "0" ] && [ "$REDEEM_CONCURRENT_AUDIT_COUNT" = "1" ] && [ "$REDEEM_CONCURRENT_MEMBERSHIP_ACTIVATIONS" = "1" ]; then
+  PASS=$((PASS + 1))
+  echo "PASS (AT-M5): 20 concurrent first-redemption calls produced zero errors, exactly one audit_events row, and exactly one active membership (outcomes: $REDEEM_CONCURRENT_STATES)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-M5: concurrent redemption duplicated state")
+  echo "FAIL: errors=$REDEEM_CONCURRENT_ERRORS (want 0), audit_count=$REDEEM_CONCURRENT_AUDIT_COUNT (want 1), active_memberships=$REDEEM_CONCURRENT_MEMBERSHIP_ACTIVATIONS (want 1)"
+  grep -h "ERROR" "$CONCURRENT_REDEEM_DIR"/err_*.txt 2>/dev/null | sort -u | sed 's/^/    /'
+fi
+
+echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then
@@ -1265,3 +1477,5 @@ if [ "$FAIL" -gt 0 ]; then
 fi
 echo "All scenarios passed."
 exit 0
+
+echo

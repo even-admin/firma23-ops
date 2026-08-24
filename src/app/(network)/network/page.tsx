@@ -5,7 +5,7 @@ import { OperatorCard } from '@/components/operator/OperatorCard';
 import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticMemberRepository } from '@/data/repositories/synthetic/members';
 import type { Availability } from '@/types/domain';
 
@@ -22,7 +22,7 @@ async function NetworkBody({
   readonly searchParams: Promise<DirectorySearchParams>;
 }) {
   const query = await searchParams;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
 
   const all = await syntheticMemberRepository.listDirectory({}, viewer);
   const operators = await syntheticMemberRepository.listDirectory(

@@ -5,7 +5,7 @@ import { Amount } from '@/components/money/Amount';
 import { RailStateBadge } from '@/components/revenue-rail/RailStateBadge';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticLeaderboardRepository } from '@/data/repositories/synthetic/leaderboard';
 
 /**
@@ -20,7 +20,7 @@ export default async function ProvenancePage({
   readonly params: Promise<{ readonly memberSlug: string }>;
 }) {
   const { memberSlug } = await params;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const provenance = await syntheticLeaderboardRepository.getProvenance(memberSlug, viewer);
   if (provenance === null) notFound();
 

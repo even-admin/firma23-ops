@@ -1,7 +1,7 @@
 'use server';
 
 import { activeIntakeRepository } from '@/data/repositories/active/intake';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import type {
   ConfirmContractDraftInput,
   ConfirmContractDraftResult,
@@ -11,7 +11,7 @@ import type {
 import type { IntakeRunView } from '@/types/views';
 
 export async function runIntakeAction(input: RunIntakeInput): Promise<IntakeRunView> {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   return activeIntakeRepository.runIntake(input, viewer);
 }
 
@@ -28,13 +28,13 @@ export async function runIntakeAction(input: RunIntakeInput): Promise<IntakeRunV
 export async function confirmContractDraftAction(
   input: ConfirmContractDraftInput,
 ): Promise<ConfirmContractDraftResult> {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   return activeIntakeRepository.confirmContractDraft(input, viewer);
 }
 
 export async function discardContractDraftAction(
   draftId: string,
 ): Promise<DiscardContractDraftResult> {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   return activeIntakeRepository.discardContractDraft(draftId, viewer);
 }

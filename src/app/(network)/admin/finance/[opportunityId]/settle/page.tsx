@@ -6,7 +6,7 @@ import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
 import { cn } from '@/lib/cn';
 import { formatBasisPoints } from '@/lib/money';
@@ -24,7 +24,7 @@ export default async function SettlePage({
   readonly params: Promise<{ readonly opportunityId: string }>;
 }) {
   const { opportunityId } = await params;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
 
   if (!isFounder(viewer)) {
     return (

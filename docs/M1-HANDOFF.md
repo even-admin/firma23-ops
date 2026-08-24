@@ -3,6 +3,11 @@
 Written 2026-08-21. Milestone M1 engineering is done and verified. This document is
 for whoever picks up visual and interaction polish.
 
+> Current-state note, 2026-08-24: this remains the historical M1 handoff. The
+> canonical development Supabase project has since received the reviewed M2/P3
+> migrations and deterministic seed. See `docs/INFRASTRUCTURE.md` for the exact
+> environment, Auth, migration, and deployment boundaries.
+
 ## What you are inheriting
 
 A running Next.js 16 application with fourteen routes, three synthetic projects, and
@@ -175,10 +180,11 @@ re-audit if you do.
 
 ## What comes after you
 
-M2 (`docs/ARCHITECTURE.md`): the approved Supabase project
-(`agsfxtbgwlkcwfyrykfo`, `us-east-1`, currently empty) gets migrations, seed, Auth,
-and Row Level Security, and the synthetic repositories are replaced. The view models
-in `src/types/views.ts` and the zod schemas in `src/data/schemas.ts` are written to
-carry forward: the schemas become the row parsers.
+M2 (`docs/ARCHITECTURE.md`) activates the approved Supabase project
+(`agsfxtbgwlkcwfyrykfo`, `us-east-1`) with migrations, seed, Auth, and Row Level
+Security, then replaces the synthetic repositories. Schema, seed, RLS, and audited
+RPC activation occurred on 2026-08-24; Auth bootstrap and the remaining repository
+swaps are still pending. The view models in `src/types/views.ts` and the zod schemas
+in `src/data/schemas.ts` carry forward as the row parsers.
 
 M1 must not touch that project. Neither should polish work.

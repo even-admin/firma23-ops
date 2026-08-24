@@ -21,3 +21,21 @@ export function isSupabaseConfigured(): boolean {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.length > 0
   );
 }
+
+/**
+ * True only when it is safe to fall back to the synthetic/prototype viewer
+ * in place of a real Supabase session (M2 Auth adversarial review, H1).
+ *
+ * This is deliberately a *different* question from isSupabaseConfigured():
+ * a Vercel Preview or Production deployment that is simply missing its
+ * Supabase env vars must fail closed — never silently grant the synthetic
+ * founder viewer to an anonymous visitor. NODE_ENV and VERCEL are both
+ * platform-set, server-only variables that a misconfigured deployment
+ * cannot accidentally leave in the "yes, this is local dev" state, unlike a
+ * custom opt-in flag someone could copy into a Preview's environment by
+ * mistake. Every caller that would otherwise treat "Supabase not
+ * configured" as "use the synthetic viewer" must check this first.
+ */
+export function isSyntheticModeAllowed(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1';
+}

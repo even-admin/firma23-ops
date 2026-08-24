@@ -5,7 +5,7 @@ import { AssignmentRow } from '@/components/operator/AssignmentRow';
 import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
 import { cn } from '@/lib/cn';
 
@@ -29,7 +29,7 @@ export default function HomePage() {
 }
 
 async function HomeBody() {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const home = await syntheticHomeRepository.getPersonalHome(viewer);
 
   return (

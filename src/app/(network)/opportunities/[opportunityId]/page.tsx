@@ -10,7 +10,7 @@ import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticOpportunityRepository } from '@/data/repositories/synthetic/opportunities';
 import { isFounder } from '@/lib/viewer';
 
@@ -20,7 +20,7 @@ export default async function OpportunityDetailPage({
   readonly params: Promise<{ readonly opportunityId: string }>;
 }) {
   const { opportunityId } = await params;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
 
   if (!isFounder(viewer)) {
     return (
