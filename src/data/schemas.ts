@@ -17,7 +17,7 @@ export const FIXTURE_VERSION = 1;
 const id = z.string().uuid();
 const label = z.string().min(1);
 const dateish = z.string().min(4);
-const currency = z.literal('MXN');
+const currency = z.string().regex(/^[A-Z]{3}$/, 'currency must be an uppercase ISO 4217 code');
 const centavosValue = z.number().int();
 const weight = z.number().int().min(0).max(10_000);
 
@@ -76,10 +76,12 @@ export const basePolicyRecordSchema = z
   })
   .strict();
 
+export const allocationRecipientBehaviorSchema = z.enum(['org_recipient', 'member_pool']);
+
 export const allocationShareRecordSchema = z
   .object({
     key: label,
-    kind: z.enum(['house', 'closer', 'delivery_pool']),
+    recipientBehavior: allocationRecipientBehaviorSchema,
     label,
     weightBp: weight,
     recipientOrgId: id.nullable(),
@@ -126,7 +128,9 @@ export const assignmentRecordSchema = z
     id,
     opportunityId: id,
     memberId: id,
-    roleKey: z.enum(['closer', 'delivery']),
+    // Project-defined pool key, not a fixed pair; validated against the
+    // opportunity's own allocation rule version at the database layer.
+    roleKey: label,
     roleLabel: label,
     weightBp: weight,
     status: z.enum(['proposed', 'approved']),
@@ -145,13 +149,20 @@ export const cashEventRecordSchema = z
   })
   .strict();
 
+export const settlementKindSchema = z.enum(['original', 'reversal', 'adjustment']);
+
 export const settlementRecordSchema = z
   .object({
     id,
     opportunityId: id,
     allocationRuleVersionId: id,
     status: z.enum(['pending', 'approved']),
-    baseCentavos: centavosValue.nonnegative(),
+    kind: settlementKindSchema,
+    correctsSettlementId: id.nullable(),
+    // Signed: an 'original' base is non-negative, a 'reversal' base is its
+    // exact negation (non-positive). Not re-validated by sign here; the
+    // database enforces the kind/sign relationship at the constraint layer.
+    baseCentavos: centavosValue,
     currency,
     approvedAt: dateish.nullable(),
     approvedByMemberId: id.nullable(),
@@ -163,17 +174,27 @@ export const settlementLineRecordSchema = z
     id,
     settlementId: id,
     shareKey: label,
-    recipientKind: z.enum(['house', 'closer', 'delivery_pool']),
+    recipientBehavior: allocationRecipientBehaviorSchema,
     recipientLabel: label,
     memberId: id.nullable(),
     roleLabel: label,
     weightBp: weight,
     amountCentavos: centavosValue,
     currency,
-    payoutStatus: z.enum(['unpaid', 'paid']),
-    paidAt: dateish.nullable(),
-    payoutCashEventId: id.nullable(),
     sequence: z.number().int().positive(),
+  })
+  .strict();
+
+export const settlementLinePayoutRecordSchema = z
+  .object({
+    id,
+    settlementLineId: id,
+    payoutCashEventId: id,
+    amountCentavos: centavosValue.refine((value) => value !== 0, 'amountCentavos must be nonzero'),
+    currency,
+    createdAt: dateish,
+    createdByMemberId: id,
+    idempotencyKey: label,
   })
   .strict();
 
@@ -258,19 +279,25 @@ export const portfolioItemRecordSchema = z
   })
   .strict();
 
+export const statMetricKeySchema = z.enum([
+  'opportunity_closed',
+  'delivery_completed',
+  'delivered_on_time',
+  'delivered_late',
+  'revision_requested',
+  'accepted_first_pass',
+]);
+
 export const statEventRecordSchema = z
   .object({
     id,
     memberId: id,
     opportunityId: id,
-    type: z.enum([
-      'opportunity_closed',
-      'delivery_completed',
-      'delivered_on_time',
-      'delivered_late',
-      'revision_requested',
-      'accepted_first_pass',
-    ]),
+    metricKey: statMetricKeySchema,
+    quantity: z.number().int(),
+    sourceKind: label,
+    sourceId: id,
+    reversesStatEventId: id.nullable(),
     occurredAt: dateish,
   })
   .strict();
@@ -326,7 +353,7 @@ export const reviewIssueRecordSchema = z
 export const draftAssignmentSuggestionRecordSchema = z
   .object({
     key: label,
-    roleKey: z.enum(['closer', 'delivery']),
+    roleKey: label,
     rationale: label,
     confidence: extractionConfidenceSchema,
   })
@@ -361,6 +388,8 @@ export type AssignmentRecord = z.infer<typeof assignmentRecordSchema>;
 export type CashEventRecord = z.infer<typeof cashEventRecordSchema>;
 export type SettlementRecord = z.infer<typeof settlementRecordSchema>;
 export type SettlementLineRecord = z.infer<typeof settlementLineRecordSchema>;
+export type SettlementLinePayoutRecord = z.infer<typeof settlementLinePayoutRecordSchema>;
+export type StatEventRecord = z.infer<typeof statEventRecordSchema>;
 
 /** Validate one fixture file envelope and return its records. */
 export function parseFixture<T>(name: string, schema: z.ZodType<T>, raw: unknown): T[] {

@@ -12,7 +12,9 @@ create table public.projects (
   name text not null,
   sponsor_name text not null,
   status text not null check (status in ('draft', 'active', 'closed')),
-  currency text not null default 'MXN' check (currency = 'MXN'),
+  -- ISO 4217 alpha code, not a platform constant: FIRMA23 is project-agnostic
+  -- even though every fixture and confirmed contract today is MXN.
+  currency text not null default 'MXN' check (currency ~ '^[A-Z]{3}$'),
   -- FK to allocation_rule_versions is added at the end of this file, once
   -- that table exists. Circular reference between the two tables is expected.
   active_allocation_rule_version_id uuid,
@@ -107,7 +109,7 @@ create table public.allocation_rule_versions (
   project_id uuid not null references public.projects(id),
   version integer not null check (version > 0),
   effective_from date not null,
-  currency text not null default 'MXN' check (currency = 'MXN'),
+  currency text not null default 'MXN' check (currency ~ '^[A-Z]{3}$'),
   immutable boolean not null default true,
   base_policy jsonb not null check (
     base_policy ? 'kind' and base_policy ? 'includeTypes' and base_policy ? 'label' and base_policy ? 'note'
@@ -139,7 +141,12 @@ create table public.allocation_shares (
   id uuid primary key default gen_random_uuid(),
   rule_version_id uuid not null references public.allocation_rule_versions(id) on delete cascade,
   key text not null,
-  kind text not null check (kind in ('house', 'closer', 'delivery_pool')),
+  -- org_recipient: paid to the org itself (formerly 'house'), no member split.
+  -- member_pool: split across the assignments whose role_key equals this
+  -- share's key (formerly 'closer'/'delivery_pool' as two fixed kinds) — the
+  -- project-defined key is now what distinguishes pools from one another,
+  -- not a hardcoded enum value.
+  recipient_behavior text not null check (recipient_behavior in ('org_recipient', 'member_pool')),
   label text not null,
   weight_bp integer not null check (weight_bp >= 0 and weight_bp <= 10000),
   recipient_org_id uuid references public.organizations(id),

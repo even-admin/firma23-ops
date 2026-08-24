@@ -114,7 +114,7 @@ export interface PortfolioItem {
   readonly completedAt: string;
 }
 
-export type StatEventType =
+export type StatMetricKey =
   | 'opportunity_closed'
   | 'delivery_completed'
   | 'delivered_on_time'
@@ -122,11 +122,22 @@ export type StatEventType =
   | 'revision_requested'
   | 'accepted_first_pass';
 
+/**
+ * Signed and source-idempotent. An original row's (sourceKind, sourceId) names
+ * a real-world fact once; a mistake is corrected by appending a reversal that
+ * carries the same member/opportunity/metric/source and the exact negative
+ * quantity, never by editing or deleting the original. Aggregates sum signed
+ * quantity, not row counts.
+ */
 export interface StatEvent {
   readonly id: string;
   readonly memberId: string;
   readonly opportunityId: string;
-  readonly type: StatEventType;
+  readonly metricKey: StatMetricKey;
+  readonly quantity: number;
+  readonly sourceKind: string;
+  readonly sourceId: string;
+  readonly reversesStatEventId: string | null;
   readonly occurredAt: string;
 }
 
@@ -158,7 +169,13 @@ export interface Opportunity {
   readonly openedAt: string;
 }
 
-export type AssignmentRoleKey = 'closer' | 'delivery';
+/**
+ * A project-defined pool key, not a fixed pair. Valid values are the
+ * 'member_pool' share keys on the assignment's own opportunity's allocation
+ * rule version — enforced at the database layer by a trigger, not a CHECK,
+ * since different projects define different pool roles.
+ */
+export type AssignmentRoleKey = string;
 export type AssignmentStatus = 'proposed' | 'approved';
 
 export interface Assignment {
@@ -197,11 +214,18 @@ export interface BasePolicy {
   readonly note: string;
 }
 
-export type AllocationRecipientKind = 'house' | 'closer' | 'delivery_pool';
+/**
+ * org_recipient: paid to the org itself (formerly 'house'), no member split.
+ * member_pool: split across the assignments whose roleKey equals this
+ * share's key (formerly the fixed 'closer'/'delivery_pool' pair) — the
+ * project-defined key is what distinguishes one pool from another now, not a
+ * hardcoded kind.
+ */
+export type AllocationRecipientBehavior = 'org_recipient' | 'member_pool';
 
 export interface AllocationShare {
   readonly key: string;
-  readonly kind: AllocationRecipientKind;
+  readonly recipientBehavior: AllocationRecipientBehavior;
   readonly label: string;
   readonly weightBp: BasisPoints;
   readonly recipientOrgId: string | null;
@@ -221,34 +245,65 @@ export interface AllocationRuleVersion {
 
 export type SettlementStatus = 'pending' | 'approved';
 
+/**
+ * 'original' is the first approval on an opportunity. 'reversal' exactly
+ * negates one approved original (base and lines are its negation). A
+ * correction is reverse-and-reissue: append a reversal, then a fresh
+ * original, never mutate. 'adjustment' is reserved in the enum for a future
+ * generic correction path; V1 has no policy, RPC, or repository method that
+ * creates one.
+ */
+export type SettlementKind = 'original' | 'reversal' | 'adjustment';
+
 export interface Settlement {
   readonly id: string;
   readonly opportunityId: string;
   readonly allocationRuleVersionId: string;
   readonly status: SettlementStatus;
+  readonly kind: SettlementKind;
+  readonly correctsSettlementId: string | null;
   readonly base: Money;
   readonly approvedAt: string | null;
   readonly approvedByMemberId: string | null;
 }
 
-export type PayoutStatus = 'unpaid' | 'paid';
+export type PayoutStatus = 'unpaid' | 'partial' | 'paid';
 
 export interface SettlementLine {
   readonly id: string;
   readonly settlementId: string;
   readonly shareKey: string;
-  readonly recipientKind: AllocationRecipientKind;
+  readonly recipientBehavior: AllocationRecipientBehavior;
   readonly recipientLabel: string;
   readonly memberId: string | null;
   readonly roleLabel: string;
   /** Weight inside this line's share pool, not relative to the base. */
   readonly weightBp: BasisPoints;
   readonly amount: Money;
-  readonly payoutStatus: PayoutStatus;
-  readonly paidAt: string | null;
-  readonly payoutCashEventId: string | null;
+  /**
+   * Paid/unpaid/partial status is never stored here — it is derived from the
+   * signed sum of this line's SettlementLinePayout rows. Storing it on this
+   * row would conflict with the table's own append-only immutability.
+   */
   /** Append-only ordering. Corrections append reversals, never rewrite. Invariant 7. */
   readonly sequence: number;
+}
+
+/**
+ * An append-only allocation of a payout cash event's outflow to one
+ * settlement line. Positive pays the line; negative transfers or corrects a
+ * prior allocation away from it. A line's derived status is unpaid when its
+ * allocations sum to zero, partial when they sum to less than the line
+ * amount, and paid when they sum to exactly the line amount.
+ */
+export interface SettlementLinePayout {
+  readonly id: string;
+  readonly settlementLineId: string;
+  readonly payoutCashEventId: string;
+  readonly amount: Money;
+  readonly createdAt: string;
+  readonly createdByMemberId: string;
+  readonly idempotencyKey: string;
 }
 
 // ---------------------------------------------------------------------------

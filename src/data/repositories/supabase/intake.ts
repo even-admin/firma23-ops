@@ -32,7 +32,11 @@ import {
   SOURCE_DOCUMENT_KIND_LABELS,
 } from '@/data/repositories/shared/intake-labels';
 import { copy } from '@/copy/es-MX';
-import type { AllocationRecipientKind, AssignmentRoleKey, SourceDocumentKind } from '@/types/domain';
+import type {
+  AllocationRecipientBehavior,
+  AssignmentRoleKey,
+  SourceDocumentKind,
+} from '@/types/domain';
 import type {
   ContractDraftView,
   DraftAssignmentSuggestionView,
@@ -150,7 +154,9 @@ async function buildDraftView(
         ? Promise.resolve({ data: null })
         : client
             .from('allocation_rule_versions')
-            .select('id, version, base_policy, allocation_shares(key, kind, label, weight_bp, recipient_org_id)')
+            .select(
+              'id, version, base_policy, allocation_shares(key, recipient_behavior, label, weight_bp, recipient_org_id)',
+            )
             .eq('id', draft.matched_allocation_rule_version_id)
             .single(),
     ]);
@@ -231,7 +237,7 @@ async function buildDraftView(
     base_policy: { label: string };
     allocation_shares: readonly {
       key: string;
-      kind: AllocationRecipientKind;
+      recipient_behavior: AllocationRecipientBehavior;
       label: string;
       weight_bp: number;
       recipient_org_id: string | null;
@@ -247,7 +253,7 @@ async function buildDraftView(
     // organizations map is only needed to resolve the house share's display
     // name; fetch just the referenced org(s) rather than the whole table.
     const houseOrgIds = ruleVersionRow.allocation_shares
-      .filter((share) => share.kind === 'house' && share.recipient_org_id !== null)
+      .filter((share) => share.recipient_behavior === 'org_recipient' && share.recipient_org_id !== null)
       .map((share) => share.recipient_org_id as string);
     const orgsResult =
       houseOrgIds.length === 0
@@ -271,7 +277,7 @@ async function buildDraftView(
         basePolicy: { kind: 'cash_event_types', includeTypes: ['deposit'], label: '', note: '' },
         shares: ruleVersionRow.allocation_shares.map((share) => ({
           key: share.key,
-          kind: share.kind,
+          recipientBehavior: share.recipient_behavior,
           label: share.label,
           weightBp: share.weight_bp as never,
           recipientOrgId: share.recipient_org_id,
@@ -286,8 +292,8 @@ async function buildDraftView(
     });
 
     assignments = draft.suggested_assignments.map((suggestion) => {
-      const share = ruleVersionRow.allocation_shares.find((candidate) =>
-        suggestion.roleKey === 'closer' ? candidate.kind === 'closer' : candidate.kind === 'delivery_pool',
+      const share = ruleVersionRow.allocation_shares.find(
+        (candidate) => candidate.key === suggestion.roleKey,
       );
       return {
         roleLabel: share?.label ?? suggestion.roleKey,

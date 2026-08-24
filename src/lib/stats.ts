@@ -16,17 +16,22 @@ function rate(numerator: number, denominator: number): BasisPoints | null {
 }
 
 export function deriveMemberStats(events: readonly StatEvent[]): MemberStats {
-  const count = (type: StatEvent['type']): number =>
-    events.filter((event) => event.type === type).length;
+  // Sum signed quantity, not row count: a reversal is a second row carrying
+  // the exact negative quantity of the fact it corrects, so summing is what
+  // keeps history append-only while still reflecting the correction.
+  const total = (metricKey: StatEvent['metricKey']): number =>
+    events
+      .filter((event) => event.metricKey === metricKey)
+      .reduce((sum, event) => sum + event.quantity, 0);
 
-  const onTime = count('delivered_on_time');
-  const late = count('delivered_late');
-  const acceptedFirstPass = count('accepted_first_pass');
-  const revisionsRequested = count('revision_requested');
+  const onTime = total('delivered_on_time');
+  const late = total('delivered_late');
+  const acceptedFirstPass = total('accepted_first_pass');
+  const revisionsRequested = total('revision_requested');
 
   return {
-    closed: count('opportunity_closed'),
-    delivered: count('delivery_completed'),
+    closed: total('opportunity_closed'),
+    delivered: total('delivery_completed'),
     onTime,
     late,
     revisionsRequested,

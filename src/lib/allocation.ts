@@ -23,7 +23,7 @@ import {
   sumMoney,
 } from '@/lib/money';
 import type {
-  AllocationRecipientKind,
+  AllocationRecipientBehavior,
   AllocationRuleVersion,
   Assignment,
   BasePolicy,
@@ -34,6 +34,7 @@ import type {
   PayoutStatus,
   Settlement,
   SettlementLine,
+  SettlementLinePayout,
 } from '@/types/domain';
 
 export class AllocationError extends Error {
@@ -55,13 +56,13 @@ export interface SegmentParticipant {
 
 export interface SettledLine extends SegmentParticipant {
   readonly lineId: string;
+  /** Derived from this line's settlement_line_payouts, never stored. */
   readonly payoutStatus: PayoutStatus;
-  readonly paidAt: string | null;
 }
 
 export interface RailSegment<P extends SegmentParticipant = SegmentParticipant> {
   readonly key: string;
-  readonly kind: AllocationRecipientKind;
+  readonly recipientBehavior: AllocationRecipientBehavior;
   readonly label: string;
   readonly weightBp: BasisPoints;
   readonly amount: Money;
@@ -183,17 +184,17 @@ export function resolveAllocation(input: ResolveAllocationInput): AllocationProj
       throw new AllocationError(`Missing computed amount for share ${share.key}`);
     }
 
-    if (share.kind === 'house') {
+    if (share.recipientBehavior === 'org_recipient') {
       const org =
         share.recipientOrgId === null ? undefined : organizations.get(share.recipientOrgId);
       if (org === undefined) {
         throw new AllocationError(
-          `House share ${share.key} has no resolvable recipient organization`,
+          `org_recipient share ${share.key} has no resolvable recipient organization`,
         );
       }
       return {
         key: share.key,
-        kind: share.kind,
+        recipientBehavior: share.recipientBehavior,
         label: share.label,
         weightBp: share.weightBp,
         amount,
@@ -211,14 +212,16 @@ export function resolveAllocation(input: ResolveAllocationInput): AllocationProj
       };
     }
 
-    const roleKey = share.kind === 'closer' ? 'closer' : 'delivery';
-    const roleAssignments = assignments.filter((assignment) => assignment.roleKey === roleKey);
+    // member_pool: split across assignments whose roleKey equals this
+    // share's own key, since a project defines its own pool roles rather
+    // than choosing between a fixed pair.
+    const roleAssignments = assignments.filter((assignment) => assignment.roleKey === share.key);
 
     if (roleAssignments.length === 0) {
       fullyAssigned = false;
       return {
         key: share.key,
-        kind: share.kind,
+        recipientBehavior: share.recipientBehavior,
         label: share.label,
         weightBp: share.weightBp,
         amount,
@@ -253,7 +256,7 @@ export function resolveAllocation(input: ResolveAllocationInput): AllocationProj
 
     return {
       key: share.key,
-      kind: share.kind,
+      recipientBehavior: share.recipientBehavior,
       label: share.label,
       weightBp: share.weightBp,
       amount,
@@ -277,9 +280,25 @@ export function resolveAllocation(input: ResolveAllocationInput): AllocationProj
 export interface BuildApprovedSettlementInput {
   readonly settlement: Settlement;
   readonly lines: readonly SettlementLine[];
+  /** Every settlement_line_payouts row for the lines above, in any order. */
+  readonly payouts: readonly SettlementLinePayout[];
   readonly ruleVersion: AllocationRuleVersion;
   readonly basePolicyLabel: string;
   readonly approver: Member;
+}
+
+/** Sum of a line's payout allocations, and the status that sum implies. */
+function derivePayoutStatus(
+  line: SettlementLine,
+  payouts: readonly SettlementLinePayout[],
+): { readonly allocated: Money; readonly status: PayoutStatus } {
+  const allocated = sumMoney(
+    payouts.filter((payout) => payout.settlementLineId === line.id).map((payout) => payout.amount),
+    line.amount.currency,
+  );
+  if (allocated.amount <= 0) return { allocated, status: 'unpaid' };
+  if (allocated.amount >= line.amount.amount) return { allocated, status: 'paid' };
+  return { allocated, status: 'partial' };
 }
 
 /**
@@ -294,6 +313,11 @@ export function buildApprovedSettlement(input: BuildApprovedSettlementInput): Ap
   if (settlement.status !== 'approved') {
     throw new AllocationError(
       `Settlement ${settlement.id} is ${settlement.status}; only approved settlements produce settled money`,
+    );
+  }
+  if (settlement.kind !== 'original') {
+    throw new AllocationError(
+      `Settlement ${settlement.id} is a ${settlement.kind}; only an original settlement renders a rail`,
     );
   }
   const { approvedAt, approvedByMemberId } = settlement;
@@ -332,13 +356,12 @@ export function buildApprovedSettlement(input: BuildApprovedSettlementInput): Ap
       roleLabel: line.roleLabel,
       weightBp: line.weightBp,
       amount: line.amount,
-      payoutStatus: line.payoutStatus,
-      paidAt: line.paidAt,
+      payoutStatus: derivePayoutStatus(line, input.payouts).status,
     }));
 
     return {
       key: share.key,
-      kind: share.kind,
+      recipientBehavior: share.recipientBehavior,
       label: share.label,
       weightBp: share.weightBp,
       amount: sumMoney(
@@ -361,7 +384,7 @@ export function buildApprovedSettlement(input: BuildApprovedSettlementInput): Ap
   assertSegmentsSumToBase(segments, settlement.base, `settlement ${settlement.id}`);
 
   const paid = sumMoney(
-    ordered.filter((line) => line.payoutStatus === 'paid').map((line) => line.amount),
+    ordered.map((line) => derivePayoutStatus(line, input.payouts).allocated),
     settlement.base.currency,
   );
 

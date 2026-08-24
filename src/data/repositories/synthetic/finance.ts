@@ -40,7 +40,9 @@ export const syntheticFinanceRepository: FinanceRepository = {
       if (built.rail.kind === 'settlement') {
         approvedBases.push(built.rail.base);
         paidAmounts.push(built.rail.paid);
-        const house = built.rail.segments.find((segment) => segment.kind === 'house');
+        const house = built.rail.segments.find(
+          (segment) => segment.recipientBehavior === 'org_recipient',
+        );
         if (house !== undefined) houseAmounts.push(house.amount);
       } else {
         // Projections are totalled separately and never folded into approved money.

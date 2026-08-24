@@ -101,11 +101,7 @@ export const syntheticIntakeRepository: IntakeRepository = {
 
     const assignments: DraftAssignmentSuggestionView[] = draftRecord.suggestedAssignments.map(
       (suggestion) => {
-        const share = ruleVersion.shares.find((candidate) =>
-          suggestion.roleKey === 'closer'
-            ? candidate.kind === 'closer'
-            : candidate.kind === 'delivery_pool',
-        );
+        const share = ruleVersion.shares.find((candidate) => candidate.key === suggestion.roleKey);
         if (share === undefined) {
           throw new DataError(`No allocation share matches suggested role ${suggestion.roleKey}`);
         }

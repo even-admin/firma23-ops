@@ -55,7 +55,13 @@ create table public.members (
   initials text not null check (char_length(initials) between 1 and 4),
   role text not null check (role in ('founder', 'member')),
   auth_user_id uuid unique references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Lets memberships carry a composite FK below, so a membership row's org_id
+  -- can never disagree with the org_id already stamped on the member it
+  -- references. Without this, a corrupt or forged membership insert could
+  -- smuggle founder authority into an org the member does not actually
+  -- belong to.
+  unique (id, org_id)
 );
 
 -- ---------------------------------------------------------------------------
@@ -72,7 +78,10 @@ create table public.memberships (
   status text not null check (status in ('invited', 'active', 'revoked')),
   invited_at timestamptz not null default now(),
   activated_at timestamptz,
-  unique (org_id, member_id)
+  unique (org_id, member_id),
+  -- Composite FK against members(id, org_id): a membership can only ever
+  -- name the org its member actually belongs to.
+  foreign key (member_id, org_id) references public.members(id, org_id)
 );
 
 -- ---------------------------------------------------------------------------
@@ -126,6 +135,16 @@ as $$
       and ms.status = 'active'
   );
 $$;
+
+-- Every RLS policy in this schema calls one of these three functions, so any
+-- authenticated query needs EXECUTE on them; PUBLIC (which otherwise defaults
+-- to including anon) does not.
+revoke execute on function public.current_member_id() from public;
+revoke execute on function public.is_active_founder(uuid) from public;
+revoke execute on function public.is_active_member(uuid) from public;
+grant execute on function public.current_member_id() to authenticated;
+grant execute on function public.is_active_founder(uuid) to authenticated;
+grant execute on function public.is_active_member(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- RLS policies for organizations, members, and memberships, now that the

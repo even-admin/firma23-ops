@@ -9,7 +9,7 @@
  * so no project can skip the shared validation path.
  */
 
-import { basisPoints, money } from '@/lib/money';
+import { assertCurrencyCode, basisPoints, money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import {
   aiContractDraftRecordSchema,
@@ -28,6 +28,7 @@ import {
   portfolioItemRecordSchema,
   projectRecordSchema,
   serviceVersionRecordSchema,
+  settlementLinePayoutRecordSchema,
   settlementLineRecordSchema,
   settlementRecordSchema,
   skillRecordSchema,
@@ -56,6 +57,7 @@ import type {
   ServiceVersion,
   Settlement,
   SettlementLine,
+  SettlementLinePayout,
   Skill,
   SourceDocument,
   StatEvent,
@@ -96,6 +98,7 @@ export interface SyntheticDataset {
   readonly cashEvents: readonly CashEvent[];
   readonly settlements: readonly Settlement[];
   readonly settlementLines: readonly SettlementLine[];
+  readonly settlementLinePayouts: readonly SettlementLinePayout[];
   readonly sourceDocuments: ReadonlyMap<string, SourceDocument>;
   readonly aiContractDrafts: ReadonlyMap<string, AiContractDraft>;
 }
@@ -139,10 +142,11 @@ function build(): SyntheticDataset {
     aiContractDraftsRaw,
   ).map((record) => ({
     ...record,
+    currency: assertCurrencyCode(record.currency),
     exampleDistributableBase: {
       value: money(
         record.exampleDistributableBase.amountCentavos,
-        record.exampleDistributableBase.currency,
+        assertCurrencyCode(record.exampleDistributableBase.currency),
       ),
       confidence: record.exampleDistributableBase.confidence,
       evidence: record.exampleDistributableBase.evidence,
@@ -160,11 +164,17 @@ function build(): SyntheticDataset {
   const cashEvents: CashEvent[] = [];
   const settlements: Settlement[] = [];
   const settlementLines: SettlementLine[] = [];
+  const settlementLinePayouts: SettlementLinePayout[] = [];
 
   for (const bundle of PROJECT_BUNDLES) {
     const at = (file: string) => `projects/${bundle.slug}/${file}`;
 
-    projects.push(...parseFixture(at('project'), projectRecordSchema, bundle.project));
+    projects.push(
+      ...parseFixture(at('project'), projectRecordSchema, bundle.project).map((record) => ({
+        ...record,
+        currency: assertCurrencyCode(record.currency),
+      })),
+    );
     serviceVersions.push(
       ...parseFixture(at('service-versions'), serviceVersionRecordSchema, bundle.serviceVersions),
     );
@@ -175,6 +185,7 @@ function build(): SyntheticDataset {
         bundle.allocationRuleVersions,
       ).map((record) => ({
         ...record,
+        currency: assertCurrencyCode(record.currency),
         shares: record.shares.map((share) => ({
           ...share,
           weightBp: basisPoints(share.weightBp),
@@ -210,13 +221,16 @@ function build(): SyntheticDataset {
       ...parseFixture(at('cash-events'), cashEventRecordSchema, bundle.cashEvents).map(
         ({ amountCentavos, currency, ...rest }) => ({
           ...rest,
-          amount: money(amountCentavos, currency),
+          amount: money(amountCentavos, assertCurrencyCode(currency)),
         }),
       ),
     );
     settlements.push(
       ...parseFixture(at('settlements'), settlementRecordSchema, bundle.settlements).map(
-        ({ baseCentavos, currency, ...rest }) => ({ ...rest, base: money(baseCentavos, currency) }),
+        ({ baseCentavos, currency, ...rest }) => ({
+          ...rest,
+          base: money(baseCentavos, assertCurrencyCode(currency)),
+        }),
       ),
     );
     settlementLines.push(
@@ -227,7 +241,17 @@ function build(): SyntheticDataset {
       ).map(({ amountCentavos, currency, weightBp, ...rest }) => ({
         ...rest,
         weightBp: basisPoints(weightBp),
-        amount: money(amountCentavos, currency),
+        amount: money(amountCentavos, assertCurrencyCode(currency)),
+      })),
+    );
+    settlementLinePayouts.push(
+      ...parseFixture(
+        at('settlement-line-payouts'),
+        settlementLinePayoutRecordSchema,
+        bundle.settlementLinePayouts,
+      ).map(({ amountCentavos, currency, ...rest }) => ({
+        ...rest,
+        amount: money(amountCentavos, assertCurrencyCode(currency)),
       })),
     );
   }
@@ -263,6 +287,7 @@ function build(): SyntheticDataset {
     cashEvents,
     settlements,
     settlementLines,
+    settlementLinePayouts,
     sourceDocuments: byId(sourceDocuments),
     aiContractDrafts: byId(aiContractDrafts),
   };

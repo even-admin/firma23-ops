@@ -17,6 +17,7 @@ import type {
   Organization,
   Settlement,
   SettlementLine,
+  SettlementLinePayout,
 } from '@/types/domain';
 
 const EVEN: Organization = { id: 'org-even', slug: 'even', name: 'EVEN' };
@@ -61,21 +62,21 @@ const setyRule: AllocationRuleVersion = {
   shares: [
     {
       key: 'house',
-      kind: 'house',
+      recipientBehavior: 'org_recipient',
       label: 'Casa',
       weightBp: basisPoints(3_000),
       recipientOrgId: EVEN.id,
     },
     {
       key: 'closer',
-      kind: 'closer',
+      recipientBehavior: 'member_pool',
       label: 'Cierre',
       weightBp: basisPoints(2_000),
       recipientOrgId: null,
     },
     {
       key: 'delivery',
-      kind: 'delivery_pool',
+      recipientBehavior: 'member_pool',
       label: 'Producción',
       weightBp: basisPoints(5_000),
       recipientOrgId: null,
@@ -91,21 +92,21 @@ const retainerRule: AllocationRuleVersion = {
   shares: [
     {
       key: 'house',
-      kind: 'house',
+      recipientBehavior: 'org_recipient',
       label: 'Casa',
       weightBp: basisPoints(2_500),
       recipientOrgId: EVEN.id,
     },
     {
       key: 'closer',
-      kind: 'closer',
+      recipientBehavior: 'member_pool',
       label: 'Cierre',
       weightBp: basisPoints(2_500),
       recipientOrgId: null,
     },
     {
       key: 'delivery',
-      kind: 'delivery_pool',
+      recipientBehavior: 'member_pool',
       label: 'Producción',
       weightBp: basisPoints(5_000),
       recipientOrgId: null,
@@ -332,7 +333,7 @@ describe('resolveAllocation', () => {
     const orphan: AllocationRuleVersion = {
       ...setyRule,
       shares: setyRule.shares.map((share) =>
-        share.kind === 'house' ? { ...share, recipientOrgId: null } : share,
+        share.recipientBehavior === 'org_recipient' ? { ...share, recipientOrgId: null } : share,
       ),
     };
     expect(() => projection(fullAssignments, orphan)).toThrow(/recipient organization/);
@@ -344,6 +345,8 @@ const approvedSettlement: Settlement = {
   opportunityId: 'opp-2',
   allocationRuleVersionId: setyRule.id,
   status: 'approved',
+  kind: 'original',
+  correctsSettlementId: null,
   base: money(897_270),
   approvedAt: '2026-08-12T17:40:00.000Z',
   approvedByMemberId: founder.id,
@@ -360,32 +363,33 @@ function line(
     id,
     settlementId: approvedSettlement.id,
     shareKey,
-    recipientKind:
-      shareKey === 'house' ? 'house' : shareKey === 'closer' ? 'closer' : 'delivery_pool',
+    recipientBehavior: shareKey === 'house' ? 'org_recipient' : 'member_pool',
     recipientLabel: 'Recipiente',
     memberId: null,
     roleLabel: 'Rol',
     weightBp: basisPoints(10_000),
     amount: money(amount),
-    payoutStatus: 'unpaid',
-    paidAt: null,
-    payoutCashEventId: null,
     sequence,
     ...overrides,
   };
 }
 
+/** Fully pays a line's exact amount via one allocation. */
+function payoutFor(lineId: string, amount: number, id = `payout-${lineId}`): SettlementLinePayout {
+  return {
+    id,
+    settlementLineId: lineId,
+    payoutCashEventId: 'ce-payout',
+    amount: money(amount),
+    createdAt: '2026-08-14T00:00:00.000Z',
+    createdByMemberId: founder.id,
+    idempotencyKey: id,
+  };
+}
+
 const approvedLines: SettlementLine[] = [
-  line('l-1', 'house', 269_181, 1, {
-    payoutStatus: 'paid',
-    paidAt: '2026-08-14',
-    recipientLabel: 'EVEN',
-  }),
-  line('l-2', 'closer', 179_454, 2, {
-    payoutStatus: 'paid',
-    paidAt: '2026-08-14',
-    recipientLabel: 'Emiliano Pasos',
-  }),
+  line('l-1', 'house', 269_181, 1, { recipientLabel: 'EVEN' }),
+  line('l-2', 'closer', 179_454, 2, { recipientLabel: 'Emiliano Pasos' }),
   line('l-3', 'delivery', 179_454, 3, {
     weightBp: basisPoints(4_000),
     recipientLabel: 'Sebastián Benítez',
@@ -400,14 +404,22 @@ const approvedLines: SettlementLine[] = [
   }),
 ];
 
+/** l-1 and l-2 are fully paid; the delivery pool lines remain unpaid. */
+const approvedPayouts: SettlementLinePayout[] = [
+  payoutFor('l-1', 269_181),
+  payoutFor('l-2', 179_454),
+];
+
 function settled(
   settlement: Settlement = approvedSettlement,
   lines: readonly SettlementLine[] = approvedLines,
   approver: Member = founder,
+  payouts: readonly SettlementLinePayout[] = approvedPayouts,
 ) {
   return buildApprovedSettlement({
     settlement,
     lines,
+    payouts,
     ruleVersion: setyRule,
     basePolicyLabel: setyRule.basePolicy.label,
     approver,
@@ -461,6 +473,28 @@ describe('buildApprovedSettlement', () => {
     expect(result.paid.amount).toBe(448_635);
     expect(result.unpaid.amount).toBe(448_635);
     expect(result.paid.amount + result.unpaid.amount).toBe(result.base.amount);
+    const house = result.segments[0]?.participants[0];
+    const delivery = result.segments[2]?.participants[0];
+    expect(house?.payoutStatus).toBe('paid');
+    expect(delivery?.payoutStatus).toBe('unpaid');
+  });
+
+  it('derives partial status from an allocation smaller than the line', () => {
+    const partialPayouts = [payoutFor('l-3', 100_000)];
+    const result = settled(approvedSettlement, approvedLines, founder, partialPayouts);
+    const deliveryLine = result.segments[2]?.participants.find((p) => p.lineId === 'l-3');
+    expect(deliveryLine?.payoutStatus).toBe('partial');
+    expect(result.paid.amount).toBe(100_000);
+  });
+
+  it('refuses to render a rail for a non-original settlement', () => {
+    const reversal: Settlement = {
+      ...approvedSettlement,
+      kind: 'reversal',
+      correctsSettlementId: 'settle-0',
+      base: money(-897_270),
+    };
+    expect(() => settled(reversal)).toThrow(/only an original settlement renders a rail/);
   });
 
   it('orders lines by their append-only sequence', () => {
@@ -501,6 +535,7 @@ describe('buildApprovedSettlement', () => {
       buildApprovedSettlement({
         settlement: { ...approvedSettlement, base: money(897_271) },
         lines: approvedLines,
+        payouts: approvedPayouts,
         ruleVersion: rule,
         basePolicyLabel: rule.basePolicy.label,
         approver: founder,
@@ -514,6 +549,7 @@ describe('buildApprovedSettlement', () => {
       buildApprovedSettlement({
         settlement: approvedSettlement,
         lines: approvedLines,
+        payouts: approvedPayouts,
         ruleVersion: broken,
         basePolicyLabel: broken.basePolicy.label,
         approver: founder,

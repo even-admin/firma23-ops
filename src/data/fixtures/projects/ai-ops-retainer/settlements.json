@@ -6,6 +6,8 @@
       "opportunityId": "f0000000-0000-4000-8000-000000000011",
       "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000002",
       "status": "approved",
+      "kind": "original",
+      "correctsSettlementId": null,
       "baseCentavos": 2500000,
       "currency": "MXN",
       "approvedAt": "2026-07-18T15:05:00.000Z",

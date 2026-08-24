@@ -11,6 +11,7 @@ import evidenceLinks from '@/data/fixtures/projects/ai-ops-retainer/evidence-lin
 import cashEvents from '@/data/fixtures/projects/ai-ops-retainer/cash-events.json';
 import settlements from '@/data/fixtures/projects/ai-ops-retainer/settlements.json';
 import settlementLines from '@/data/fixtures/projects/ai-ops-retainer/settlement-lines.json';
+import settlementLinePayouts from '@/data/fixtures/projects/ai-ops-retainer/settlement-line-payouts.json';
 
 export const AI_OPS_RETAINER: ProjectFixtureBundle = {
   slug: 'ai-ops-retainer',
@@ -25,4 +26,5 @@ export const AI_OPS_RETAINER: ProjectFixtureBundle = {
   cashEvents,
   settlements,
   settlementLines,
+  settlementLinePayouts,
 };

@@ -7,6 +7,7 @@ import {
   approvedEarnings,
   approvedLinesFor,
   paidEarnings,
+  payoutStatusFor,
   projectedEarnings,
   statsFor,
 } from '@/data/repositories/synthetic/shared';
@@ -76,7 +77,7 @@ export const syntheticLeaderboardRepository: LeaderboardRepository = {
           projectName: project?.name ?? '',
           roleLabel: line.roleLabel,
           amount: line.amount,
-          payoutStatus: line.payoutStatus,
+          payoutStatus: payoutStatusFor(dataset, line),
           approvedAt: settlement.approvedAt,
           approvedByName: approver.displayName,
         };

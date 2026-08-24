@@ -19,7 +19,7 @@ import { DataError } from '@/lib/result';
 import { copy } from '@/copy/es-MX';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import type { OpportunitySummary } from '@/types/views';
-import type { Opportunity } from '@/types/domain';
+import type { Opportunity, Settlement } from '@/types/domain';
 
 export interface OpportunityRail {
   readonly opportunity: Opportunity;
@@ -54,6 +54,30 @@ export function summariseOpportunity(
   };
 }
 
+/**
+ * The opportunity's currently active settlement: an approved original with
+ * no approved reversal against it. Falls back to a pending draft, if any, so
+ * a reversed-and-not-yet-reissued opportunity still shows a preview to work
+ * from instead of nothing.
+ */
+function activeSettlementFor(
+  dataset: SyntheticDataset,
+  opportunityId: string,
+): Settlement | undefined {
+  const candidates = dataset.settlements.filter((entry) => entry.opportunityId === opportunityId);
+  const approvedOriginals = candidates.filter(
+    (entry) => entry.status === 'approved' && entry.kind === 'original',
+  );
+  const reversedOriginalIds = new Set(
+    candidates
+      .filter((entry) => entry.status === 'approved' && entry.kind === 'reversal')
+      .map((entry) => entry.correctsSettlementId),
+  );
+  const active = approvedOriginals.find((entry) => !reversedOriginalIds.has(entry.id));
+  if (active !== undefined) return active;
+  return candidates.find((entry) => entry.status === 'pending');
+}
+
 export function buildOpportunityRail(
   dataset: SyntheticDataset,
   opportunity: Opportunity,
@@ -72,7 +96,7 @@ export function buildOpportunityRail(
     ruleVersion.currency,
   );
   const cashReceived = totalCashReceived(events, ruleVersion.currency);
-  const settlement = dataset.settlements.find((entry) => entry.opportunityId === opportunity.id);
+  const settlement = activeSettlementFor(dataset, opportunity.id);
 
   let rail: RailModel;
 
@@ -87,9 +111,14 @@ export function buildOpportunityRail(
     if (approver === undefined) {
       throw new DataError(`Settlement ${settlement.id} references an unknown approver`);
     }
+    const lines = dataset.settlementLines.filter((line) => line.settlementId === settlement.id);
+    const lineIds = new Set(lines.map((line) => line.id));
     rail = buildApprovedSettlement({
       settlement,
-      lines: dataset.settlementLines.filter((line) => line.settlementId === settlement.id),
+      lines,
+      payouts: dataset.settlementLinePayouts.filter((payout) =>
+        lineIds.has(payout.settlementLineId),
+      ),
       ruleVersion,
       basePolicyLabel: distributableBase.policyLabel,
       approver,

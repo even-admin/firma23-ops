@@ -40,20 +40,60 @@ create table public.opportunities (
   created_at timestamptz not null default now()
 );
 
+-- No ON DELETE CASCADE: an opportunity with assignments has work history, and
+-- per docs/ARCHITECTURE.md's undeletable-once-there-is-history rule it can
+-- only move to 'cancelled', never be deleted out from under its assignments.
 create table public.assignments (
   id uuid primary key default gen_random_uuid(),
-  opportunity_id uuid not null references public.opportunities(id) on delete cascade,
+  opportunity_id uuid not null references public.opportunities(id),
   member_id uuid not null references public.members(id),
-  role_key text not null check (role_key in ('closer', 'delivery')),
+  -- role_key is no longer a fixed CHECK; it must equal a 'member_pool' share
+  -- key on the opportunity's own allocation rule version, enforced by the
+  -- guard_assignment_role_key trigger below, since projects now define their
+  -- own pool roles instead of choosing between two hardcoded ones.
+  role_key text not null,
   role_label text not null,
   weight_bp integer not null check (weight_bp >= 0 and weight_bp <= 10000),
   status text not null check (status in ('proposed', 'approved')),
   unique (opportunity_id, member_id, role_key)
 );
 
+-- Replaces the old role_key CHECK ('closer'/'delivery'): a role_key is valid
+-- only when it names a 'member_pool' share on the opportunity's own
+-- allocation rule version, so assignment roles always trace back to a real,
+-- versioned allocation rule instead of a hardcoded pair.
+create or replace function public.guard_assignment_role_key()
+returns trigger
+language plpgsql
+as $$
+declare
+  opportunity_rule_version_id uuid;
+begin
+  select allocation_rule_version_id into opportunity_rule_version_id
+  from public.opportunities
+  where id = new.opportunity_id;
+
+  if not exists (
+    select 1 from public.allocation_shares
+    where rule_version_id = opportunity_rule_version_id
+      and key = new.role_key
+      and recipient_behavior = 'member_pool'
+  ) then
+    raise exception
+      'role_key % is not a member_pool share key on opportunity %''s allocation rule version',
+      new.role_key, new.opportunity_id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger assignments_guard_role_key
+  before insert or update on public.assignments
+  for each row execute function public.guard_assignment_role_key();
+
 create table public.opportunity_milestones (
   id uuid primary key default gen_random_uuid(),
-  opportunity_id uuid not null references public.opportunities(id) on delete cascade,
+  opportunity_id uuid not null references public.opportunities(id),
   template_id uuid not null references public.milestone_templates(id),
   position integer not null check (position > 0),
   name text not null,
@@ -64,9 +104,12 @@ create table public.opportunity_milestones (
   unique (opportunity_id, template_id)
 );
 
+-- No ON DELETE CASCADE: evidence is exactly the "history" that makes an
+-- opportunity/milestone undeletable, so it must never disappear as a side
+-- effect of deleting the row it evidences.
 create table public.evidence_links (
   id uuid primary key default gen_random_uuid(),
-  opportunity_milestone_id uuid not null references public.opportunity_milestones(id) on delete cascade,
+  opportunity_milestone_id uuid not null references public.opportunity_milestones(id),
   label text not null,
   url text not null,
   kind text not null check (kind in ('link', 'image', 'video', 'document')),
@@ -131,6 +174,15 @@ as $$
       and public.is_assigned_to_opportunity(om.opportunity_id)
   );
 $$;
+
+revoke execute on function public.org_id_for_opportunity(uuid) from public;
+revoke execute on function public.is_assigned_to_opportunity(uuid) from public;
+revoke execute on function public.org_id_for_milestone(uuid) from public;
+revoke execute on function public.is_assigned_to_milestone_opportunity(uuid) from public;
+grant execute on function public.org_id_for_opportunity(uuid) to authenticated;
+grant execute on function public.is_assigned_to_opportunity(uuid) to authenticated;
+grant execute on function public.org_id_for_milestone(uuid) to authenticated;
+grant execute on function public.is_assigned_to_milestone_opportunity(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- RLS: opportunities

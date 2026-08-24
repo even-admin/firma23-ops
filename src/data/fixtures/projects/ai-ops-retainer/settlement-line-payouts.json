@@ -1,0 +1,45 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "50000000-0000-4000-8000-000000000011",
+      "settlementLineId": "40000000-0000-4000-8000-000000000011",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000034",
+      "amountCentavos": 625000,
+      "currency": "MXN",
+      "createdAt": "2026-07-22T00:00:00.000Z",
+      "createdByMemberId": "b0000000-0000-4000-8000-000000000001",
+      "idempotencyKey": "ai-ops-retainer-payout-house-2026-07-22"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000012",
+      "settlementLineId": "40000000-0000-4000-8000-000000000012",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000035",
+      "amountCentavos": 625000,
+      "currency": "MXN",
+      "createdAt": "2026-07-22T00:00:00.000Z",
+      "createdByMemberId": "b0000000-0000-4000-8000-000000000001",
+      "idempotencyKey": "ai-ops-retainer-payout-closer-2026-07-22"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000013",
+      "settlementLineId": "40000000-0000-4000-8000-000000000013",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000036",
+      "amountCentavos": 750000,
+      "currency": "MXN",
+      "createdAt": "2026-07-22T00:00:00.000Z",
+      "createdByMemberId": "b0000000-0000-4000-8000-000000000001",
+      "idempotencyKey": "ai-ops-retainer-payout-delivery-emiliano-2026-07-22"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000014",
+      "settlementLineId": "40000000-0000-4000-8000-000000000014",
+      "payoutCashEventId": "30000000-0000-4000-8000-000000000036",
+      "amountCentavos": 500000,
+      "currency": "MXN",
+      "createdAt": "2026-07-22T00:00:00.000Z",
+      "createdByMemberId": "b0000000-0000-4000-8000-000000000001",
+      "idempotencyKey": "ai-ops-retainer-payout-delivery-diego-2026-07-22"
+    }
+  ]
+}

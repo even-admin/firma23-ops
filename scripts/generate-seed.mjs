@@ -165,6 +165,7 @@ const allEvidenceLinks = [];
 const allCashEvents = [];
 const allSettlements = [];
 const allSettlementLines = [];
+const allSettlementLinePayouts = [];
 const projectRows = [];
 
 for (const slug of PROJECT_SLUGS) {
@@ -181,6 +182,7 @@ for (const slug of PROJECT_SLUGS) {
   allCashEvents.push(...readFixture(`${dir}/cash-events.json`));
   allSettlements.push(...readFixture(`${dir}/settlements.json`));
   allSettlementLines.push(...readFixture(`${dir}/settlement-lines.json`));
+  allSettlementLinePayouts.push(...readFixture(`${dir}/settlement-line-payouts.json`));
 }
 
 // projects — inserted without active_allocation_rule_version_id first, then
@@ -253,12 +255,12 @@ for (const r of allAllocationRuleVersions) {
 out.push(
   insert(
     'allocation_shares',
-    ['id', 'rule_version_id', 'key', 'kind', 'label', 'weight_bp', 'recipient_org_id'],
+    ['id', 'rule_version_id', 'key', 'recipient_behavior', 'label', 'weight_bp', 'recipient_org_id'],
     allAllocationShares.map((s) => ({
       id: 'gen_random_uuid()',
       rule_version_id: sqlString(s.ruleVersionId),
       key: sqlString(s.key),
-      kind: sqlString(s.kind),
+      recipient_behavior: sqlString(s.recipientBehavior),
       label: sqlString(s.label),
       weight_bp: s.weightBp,
       recipient_org_id: sqlString(s.recipientOrgId),
@@ -360,12 +362,14 @@ out.push(
 out.push(
   insert(
     'settlements',
-    ['id', 'opportunity_id', 'allocation_rule_version_id', 'status', 'base_centavos', 'currency', 'approved_at', 'approved_by_member_id'],
+    ['id', 'opportunity_id', 'allocation_rule_version_id', 'status', 'kind', 'corrects_settlement_id', 'base_centavos', 'currency', 'approved_at', 'approved_by_member_id'],
     allSettlements.map((s) => ({
       id: sqlString(s.id),
       opportunity_id: sqlString(s.opportunityId),
       allocation_rule_version_id: sqlString(s.allocationRuleVersionId),
       status: sqlString(s.status),
+      kind: sqlString(s.kind),
+      corrects_settlement_id: sqlString(s.correctsSettlementId),
       base_centavos: s.baseCentavos,
       currency: sqlString(s.currency),
       approved_at: sqlString(s.approvedAt),
@@ -377,22 +381,40 @@ out.push(
 out.push(
   insert(
     'settlement_lines',
-    ['id', 'settlement_id', 'share_key', 'recipient_kind', 'recipient_label', 'member_id', 'role_label', 'weight_bp', 'amount_centavos', 'currency', 'payout_status', 'paid_at', 'payout_cash_event_id', 'sequence'],
+    ['id', 'settlement_id', 'share_key', 'recipient_behavior', 'recipient_label', 'member_id', 'role_label', 'weight_bp', 'amount_centavos', 'currency', 'sequence'],
     allSettlementLines.map((l) => ({
       id: sqlString(l.id),
       settlement_id: sqlString(l.settlementId),
       share_key: sqlString(l.shareKey),
-      recipient_kind: sqlString(l.recipientKind),
+      recipient_behavior: sqlString(l.recipientBehavior),
       recipient_label: sqlString(l.recipientLabel),
       member_id: sqlString(l.memberId),
       role_label: sqlString(l.roleLabel),
       weight_bp: l.weightBp,
       amount_centavos: l.amountCentavos,
       currency: sqlString(l.currency),
-      payout_status: sqlString(l.payoutStatus),
-      paid_at: sqlString(l.paidAt),
-      payout_cash_event_id: sqlString(l.payoutCashEventId),
       sequence: l.sequence,
+    })),
+  ),
+);
+
+// A founder identity to attribute seeded payout allocations to. Matches the
+// same convention already used below for source_documents/intake_runs.
+const seedFounderId = members.find((m) => m.role === 'founder').id;
+
+out.push(
+  insert(
+    'settlement_line_payouts',
+    ['id', 'settlement_line_id', 'payout_cash_event_id', 'amount_centavos', 'currency', 'created_at', 'created_by_member_id', 'idempotency_key'],
+    allSettlementLinePayouts.map((p) => ({
+      id: sqlString(p.id),
+      settlement_line_id: sqlString(p.settlementLineId),
+      payout_cash_event_id: sqlString(p.payoutCashEventId),
+      amount_centavos: p.amountCentavos,
+      currency: sqlString(p.currency),
+      created_at: sqlString(p.createdAt),
+      created_by_member_id: sqlString(p.createdByMemberId ?? seedFounderId),
+      idempotency_key: sqlString(p.idempotencyKey),
     })),
   ),
 );
@@ -402,12 +424,16 @@ const statEvents = readFixture('stat-events.json');
 out.push(
   insert(
     'stat_events',
-    ['id', 'member_id', 'opportunity_id', 'type', 'occurred_at'],
+    ['id', 'member_id', 'opportunity_id', 'metric_key', 'quantity', 'source_kind', 'source_id', 'reverses_stat_event_id', 'occurred_at'],
     statEvents.map((e) => ({
       id: sqlString(e.id),
       member_id: sqlString(e.memberId),
       opportunity_id: sqlString(e.opportunityId),
-      type: sqlString(e.type),
+      metric_key: sqlString(e.metricKey),
+      quantity: e.quantity,
+      source_kind: sqlString(e.sourceKind),
+      source_id: sqlString(e.sourceId),
+      reverses_stat_event_id: sqlString(e.reversesStatEventId),
       occurred_at: sqlString(e.occurredAt),
     })),
   ),

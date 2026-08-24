@@ -17,4 +17,5 @@ export interface ProjectFixtureBundle {
   readonly cashEvents: unknown;
   readonly settlements: unknown;
   readonly settlementLines: unknown;
+  readonly settlementLinePayouts: unknown;
 }

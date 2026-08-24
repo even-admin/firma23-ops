@@ -11,6 +11,7 @@ import evidenceLinks from '@/data/fixtures/projects/sety-2026/evidence-links.jso
 import cashEvents from '@/data/fixtures/projects/sety-2026/cash-events.json';
 import settlements from '@/data/fixtures/projects/sety-2026/settlements.json';
 import settlementLines from '@/data/fixtures/projects/sety-2026/settlement-lines.json';
+import settlementLinePayouts from '@/data/fixtures/projects/sety-2026/settlement-line-payouts.json';
 
 export const SETY_2026: ProjectFixtureBundle = {
   slug: 'sety-2026',
@@ -25,4 +26,5 @@ export const SETY_2026: ProjectFixtureBundle = {
   cashEvents,
   settlements,
   settlementLines,
+  settlementLinePayouts,
 };

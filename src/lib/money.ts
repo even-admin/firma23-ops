@@ -66,6 +66,20 @@ export function zeroMoney(currency: CurrencyCode = 'MXN'): Money {
   return { amount: centavos(0), currency };
 }
 
+/**
+ * The database and fixture schemas validate currency as any uppercase ISO
+ * 4217 code — FIRMA23 is project-agnostic even though every confirmed
+ * contract today is MXN. This TypeScript layer's CurrencyCode union widens
+ * only once a second UI currency actually ships; until then, this is the one
+ * place a validated wire string crosses into that narrower domain type.
+ */
+export function assertCurrencyCode(value: string): CurrencyCode {
+  if (value !== 'MXN') {
+    throw new MoneyError(`This build only renders MXN; received ${value}`);
+  }
+  return value;
+}
+
 function assertSameCurrency(a: Money, b: Money): void {
   if (a.currency !== b.currency) {
     throw new MoneyError(`Currency mismatch: ${a.currency} and ${b.currency}`);

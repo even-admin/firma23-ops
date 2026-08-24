@@ -10,7 +10,7 @@ import { sumMoney, type Money } from '@/lib/money';
 import { deriveMemberStats } from '@/lib/stats';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import type { OpportunityStatus, SettlementLine } from '@/types/domain';
+import type { OpportunityStatus, PayoutStatus, SettlementLine } from '@/types/domain';
 import type { CashEventView, MemberStats } from '@/types/views';
 
 export const ACTIVE_STATUSES: readonly OpportunityStatus[] = [
@@ -34,11 +34,25 @@ export function approvedEarnings(dataset: SyntheticDataset, memberId: string): M
   return sumMoney(approvedLinesFor(dataset, memberId).map((line) => line.amount));
 }
 
+/** Signed sum of a line's settlement_line_payouts allocations, never stored. */
+export function payoutAllocatedFor(dataset: SyntheticDataset, line: SettlementLine): Money {
+  return sumMoney(
+    dataset.settlementLinePayouts
+      .filter((payout) => payout.settlementLineId === line.id)
+      .map((payout) => payout.amount),
+  );
+}
+
+export function payoutStatusFor(dataset: SyntheticDataset, line: SettlementLine): PayoutStatus {
+  const allocated = payoutAllocatedFor(dataset, line);
+  if (allocated.amount <= 0) return 'unpaid';
+  if (allocated.amount >= line.amount.amount) return 'paid';
+  return 'partial';
+}
+
 export function paidEarnings(dataset: SyntheticDataset, memberId: string): Money {
   return sumMoney(
-    approvedLinesFor(dataset, memberId)
-      .filter((line) => line.payoutStatus === 'paid')
-      .map((line) => line.amount),
+    approvedLinesFor(dataset, memberId).map((line) => payoutAllocatedFor(dataset, line)),
   );
 }
 

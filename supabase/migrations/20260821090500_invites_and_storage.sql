@@ -16,6 +16,7 @@ create table public.member_invites (
   -- member row a founder already created for them.
   email text not null unique,
   invited_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '14 days'),
   redeemed_at timestamptz
 );
 
@@ -33,45 +34,75 @@ create policy member_invites_founder_insert on public.member_invites
     public.is_active_founder((select org_id from public.members m where m.id = member_id))
   );
 
--- Runs as the function owner against the auth schema, which an ordinary
--- authenticated role cannot touch directly. This is the one place a member
--- row's auth_user_id or a membership's status is ever set by anything other
--- than a founder-driven RPC — and it only ever activates an invite that
--- already names that exact email, never creates new access out of thin air.
-create or replace function public.handle_new_auth_user()
-returns trigger
+-- redeem_invite — the post-login invite-redemption boundary.
+--
+-- Replaces an auth.users insert trigger: a trigger that fails partway
+-- through membership logic would block creation of every Supabase Auth user,
+-- not just invited ones. This RPC is called by the app right after login
+-- instead, so a bug or exception here can never block unrelated signup. It
+-- resolves email from the authenticated session, never from client input,
+-- and is safe to call repeatedly — a second call after redemption, or a call
+-- from an account with no invite at all, returns a state instead of raising.
+create or replace function public.redeem_invite()
+returns table (state text, member_id uuid, org_id uuid)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  caller_auth_id uuid;
+  caller_email text;
   invite public.member_invites;
+  existing_member_id uuid;
 begin
-  select * into invite from public.member_invites
-  where email = new.email and redeemed_at is null;
-
-  if invite is null then
-    -- No matching invite: the account exists in Supabase Auth but is linked
-    -- to no member, so every RLS policy in this schema denies it by
-    -- construction. This is intentional, not a bug to fix by widening access.
-    return new;
+  caller_auth_id := auth.uid();
+  if caller_auth_id is null then
+    raise exception 'redeem_invite requires an authenticated session';
   end if;
 
-  update public.members set auth_user_id = new.id where id = invite.member_id;
+  select m.id into existing_member_id from public.members m where m.auth_user_id = caller_auth_id;
+  if existing_member_id is not null then
+    return query
+      select 'redeemed'::text, m.id, m.org_id from public.members m where m.id = existing_member_id;
+    return;
+  end if;
+
+  select email into caller_email from auth.users where id = caller_auth_id;
+
+  select * into invite from public.member_invites
+  where email = caller_email and redeemed_at is null
+  order by invited_at desc
+  limit 1;
+
+  if invite is null then
+    return query select 'unavailable'::text, null::uuid, null::uuid;
+    return;
+  end if;
+
+  if invite.expires_at < now() then
+    return query select 'expired'::text, null::uuid, null::uuid;
+    return;
+  end if;
+
+  update public.members set auth_user_id = caller_auth_id where id = invite.member_id;
 
   update public.memberships
   set status = 'active', activated_at = now()
-  where member_id = invite.member_id and status = 'invited';
+  where memberships.member_id = invite.member_id and memberships.status = 'invited';
 
   update public.member_invites set redeemed_at = now() where id = invite.id;
 
-  return new;
+  insert into public.audit_events (org_id, actor_member_id, action, target_table, target_id, summary)
+  select m.org_id, m.id, 'redeem_invite', 'member_invites', invite.id, 'Member redeemed an invite'
+  from public.members m where m.id = invite.member_id;
+
+  return query
+    select 'invited'::text, m.id, m.org_id from public.members m where m.id = invite.member_id;
 end;
 $$;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_auth_user();
+revoke execute on function public.redeem_invite() from public;
+grant execute on function public.redeem_invite() to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Private document storage.
@@ -85,10 +116,14 @@ insert into storage.buckets (id, name, public)
 values ('source-documents', 'source-documents', false)
 on conflict (id) do nothing;
 
+-- The first path segment is regex-validated before the ::uuid cast: casting
+-- an arbitrary, non-UUID-shaped object name would raise an opaque Postgres
+-- cast error instead of a clean policy denial.
 create policy source_documents_storage_founder_read
   on storage.objects for select
   using (
     bucket_id = 'source-documents'
+    and (string_to_array(name, '/'))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_active_founder(((string_to_array(name, '/'))[1])::uuid)
   );
 
@@ -96,6 +131,7 @@ create policy source_documents_storage_founder_write
   on storage.objects for insert
   with check (
     bucket_id = 'source-documents'
+    and (string_to_array(name, '/'))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_active_founder(((string_to_array(name, '/'))[1])::uuid)
   );
 

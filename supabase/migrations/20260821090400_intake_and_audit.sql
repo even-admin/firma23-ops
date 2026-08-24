@@ -48,11 +48,14 @@ create table public.intake_runs (
   error_message text,
   -- Supplied by the client per submission attempt so a retried request with
   -- the same key cannot spawn a second run. This is the idempotency
-  -- mechanism named in docs/WEEKEND-EXECUTION.md's backend checklist.
-  idempotency_key text not null unique,
+  -- mechanism named in docs/WEEKEND-EXECUTION.md's backend checklist. Scoped
+  -- to org_id (not globally unique) so one org's idempotency key can never
+  -- collide with, or look up, another org's run.
+  idempotency_key text not null,
   synthetic boolean not null default true,
   started_at timestamptz not null default now(),
-  completed_at timestamptz
+  completed_at timestamptz,
+  unique (org_id, idempotency_key)
 );
 
 alter table public.intake_runs enable row level security;
@@ -75,7 +78,7 @@ create table public.ai_contract_drafts (
   extracted_at timestamptz not null default now(),
   sponsor_name jsonb not null,
   program_name jsonb not null,
-  currency text not null default 'MXN' check (currency = 'MXN'),
+  currency text not null default 'MXN' check (currency ~ '^[A-Z]{3}$'),
   example_distributable_base jsonb not null,
   example_distributable_base_note text not null default '',
   review_issues jsonb not null default '[]',
@@ -163,9 +166,12 @@ begin
     raise exception 'founder access required: run_intake';
   end if;
 
+  -- Scoped to org_id: an idempotency key is only ever compared within the
+  -- caller's own org, so it can never match, and thus leak, another org's
+  -- intake run.
   select id into existing_run_id
   from public.intake_runs
-  where idempotency_key = p_idempotency_key;
+  where org_id = p_org_id and idempotency_key = p_idempotency_key;
 
   if existing_run_id is not null then
     return query
@@ -207,6 +213,9 @@ begin
 end;
 $$;
 
+revoke execute on function public.run_intake(uuid, uuid, text) from public;
+grant execute on function public.run_intake(uuid, uuid, text) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- confirm_contract_draft — the founder confirmation boundary, made durable.
 --
@@ -237,8 +246,8 @@ begin
     raise exception 'founder access required: confirm_contract_draft';
   end if;
 
-  if p_currency <> 'MXN' then
-    raise exception 'unsupported currency %', p_currency;
+  if p_currency !~ '^[A-Z]{3}$' then
+    raise exception 'invalid currency %', p_currency;
   end if;
 
   if p_draft_id is not null then
@@ -300,6 +309,9 @@ begin
 end;
 $$;
 
+revoke execute on function public.confirm_contract_draft(uuid, uuid, text, text, text) from public;
+grant execute on function public.confirm_contract_draft(uuid, uuid, text, text, text) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- discard_contract_draft — the explicit rejection path, so a founder who
 -- decides a draft is wrong has a real action instead of just abandoning it.
@@ -334,3 +346,6 @@ begin
   values (p_org_id, caller_id, 'discard_contract_draft', 'ai_contract_drafts', p_draft_id, 'Founder discarded an AI-drafted contract');
 end;
 $$;
+
+revoke execute on function public.discard_contract_draft(uuid, uuid) from public;
+grant execute on function public.discard_contract_draft(uuid, uuid) to authenticated;
