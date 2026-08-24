@@ -272,7 +272,7 @@ export function Sidebar({ role, groups, viewerSwitcher, onOpenSearch }: SidebarP
   const pathname = usePathname();
 
   return (
-    <div className="on-rail border-rail-line bg-rail ease-firma ml-3 flex h-full w-[68px] flex-col overflow-hidden rounded-lg border p-3 transition-[width] duration-300 group-hover/sidebar:w-[260px] group-focus-within/sidebar:w-[260px]">
+    <div className="on-rail border-rail-line bg-rail ease-firma mx-3 flex h-full flex-col overflow-hidden rounded-lg border p-3">
       <OrgSwitcher role={role} viewerSwitcher={viewerSwitcher} />
 
       <nav

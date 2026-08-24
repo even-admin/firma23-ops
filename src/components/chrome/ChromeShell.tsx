@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 
 import { CommandPalette } from '@/components/chrome/CommandPalette';
 import { MobileTabBar } from '@/components/chrome/MobileTabBar';
@@ -11,6 +11,50 @@ import { cn } from '@/lib/cn';
 import { resolveBreadcrumb, type NavGroup } from '@/lib/nav';
 import type { ViewerRole } from '@/lib/viewer';
 
+type SidebarMode = 'compact' | 'hidden';
+
+const SIDEBAR_MODE_KEY = 'firma23.sidebar-mode';
+// Same-tab writes do not fire the native `storage` event (only other tabs get
+// that), so a write also dispatches this to wake this tab's own subscribers.
+const SIDEBAR_MODE_EVENT = 'firma23:sidebar-mode-change';
+
+function readStoredSidebarMode(): SidebarMode {
+  try {
+    return window.localStorage.getItem(SIDEBAR_MODE_KEY) === 'hidden' ? 'hidden' : 'compact';
+  } catch {
+    return 'compact';
+  }
+}
+
+function writeStoredSidebarMode(mode: SidebarMode): void {
+  try {
+    window.localStorage.setItem(SIDEBAR_MODE_KEY, mode);
+  } catch {
+    // Storage is unavailable (private mode, quota, disabled). The toggle
+    // still works for this session; it just does not survive a reload.
+  }
+  window.dispatchEvent(new Event(SIDEBAR_MODE_EVENT));
+}
+
+function subscribeSidebarMode(onStoreChange: () => void): () => void {
+  window.addEventListener(SIDEBAR_MODE_EVENT, onStoreChange);
+  window.addEventListener('storage', onStoreChange);
+  return () => {
+    window.removeEventListener(SIDEBAR_MODE_EVENT, onStoreChange);
+    window.removeEventListener('storage', onStoreChange);
+  };
+}
+
+/**
+ * Compact is the only safe server snapshot: storage cannot be read on the
+ * server, and `useSyncExternalStore` is built specifically to reconcile a
+ * server snapshot that differs from the client's read (here, a saved
+ * "hidden" preference) without logging a hydration mismatch.
+ */
+function getServerSidebarMode(): SidebarMode {
+  return 'compact';
+}
+
 interface ChromeShellProps {
   readonly role: ViewerRole;
   readonly groups: readonly NavGroup[];
@@ -19,14 +63,34 @@ interface ChromeShellProps {
 }
 
 /**
- * Holds the two pieces of chrome state that cross components: whether the rail is
- * showing, and whether the command palette is open. Everything below is either
+ * Holds the pieces of chrome state that cross components: the saved sidebar
+ * mode, and whether the command palette is open. Everything below is either
  * presentational or reads the pathname for itself.
  */
 export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeShellProps) {
   const pathname = usePathname();
-  const [railVisible, setRailVisible] = useState(true);
+  const sidebarMode = useSyncExternalStore(
+    subscribeSidebarMode,
+    readStoredSidebarMode,
+    getServerSidebarMode,
+  );
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpener, setSearchOpener] = useState<HTMLElement | null>(null);
+
+  const toggleSidebar = () => {
+    writeStoredSidebarMode(sidebarMode === 'hidden' ? 'compact' : 'hidden');
+  };
+
+  // Captured here, before `searchOpen` flips and the rest of the shell goes
+  // `inert`: a browser blurs the focused element the instant it becomes
+  // inert, so reading `document.activeElement` any later would already miss
+  // the real opener. Both state updates come from this one synchronous
+  // handler, so React batches them — the read below always happens before
+  // the palette mounts or `inert` applies.
+  const openSearch = () => {
+    setSearchOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    setSearchOpen(true);
+  };
 
   const breadcrumb = useMemo(() => resolveBreadcrumb(pathname, groups), [pathname, groups]);
 
@@ -34,7 +98,7 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        setSearchOpen(true);
+        openSearch();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -44,48 +108,66 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
   return (
     <div className="bg-bg flex min-h-dvh">
       {/*
-       * The desktop rail is compact by default and opens on hover/focus. inert,
-       * not conditional rendering: a hidden rail must not still be tabbable.
+       * inert, not just visually covered: while the palette is open, every
+       * control behind it — rail, content, mobile tab bar — must be
+       * unreachable by keyboard and assistive tech, not merely obscured by
+       * the overlay's stacking order. display: contents keeps this wrapper
+       * out of the flex layout entirely.
        */}
-      <aside
-        id="firma23-sidebar"
-        inert={!railVisible}
-        className={cn(
-          'group/sidebar bg-rail ease-firma sticky top-0 hidden h-dvh shrink-0 overflow-hidden py-3 transition-[width,opacity] duration-300 md:block',
-          railVisible
-            ? 'w-[92px] opacity-100 hover:w-[292px] focus-within:w-[292px]'
-            : 'w-0 opacity-0',
-        )}
-      >
-        <Sidebar
-          role={role}
-          groups={groups}
-          viewerSwitcher={viewerSwitcher}
-          onOpenSearch={() => setSearchOpen(true)}
-        />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar
-          sidebarOpen={railVisible}
-          onToggleSidebar={() => setRailVisible((value) => !value)}
-          onOpenSearch={() => setSearchOpen(true)}
-          breadcrumb={breadcrumb}
-        />
-
-        {/* Bottom padding clears the fixed mobile tab bar. */}
-        <main
-          id="main-content"
-          className="min-w-0 flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
+      <div className="contents" inert={searchOpen}>
+        {/*
+         * The desktop rail is compact by default and opens on hover/focus.
+         * Width lives only here: the inner Sidebar panel tracks this box's
+         * width as an ordinary block child, so compact and expanded never
+         * disagree about how wide the rail is. inert, not conditional
+         * rendering: a hidden rail must not still be tabbable.
+         */}
+        <aside
+          id="firma23-sidebar"
+          inert={sidebarMode === 'hidden'}
+          className={cn(
+            'group/sidebar bg-rail ease-firma sticky top-0 hidden h-dvh shrink-0 overflow-hidden py-3 transition-[width,opacity] duration-300 md:block',
+            sidebarMode === 'compact'
+              ? 'w-[92px] opacity-100 hover:w-[292px] focus-within:w-[292px]'
+              : 'w-0 opacity-0',
+          )}
         >
-          {children}
-        </main>
+          <Sidebar
+            role={role}
+            groups={groups}
+            viewerSwitcher={viewerSwitcher}
+            onOpenSearch={openSearch}
+          />
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar
+            sidebarOpen={sidebarMode === 'compact'}
+            onToggleSidebar={toggleSidebar}
+            onOpenSearch={openSearch}
+            breadcrumb={breadcrumb}
+          />
+
+          {/* Bottom padding clears the fixed mobile tab bar. */}
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-w-0 flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
+          >
+            {children}
+          </main>
+        </div>
+
+        <MobileTabBar role={role} />
       </div>
 
-      <MobileTabBar role={role} />
-
       {searchOpen ? (
-        <CommandPalette onClose={() => setSearchOpen(false)} groups={groups} role={role} />
+        <CommandPalette
+          onClose={() => setSearchOpen(false)}
+          groups={groups}
+          role={role}
+          opener={searchOpener}
+        />
       ) : null}
     </div>
   );

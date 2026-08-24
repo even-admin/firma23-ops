@@ -60,7 +60,19 @@ interface CommandPaletteProps {
   readonly onClose: () => void;
   readonly groups: readonly NavGroup[];
   readonly role: ViewerRole;
+  /**
+   * Whatever had focus the instant before opening, captured by the caller.
+   * Capturing it here instead would be too late: the caller also marks the
+   * rest of the shell `inert` on this same open, and a browser blurs a
+   * focused element the moment it becomes inert — by the time this
+   * component's own effect ran, `document.activeElement` would already have
+   * moved off the real opener.
+   */
+  readonly opener: HTMLElement | null;
 }
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Jump-to-destination over the navigation model only.
@@ -72,8 +84,9 @@ interface CommandPaletteProps {
  * Mounted only while open, so every opening starts from empty state without an
  * effect resetting anything.
  */
-export function CommandPalette({ onClose, groups, role }: CommandPaletteProps) {
+export function CommandPalette({ onClose, groups, role, opener }: CommandPaletteProps) {
   const router = useRouter();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -85,9 +98,16 @@ export function CommandPalette({ onClose, groups, role }: CommandPaletteProps) {
     return destinations.filter((item) => fold(`${item.group} ${item.label}`).includes(needle));
   }, [destinations, query]);
 
+  // This component only ever mounts while open (see the class comment
+  // above), so restoring focus in this mount effect's cleanup covers every
+  // close path — Escape, backdrop, the close button, and selecting a
+  // destination — without duplicating the restore call at each site.
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+    return () => {
+      opener?.focus();
+    };
+  }, [opener]);
 
   const go = (href: string) => {
     onClose();
@@ -98,6 +118,27 @@ export function CommandPalette({ onClose, groups, role }: CommandPaletteProps) {
     if (event.key === 'Escape') {
       event.preventDefault();
       onClose();
+      return;
+    }
+    if (event.key === 'Tab') {
+      // A dialog with nothing rendered outside the app root has no natural
+      // Tab boundary: without this, tabbing past the last result would
+      // leave the document entirely (browser chrome) rather than cycling
+      // back to the search input.
+      const container = dialogRef.current;
+      if (container === null) return;
+      const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (first === undefined || last === undefined) return;
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
       return;
     }
     if (event.key === 'ArrowDown') {
@@ -129,6 +170,7 @@ export function CommandPalette({ onClose, groups, role }: CommandPaletteProps) {
       />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={copy.search.open}

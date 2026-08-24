@@ -29,7 +29,15 @@ The product should feel fast, ambitious, social, precise, and private. Take insp
 - Muted amber only for items requiring attention.
 - Muted red only for destructive actions or failed states.
 
-No gradients. No decorative rainbow metrics. Use a borders-first depth system with quiet surface shifts.
+No gradients. No decorative rainbow metrics. Use a borders-first depth system with
+quiet surface shifts.
+
+The one approved exception is the shell's animated `MeshDriftCanvas` background
+(`src/components/visual/MeshDriftCanvas.tsx`). It is the single documented
+gradient/grain artwork in the product — no other component may add a gradient,
+colour wash, or grain texture. Its approved palette, drift speed, grain, and
+WebGL fallback stay as built; `prefers-reduced-motion: reduce` freezes it on its
+current frame rather than blanking it.
 
 ## Signature component: Revenue Rail
 
