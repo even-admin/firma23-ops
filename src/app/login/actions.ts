@@ -41,15 +41,21 @@ function allowedHosts(): ReadonlySet<string> {
 export async function resolveOrigin(): Promise<string> {
   const headerList = await headers();
   const requestedHost = headerList.get('x-forwarded-host') ?? headerList.get('host');
-  const proto = headerList.get('x-forwarded-proto') ?? 'https';
+  const requestedProto = headerList.get('x-forwarded-proto');
+  // M3: strictly http or https, nothing else — the host allowlist above
+  // guards which origin this can become, but nothing previously guarded the
+  // scheme, so a permitted host paired with any other x-forwarded-proto
+  // value used to pass through unchecked.
+  const proto = requestedProto === 'http' || requestedProto === 'https' ? requestedProto : null;
 
-  if (requestedHost !== null && allowedHosts().has(requestedHost)) {
+  if (requestedHost !== null && proto !== null && allowedHosts().has(requestedHost)) {
     return `${proto}://${requestedHost}`;
   }
 
-  // Host wasn't recognized: never fall back to it. Prefer the deployment's
-  // own known-good production URL; only local dev has neither Vercel env
-  // var set, which is exactly when localhost is the correct default.
+  // Host wasn't recognized, or the protocol wasn't exactly http/https:
+  // never trust either partially. Prefer the deployment's own known-good
+  // production URL; only local dev has neither Vercel env var set, which is
+  // exactly when localhost is the correct default.
   const fallbackHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? 'localhost:3000';
   const fallbackProto = fallbackHost === 'localhost:3000' ? 'http' : 'https';
   return `${fallbackProto}://${fallbackHost}`;

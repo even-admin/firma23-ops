@@ -122,6 +122,8 @@ export const copy = {
       'Iniciaste sesión correctamente, pero tu correo no tiene una invitación activa a esta red. Pide a un fundador que te invite.',
     inviteExpiredTitle: 'La invitación expiró',
     inviteExpiredDetail: 'Tu invitación venció. Pide a un fundador que te envíe una nueva.',
+    revokedTitle: 'Tu acceso fue revocado',
+    revokedDetail: 'Un fundador revocó tu membresía. Si crees que es un error, contacta a un fundador.',
     invalidSessionTitle: 'Tu sesión ya no es válida',
     invalidSessionDetail: 'Necesitamos que inicies sesión de nuevo.',
     backendUnavailableTitle: 'El servicio no está disponible',

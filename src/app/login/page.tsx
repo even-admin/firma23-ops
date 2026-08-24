@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { ErrorState } from '@/components/state/ErrorState';
 import { copy } from '@/copy/es-MX';
 import { getViewerSessionState } from '@/data/viewer-session';
-import { isSupabaseConfigured } from '@/lib/backend';
+import { isSupabaseConfigured, isSyntheticModeAllowed } from '@/lib/backend';
 
 interface LoginSearchParams {
   readonly sent?: string;
@@ -29,9 +29,14 @@ export default async function LoginPage({
 }) {
   const query = await searchParams;
 
-  if (!isSupabaseConfigured()) {
-    // Nothing to log into in synthetic mode — the prototype viewer switcher
-    // already covers local, no-backend iteration (M2 Auth brief, item 7).
+  if (!isSupabaseConfigured() && isSyntheticModeAllowed()) {
+    // Nothing to log into in genuine local synthetic mode — the prototype
+    // viewer switcher already covers local, no-backend iteration (M2 Auth
+    // brief, item 7). A misconfigured Preview/Production deployment is a
+    // different case (isSyntheticModeAllowed() is false there) and must
+    // fall through to the real state below instead of bouncing home — that
+    // state is 'backend-unavailable', rendered further down, not a loop
+    // back to a page that will immediately redirect here again (H1).
     redirect('/');
   }
 
@@ -54,6 +59,12 @@ export default async function LoginPage({
           title={copy.auth.inviteExpiredTitle}
           detail={copy.auth.inviteExpiredDetail}
         />
+      ) : state.kind === 'revoked' ? (
+        // Honest state, not an automatic sign-out (M4, as scoped for this
+        // pass) — the person stays signed in to Supabase, sees the truth,
+        // and can end the session themselves with the same control as
+        // not-invited/expired.
+        <SignedInBlockedState title={copy.auth.revokedTitle} detail={copy.auth.revokedDetail} />
       ) : state.kind === 'backend-unavailable' ? (
         <ErrorState title={copy.auth.backendUnavailableTitle} detail={copy.auth.backendUnavailableDetail} />
       ) : (

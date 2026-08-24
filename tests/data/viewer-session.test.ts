@@ -20,11 +20,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSupabaseConfiguredMock = vi.fn<() => boolean>();
+const isSyntheticModeAllowedMock = vi.fn<() => boolean>();
 const createSupabaseServerClientMock = vi.fn();
 const getPrototypeViewerMock = vi.fn();
 
 vi.mock('@/lib/backend', () => ({
   isSupabaseConfigured: isSupabaseConfiguredMock,
+  isSyntheticModeAllowed: isSyntheticModeAllowedMock,
 }));
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: createSupabaseServerClientMock,
@@ -34,7 +36,7 @@ vi.mock('@/data/prototype-viewer-session', () => ({
 }));
 
 const { resolveViewerSessionStateUncached } = await import('@/data/viewer-session');
-const { PROTOTYPE_FOUNDER } = await import('@/data/prototype-viewers');
+const { PROTOTYPE_FOUNDER, PROTOTYPE_MEMBER } = await import('@/data/prototype-viewers');
 
 interface FakeClientOptions {
   readonly getUser?: { data: { user: unknown }; error: { message: string } | null };
@@ -64,15 +66,39 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('resolveViewerSessionStateUncached — synthetic mode (Supabase not configured)', () => {
-  it('delegates to the prototype viewer unchanged', async () => {
+describe('resolveViewerSessionStateUncached — Supabase not configured (H1)', () => {
+  beforeEach(() => {
     isSupabaseConfiguredMock.mockReturnValue(false);
+  });
+
+  it('AT-H1.1 / AT-H1.3: without env vars and outside genuine local dev (Preview/Production), fails closed instead of granting a viewer', async () => {
+    isSyntheticModeAllowedMock.mockReturnValue(false);
+
+    const state = await resolveViewerSessionStateUncached();
+
+    expect(state).toEqual({ kind: 'backend-unavailable' });
+    expect(JSON.stringify(state)).not.toContain('founder');
+    expect(getPrototypeViewerMock).not.toHaveBeenCalled();
+    expect(createSupabaseServerClientMock).not.toHaveBeenCalled();
+  });
+
+  it('AT-H1.4: in genuine local dev, delegates to the prototype viewer and returns exactly the role it selected — never upgraded to founder', async () => {
+    isSyntheticModeAllowedMock.mockReturnValue(true);
+    getPrototypeViewerMock.mockResolvedValue(PROTOTYPE_MEMBER);
+
+    const state = await resolveViewerSessionStateUncached();
+
+    expect(state).toEqual({ kind: 'viewer', viewer: PROTOTYPE_MEMBER });
+    expect(createSupabaseServerClientMock).not.toHaveBeenCalled();
+  });
+
+  it('AT-H1.4: in genuine local dev, an explicit founder selection is honored (the gate is about the environment, not about refusing founder outright)', async () => {
+    isSyntheticModeAllowedMock.mockReturnValue(true);
     getPrototypeViewerMock.mockResolvedValue(PROTOTYPE_FOUNDER);
 
     const state = await resolveViewerSessionStateUncached();
 
     expect(state).toEqual({ kind: 'viewer', viewer: PROTOTYPE_FOUNDER });
-    expect(createSupabaseServerClientMock).not.toHaveBeenCalled();
   });
 });
 
@@ -121,6 +147,15 @@ describe('resolveViewerSessionStateUncached — Supabase configured', () => {
       fakeClient({ redeemInvite: { data: [{ state: 'expired', member_id: null, org_id: null }], error: null } }),
     );
     await expect(resolveViewerSessionStateUncached()).resolves.toEqual({ kind: 'invite-expired' });
+  });
+
+  it('AT-H2: reports revoked (never a viewer, never founder) when redeem_invite returns revoked', async () => {
+    createSupabaseServerClientMock.mockResolvedValue(
+      fakeClient({ redeemInvite: { data: [{ state: 'revoked', member_id: null, org_id: null }], error: null } }),
+    );
+    const state = await resolveViewerSessionStateUncached();
+    expect(state).toEqual({ kind: 'revoked' });
+    expect(JSON.stringify(state)).not.toContain('founder');
   });
 
   it('reports backend-unavailable when redeem_invite itself errors', async () => {

@@ -115,7 +115,9 @@ authenticated-only RPCs; `authenticated` has it on all six
 (`has_function_privilege` checked directly). RLS policies on
 members/memberships/cash_events/settlements/settlement_lines match the
 reviewed migrations exactly (`pg_policies` checked directly). The full local
-RLS/RPC/Auth harness passes 137 scenarios against the identical schema.
+RLS/RPC/Auth harness passes 151 scenarios against the identical schema (see
+"M2 Auth repair" below for the 14 that specifically exercise
+`redeem_invite()` — none of the earlier 137 did).
 
 No second identity was created to test the founder path end to end — the
 founder path was proven with the one real identity that exists
@@ -140,6 +142,39 @@ above. One warning is new to this review but unrelated to this change:
 `auth_leaked_password_protection` (HaveIBeenPwned check for password auth) —
 not applicable, since this product never uses password auth, only magic
 link/OTP.
+
+### M2 Auth repair (adversarial review, `.context/architecture-council/m2-auth-adversarial-review.md`)
+
+Two HIGH findings closed, both fail-closed corrections, no remote change:
+
+- **H1 — missing Supabase env vars used to fail open to a founder.**
+  `isSyntheticModeAllowed()` (`src/lib/backend.ts`) now gates the entire
+  synthetic-viewer fallback: a Vercel Preview or Production deployment
+  missing its `NEXT_PUBLIC_SUPABASE_*` vars gets `backend-unavailable`, never
+  the prototype viewer. Verified against a real production build
+  (`VERCEL=1`, empty Supabase vars): `/admin` and `/` both redirect to
+  `/login?state=backend-unavailable`, no founder content, no redirect loop.
+  The prototype viewer's own default is also now least-privilege: no cookie,
+  or any value other than the literal `'founder'`, resolves to `member`.
+- **H2 — a revoked membership kept reporting `'redeemed'`.** Corrected via a
+  new, additive migration
+  (`20260824080000_redeem_invite_membership_authority.sql`) — see below.
+
+`scripts/db-verify.sh` now runs `redeem_invite()` for real, under
+`set role authenticated` + `request.jwt.claim.sub`, exactly like the
+finance RPCs already were (scenario 20/20b, 14 scenarios): authenticated
+with no invite, a valid pending invite, replay after redemption, an expired
+invite, case-insensitive email matching, a revoked membership, an
+unauthenticated call, and 20 concurrent first-redemption calls (exactly one
+audit row, one active membership, zero errors).
+
+**Deferred, not built in this pass:** a founder-facing revoke/re-issue
+invitation flow. `member_invites` has no `update`/`delete` policy and no
+revocation column today — a founder cannot revoke or re-issue an invite from
+any exposed path. Adding that requires a schema change (e.g. a
+`revoked_at` column and an audited `revoke_invite()`/`reissue_invite()` RPC
+pair) and is out of scope here by explicit instruction; this is a known gap,
+not an oversight.
 
 The earlier project `dexyfkecgyfikvxwcopv` is noncanonical and remains outside
 this repository's database/migration boundary. No schema or data operation may
