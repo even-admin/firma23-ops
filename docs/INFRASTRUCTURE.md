@@ -70,18 +70,43 @@ repository timestamps inside their recorded names. Later deployment tooling
 must reconcile by migration name, not assume the remote-generated version is
 the filename timestamp.
 
-Auth is now bootstrapped with exactly one real invite, created 2026-08-24 by
-`apply_migration` (recorded as `invite_founder_luis_ramirez`, not a repo
-migration file — this is real identity data, not synthetic seed):
+Four more migrations followed on 2026-08-24 (Data API grants, PUBLIC
+privilege hardening, `authenticated` least privilege, function search-path
+pinning), bringing the project to **13 applied migrations total** as of
+2026-08-24 (`list_migrations` is the source of truth — re-check it before
+trusting any number written here). The 13th and latest is
+`invite_founder_luis_ramirez` (below).
 
-- `member_invites`: one row linking the already-seeded founder member (Luis
-  Ramírez, `b0000000-0000-4000-8000-000000000001`) to `contacto@luisracosta.com`,
-  expiring 14 days out.
-- `auth.users`: one row for that email, created the moment `signInWithOtp` was
-  called to verify the send path; no session exists yet — the person still
-  needs to click the emailed magic link to complete sign-in.
-- `memberships` for that member: still `invited`, not yet `active` — activation
-  happens inside `redeem_invite()` on first successful login, not before.
+### Policy: real identity data never goes in `supabase/migrations/**`
+
+`supabase/migrations/**` is replayed from zero by `scripts/db-verify.sh`
+against a disposable local Postgres instance — every row it creates must be
+synthetic and safe to regenerate. Real bootstrap/identity data (an actual
+invite, an actual email) is applied directly to the remote project via the
+MCP `apply_migration` tool, under a descriptive name, and recorded here —
+never added as a repo migration file, and never replayed by the local
+harness. This is a standing policy, not a one-off: any future real invite,
+real identity link, or similar bootstrap action follows the same path.
+`apply_migration` is invoked only with the user's explicit authorization
+per change; none has been made beyond what is logged below.
+
+**2026-08-24, one `apply_migration` call, named `invite_founder_luis_ramirez`:**
+one `member_invites` row linking the already-seeded founder member (Luis
+Ramírez, `b0000000-0000-4000-8000-000000000001`) to
+`contacto@luisracosta.com`, expiring 14 days out. No other remote change has
+been made since. Nothing has been reverted — reverting would itself be a
+remote data change requiring the same authorization.
+
+**Current state, verified 2026-08-24 (real, not simulated):** the person
+holding that invite completed the full login flow through the actual
+`/login` → magic-link email → `/auth/callback` path against this exact
+repository code — not a test script, not a fabricated identity. `auth.users`
+holds one row for `contacto@luisracosta.com`; `auth.sessions` shows a real
+established session; `members.auth_user_id` is linked; `memberships.status`
+is `active` with `activated_at` set. `redeem_invite()` ran for real and
+produced the state its own return contract promises. This is the first and
+only real identity in the system — no second one was created to test
+anything.
 
 Hosted anonymous Data API/table/RPC access returns 401 (verified directly
 against `/rest/v1/members` and `/rest/v1/rpc/redeem_invite` with the
@@ -92,10 +117,21 @@ members/memberships/cash_events/settlements/settlement_lines match the
 reviewed migrations exactly (`pg_policies` checked directly). The full local
 RLS/RPC/Auth harness passes 137 scenarios against the identical schema.
 
-No second identity was created to test the founder path end to end — that
-requires Luis's own completed login. Once he clicks the magic link,
-`redeem_invite()` activates his membership and `is_active_founder()` becomes
-true for his real session; nothing further needs to change for that to work.
+No second identity was created to test the founder path end to end — the
+founder path was proven with the one real identity that exists
+(`redeem_invite()`'s effect above), not a fabricated one. `is_active_founder()`
+is now true for that real, established session.
+
+One caveat worth stating plainly: a real, invited founder session
+authenticates for real, but the sidebar/finance chrome in
+`src/app/(network)/layout.tsx` still reads `syntheticProjectRepository` and
+`syntheticFinanceRepository` directly, not the Supabase-backed adapters
+behind `active/`. M2 Auth landed the auth boundary — real session, real
+`redeem_invite()`, real RLS-enforced role — but not the repository read-swap
+for nav/finance data, which remains separate, already-deferred M3+ work. Do
+not describe M2 as "the app now runs on the real backend" without this
+qualifier: today it is real auth over synthetic demo data for everything
+except the finance write RPCs (P3), which were already real.
 
 Security advisors were re-checked after the invite insert: no new finding.
 The pre-existing `authenticated_security_definer_function_executable`

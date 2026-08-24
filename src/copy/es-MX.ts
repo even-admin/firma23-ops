@@ -115,7 +115,7 @@ export const copy = {
     submit: 'Enviar enlace de acceso',
     sending: 'Enviando…',
     sentTitle: 'Revisa tu correo',
-    sentDetail: 'Te enviamos un enlace de acceso a {email}. Ábrelo desde este mismo dispositivo.',
+    sentDetail: 'Te enviamos un enlace de acceso a tu correo. Ábrelo desde este mismo dispositivo.',
     genericError: 'No pudimos enviar el enlace. Intenta de nuevo en un momento.',
     notInvitedTitle: 'Esta cuenta no tiene invitación',
     notInvitedDetail:

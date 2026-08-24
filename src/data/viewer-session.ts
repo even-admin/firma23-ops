@@ -55,7 +55,14 @@ function isSessionMissingError(error: { readonly message?: string }): boolean {
   return error.message?.toLowerCase().includes('auth session missing') === true;
 }
 
-const resolveViewerSessionState = cache(async (): Promise<ViewerSessionState> => {
+/**
+ * The uncached core resolver, exported separately so tests can call it
+ * directly with mocked modules — react's cache() memoizes per render/request
+ * scope, which does not exist in a plain test runner, and calling the cached
+ * wrapper across multiple test cases would silently return the first test's
+ * result to every test after it.
+ */
+export async function resolveViewerSessionStateUncached(): Promise<ViewerSessionState> {
   if (!isSupabaseConfigured()) {
     return { kind: 'viewer', viewer: await getPrototypeViewer() };
   }
@@ -113,11 +120,13 @@ const resolveViewerSessionState = cache(async (): Promise<ViewerSessionState> =>
   } catch {
     return { kind: 'backend-unavailable' };
   }
-});
+}
+
+const cachedResolve = cache(resolveViewerSessionStateUncached);
 
 /** The honest session state for the current request. */
 export async function getViewerSessionState(): Promise<ViewerSessionState> {
-  return resolveViewerSessionState();
+  return cachedResolve();
 }
 
 /**

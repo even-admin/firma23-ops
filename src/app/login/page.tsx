@@ -17,9 +17,10 @@ interface LoginSearchParams {
  *
  * Every honest state this product can be in after an auth attempt is
  * rendered here, from the *real* session state (getViewerSessionState),
- * never from the URL alone — a query param only ever decides cosmetic
- * copy (e.g. "we just sent a link to X"), never whether a form or a
- * sign-out control is shown.
+ * never from the URL alone — a query param only ever flips a boolean
+ * ("sent=1", never the address itself: emails do not belong in a query
+ * string, which lands in server access logs, browser history, and Referer
+ * headers), never whether a form or a sign-out control is shown.
  */
 export default async function LoginPage({
   searchParams,
@@ -61,10 +62,7 @@ export default async function LoginPage({
             <ErrorState title={copy.auth.invalidSessionTitle} detail={copy.auth.invalidSessionDetail} />
           ) : null}
           {query.sent !== undefined ? (
-            <EmptyState
-              title={copy.auth.sentTitle}
-              detail={copy.auth.sentDetail.replace('{email}', query.sent)}
-            />
+            <EmptyState title={copy.auth.sentTitle} detail={copy.auth.sentDetail} />
           ) : (
             <LoginForm />
           )}
