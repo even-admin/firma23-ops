@@ -389,7 +389,13 @@ export interface ReverseSettlementInput {
 }
 
 export type ReverseSettlementResult =
-  | { readonly kind: 'reversed'; readonly settlementId: string; readonly replayed: boolean }
+  | {
+      readonly kind: 'reversed';
+      readonly settlementId: string;
+      readonly replayed: boolean;
+      /** Payout money already allocated against the reversed original that has not yet been reallocated onto a replacement settlement. */
+      readonly outstandingPayoutCentavos: number;
+    }
   | { readonly kind: 'unavailable'; readonly reason: string }
   | { readonly kind: 'error'; readonly message: string };
 

@@ -44,4 +44,10 @@ grant select, insert on storage.objects to anon, authenticated, service_role;
 grant select on storage.buckets to anon, authenticated, service_role;
 
 alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated;
-alter default privileges in schema public grant execute on functions to authenticated;
+-- Matches a real Supabase project's actual default privileges: newly created
+-- functions grant EXECUTE to anon AND authenticated, not authenticated
+-- alone. Every RPC that must stay unauthenticated-proof has to explicitly
+-- revoke from anon, not rely on this stub being more conservative than
+-- production — that gap (H2) is exactly what let a missing anon revoke go
+-- undetected by this harness before.
+alter default privileges in schema public grant execute on functions to anon, authenticated;

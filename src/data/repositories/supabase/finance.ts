@@ -19,6 +19,7 @@
 import { copy } from '@/copy/es-MX';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
+import type { FinanceRepository } from '@/data/repositories/finance';
 import type {
   RecordCashEventInput,
   RecordCashEventResult,
@@ -93,3 +94,15 @@ export async function recordPayout(
 
   return { kind: 'recorded', cashEventId: row.cash_event_id, replayed: row.replayed };
 }
+
+// Binds this file's exports to the subset of FinanceRepository it actually
+// implements (M7): a compile error here means an adapter's signature has
+// drifted from the interface it's supposed to satisfy — not just "close
+// enough" via structural duck-typing on the two named exports. No read
+// methods yet (see file header), so this is a Pick, not the full
+// interface — activeFinanceWriteRepository in active/finance.ts reflects
+// that same, narrower scope.
+export const supabaseFinanceRepository = {
+  recordCashEvent,
+  recordPayout,
+} satisfies Pick<FinanceRepository, 'recordCashEvent' | 'recordPayout'>;

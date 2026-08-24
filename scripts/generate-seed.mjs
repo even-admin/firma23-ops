@@ -354,7 +354,7 @@ out.push(
 out.push(
   insert(
     'cash_events',
-    ['id', 'opportunity_id', 'type', 'label', 'amount_centavos', 'currency', 'occurred_at'],
+    ['id', 'opportunity_id', 'type', 'label', 'amount_centavos', 'currency', 'occurred_at', 'idempotency_key'],
     allCashEvents.map((c) => ({
       id: sqlString(c.id),
       opportunity_id: sqlString(c.opportunityId),
@@ -363,6 +363,9 @@ out.push(
       amount_centavos: c.amountCentavos,
       currency: sqlString(c.currency),
       occurred_at: sqlString(c.occurredAt),
+      // idempotency_key is NOT NULL: every real writer supplies one per
+      // request, so seeded rows need a deterministic stand-in too.
+      idempotency_key: sqlString(`seed-cash-event-${c.id}`),
     })),
   ),
 );
@@ -370,7 +373,7 @@ out.push(
 out.push(
   insert(
     'settlements',
-    ['id', 'opportunity_id', 'allocation_rule_version_id', 'status', 'kind', 'corrects_settlement_id', 'base_centavos', 'currency', 'approved_at', 'approved_by_member_id'],
+    ['id', 'opportunity_id', 'allocation_rule_version_id', 'status', 'kind', 'corrects_settlement_id', 'base_centavos', 'currency', 'approved_at', 'approved_by_member_id', 'idempotency_key'],
     allSettlements.map((s) => ({
       id: sqlString(s.id),
       opportunity_id: sqlString(s.opportunityId),
@@ -382,6 +385,9 @@ out.push(
       currency: sqlString(s.currency),
       approved_at: sqlString(s.approvedAt),
       approved_by_member_id: sqlString(s.approvedByMemberId),
+      // idempotency_key is NOT NULL: every real writer supplies one per
+      // request, so seeded rows need a deterministic stand-in too.
+      idempotency_key: sqlString(`seed-settlement-${s.id}`),
     })),
   ),
 );

@@ -20,6 +20,7 @@
 import { copy } from '@/copy/es-MX';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
+import type { SettlementRepository } from '@/data/repositories/settlements';
 import type {
   ApproveSettlementInput,
   ApproveSettlementResult,
@@ -75,10 +76,33 @@ export async function reverseSettlement(
     return { kind: 'error', message: rpcResult.error.message };
   }
 
-  const row = (rpcResult.data as readonly { settlement_id: string; replayed: boolean }[])[0];
+  const row = (
+    rpcResult.data as readonly {
+      settlement_id: string;
+      replayed: boolean;
+      outstanding_payout_centavos: number;
+    }[]
+  )[0];
   if (row === undefined) {
     return { kind: 'error', message: 'reverse_settlement returned no row.' };
   }
 
-  return { kind: 'reversed', settlementId: row.settlement_id, replayed: row.replayed };
+  return {
+    kind: 'reversed',
+    settlementId: row.settlement_id,
+    replayed: row.replayed,
+    outstandingPayoutCentavos: row.outstanding_payout_centavos,
+  };
 }
+
+// Binds this file's exports to the subset of SettlementRepository it
+// actually implements (M7): a compile error here means an adapter's
+// signature has drifted from the interface it's supposed to satisfy — not
+// just "close enough" via structural duck-typing on the two named exports.
+// No read methods yet (see file header), so this is a Pick, not the full
+// interface — activeSettlementWriteRepository in active/settlements.ts
+// reflects that same, narrower scope.
+export const supabaseSettlementRepository = {
+  approveSettlement,
+  reverseSettlement,
+} satisfies Pick<SettlementRepository, 'approveSettlement' | 'reverseSettlement'>;
