@@ -72,10 +72,11 @@ the filename timestamp.
 
 Four more migrations followed on 2026-08-24 (Data API grants, PUBLIC
 privilege hardening, `authenticated` least privilege, function search-path
-pinning), bringing the project to **13 applied migrations total** as of
-2026-08-24 (`list_migrations` is the source of truth — re-check it before
-trusting any number written here). The 13th and latest is
-`invite_founder_luis_ramirez` (below).
+pinning), followed by `invite_founder_luis_ramirez` and the audited M2 Auth
+repair. The project has **14 applied migrations total** as of 2026-08-24
+(`list_migrations` is the source of truth — re-check it before trusting any
+number written here). The 14th and latest is
+`m20260824080000_redeem_invite_membership_authority` (below).
 
 ### Policy: real identity data never goes in `supabase/migrations/**`
 
@@ -90,12 +91,24 @@ real identity link, or similar bootstrap action follows the same path.
 `apply_migration` is invoked only with the user's explicit authorization
 per change; none has been made beyond what is logged below.
 
-**2026-08-24, one `apply_migration` call, named `invite_founder_luis_ramirez`:**
+**2026-08-24, `apply_migration` named `invite_founder_luis_ramirez`:**
 one `member_invites` row linking the already-seeded founder member (Luis
 Ramírez, `b0000000-0000-4000-8000-000000000001`) to
 `contacto@luisracosta.com`, expiring 14 days out. No other remote change has
-been made since. Nothing has been reverted — reverting would itself be a
-remote data change requiring the same authorization.
+been made to identity data since. Nothing has been reverted — reverting
+would itself be a remote data change requiring the same authorization.
+
+**2026-08-24, `apply_migration` named
+`m20260824080000_redeem_invite_membership_authority`:** the exact reviewed
+schema migration from commit `9370ef427553798ac461931255920b2c2229d0f7`
+was applied to canonical development project `agsfxtbgwlkcwfyrykfo`. It
+replaces `redeem_invite()` in place, adds the normalized-email unique index,
+and writes no identity or seed rows. Preflight found the founder membership
+active and zero normalized-email collisions. Post-apply verification found
+both active-membership guards in the installed function, `anon` without
+execute permission, `authenticated` with execute permission, RLS still
+enabled, and identity counts unchanged (one invite, one linked member, one
+active membership, one redemption audit event).
 
 **Current state, verified 2026-08-24 (real, not simulated):** the person
 holding that invite completed the full login flow through the actual
@@ -135,17 +148,18 @@ not describe M2 as "the app now runs on the real backend" without this
 qualifier: today it is real auth over synthetic demo data for everything
 except the finance write RPCs (P3), which were already real.
 
-Security advisors were re-checked after the invite insert: no new finding.
-The pre-existing `authenticated_security_definer_function_executable`
-warnings are the same intentional RPC/helper boundary already documented
-above. One warning is new to this review but unrelated to this change:
+Security advisors were re-checked after the M2 migration: no error or critical
+finding. The `authenticated_security_definer_function_executable` warnings
+are the same intentional RPC/helper boundary already documented above. One
+warning is unrelated to this change:
 `auth_leaked_password_protection` (HaveIBeenPwned check for password auth) —
 not applicable, since this product never uses password auth, only magic
 link/OTP.
 
 ### M2 Auth repair (adversarial review, `.context/architecture-council/m2-auth-adversarial-review.md`)
 
-Two HIGH findings closed, both fail-closed corrections, no remote change:
+Two HIGH findings closed. H1 is application-only; H2 includes the authorized
+canonical-development migration recorded above:
 
 - **H1 — missing Supabase env vars used to fail open to a founder.**
   `isSyntheticModeAllowed()` (`src/lib/backend.ts`) now gates the entire
@@ -168,7 +182,7 @@ with no invite, a valid pending invite, replay after redemption, an expired
 invite, case-insensitive email matching, a revoked membership, an
 unauthenticated call, 20 concurrent first-redemption calls (exactly one
 audit row, one active membership, zero errors), and — from a re-review of
-this same not-yet-applied migration — a member whose membership row was
+this migration before its remote application — a member whose membership row was
 deleted outright by a privileged operation (not revoked, removed), which
 the migration's own concurrent-fallback branch originally missed (M-A,
 fixed in the same migration before it was ever applied anywhere: that
