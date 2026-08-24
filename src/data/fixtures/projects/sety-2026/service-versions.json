@@ -1,0 +1,32 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "d0000000-0000-4000-8000-000000000001",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "key": "identity-branding",
+      "name": "Identidad / Branding",
+      "version": 1,
+      "deliverablesSummary": "Logotipo, paleta, tipografía y manual de uso",
+      "immutable": true
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000002",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "key": "web-page",
+      "name": "Página web",
+      "version": 1,
+      "deliverablesSummary": "Sitio de una página con formulario de contacto",
+      "immutable": true
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000003",
+      "projectId": "c0000000-0000-4000-8000-000000000001",
+      "key": "social-content-kit",
+      "name": "Kit de contenido social",
+      "version": 1,
+      "deliverablesSummary": "24 entregables: 8 posts estáticos, 8 videos/reels/shorts y 8 carruseles de 3 láminas, más manual de uso",
+      "immutable": true
+    }
+  ]
+}

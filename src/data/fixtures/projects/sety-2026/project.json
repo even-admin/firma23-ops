@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "c0000000-0000-4000-8000-000000000001",
+      "slug": "sety-2026",
+      "name": "SETY 2026",
+      "sponsorName": "Secretaría de Economía y Trabajo de Yucatán",
+      "status": "active",
+      "currency": "MXN",
+      "activeAllocationRuleVersionId": "e0000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

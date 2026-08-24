@@ -1,0 +1,41 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "status": "pending",
+      "kind": "original",
+      "correctsSettlementId": null,
+      "baseCentavos": 897270,
+      "currency": "MXN",
+      "approvedAt": null,
+      "approvedByMemberId": null
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000002",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "status": "approved",
+      "kind": "original",
+      "correctsSettlementId": null,
+      "baseCentavos": 897270,
+      "currency": "MXN",
+      "approvedAt": "2026-08-12T17:40:00.000Z",
+      "approvedByMemberId": "b0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "allocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "status": "pending",
+      "kind": "original",
+      "correctsSettlementId": null,
+      "baseCentavos": 897270,
+      "currency": "MXN",
+      "approvedAt": null,
+      "approvedByMemberId": null
+    }
+  ]
+}

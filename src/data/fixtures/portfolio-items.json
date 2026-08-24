@@ -1,0 +1,95 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "title": "Reels para Tortillería La Ceiba",
+      "roleLabel": "Producción y edición",
+      "url": "https://portafolio.firma23.test/1",
+      "kind": "video",
+      "verification": "verified",
+      "completedAt": "2026-08-14"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "title": "Sesión de fotos de producto",
+      "roleLabel": "Fotografía",
+      "url": "https://portafolio.firma23.test/2",
+      "kind": "image",
+      "verification": "verified",
+      "completedAt": "2026-07-22"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "title": "Flujo de cobranza automatizado",
+      "roleLabel": "Ingeniería de agentes",
+      "url": "https://portafolio.firma23.test/3",
+      "kind": "link",
+      "verification": "verified",
+      "completedAt": "2026-07-12"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "title": "Asistente de atención en WhatsApp",
+      "roleLabel": "Ingeniería de agentes",
+      "url": "https://portafolio.firma23.test/4",
+      "kind": "link",
+      "verification": "self_reported",
+      "completedAt": "2026-06-30"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "title": "Identidad para Refaccionaria Maya Norte",
+      "roleLabel": "Diseño de identidad",
+      "url": "https://portafolio.firma23.test/5",
+      "kind": "image",
+      "verification": "verified",
+      "completedAt": "2026-07-05"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "title": "Carruseles del kit SETY",
+      "roleLabel": "Diseño gráfico",
+      "url": "https://portafolio.firma23.test/6",
+      "kind": "image",
+      "verification": "verified",
+      "completedAt": "2026-08-01"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "title": "Guiones del kit de contenido",
+      "roleLabel": "Guionismo",
+      "url": "https://portafolio.firma23.test/7",
+      "kind": "document",
+      "verification": "verified",
+      "completedAt": "2026-07-28"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "memberId": "b0000000-0000-4000-8000-000000000002",
+      "title": "Auditoría de operación industrial",
+      "roleLabel": "Cierre y coordinación",
+      "url": "https://portafolio.firma23.test/8",
+      "kind": "document",
+      "verification": "verified",
+      "completedAt": "2026-05-12"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "memberId": "b0000000-0000-4000-8000-000000000001",
+      "title": "Marco de reglas de reparto por proyecto",
+      "roleLabel": "Diseño de operación",
+      "url": "https://portafolio.firma23.test/9",
+      "kind": "document",
+      "verification": "verified",
+      "completedAt": "2026-04-02"
+    }
+  ]
+}

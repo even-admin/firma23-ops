@@ -1,0 +1,59 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "30000000-0000-4000-8000-000000000031",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "invoice",
+      "label": "Factura retainer trimestral",
+      "amountCentavos": 2500000,
+      "currency": "MXN",
+      "occurredAt": "2026-04-20"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000032",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "deposit",
+      "label": "Transferencia del cliente",
+      "amountCentavos": 2000000,
+      "currency": "MXN",
+      "occurredAt": "2026-05-02"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000033",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "contribution",
+      "label": "Aportación adicional del cliente",
+      "amountCentavos": 500000,
+      "currency": "MXN",
+      "occurredAt": "2026-05-06"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000034",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "payout",
+      "label": "Pago a la casa",
+      "amountCentavos": -625000,
+      "currency": "MXN",
+      "occurredAt": "2026-07-20"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000035",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "payout",
+      "label": "Pago de cierre",
+      "amountCentavos": -625000,
+      "currency": "MXN",
+      "occurredAt": "2026-07-20"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000036",
+      "opportunityId": "f0000000-0000-4000-8000-000000000011",
+      "type": "payout",
+      "label": "Pago de implementación",
+      "amountCentavos": -1250000,
+      "currency": "MXN",
+      "occurredAt": "2026-07-22"
+    }
+  ]
+}

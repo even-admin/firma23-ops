@@ -1,0 +1,93 @@
+/**
+ * FIRMA23 Ops design tokens.
+ *
+ * Borders-first depth. No gradients, no shadows other than the focus ring, no
+ * decorative colour. Ledger green appears only on confirmed money and primary
+ * completion; amber only on items needing attention; red only on destructive or
+ * failed states. Everything else is ink, graphite, steel, and paper.
+ *
+ * Tailwind v4 keeps the theme in CSS rather than tailwind.config.
+ */
+
+@theme {
+  /* Raw palette */
+  --color-ink-950: #0a0b0c;
+  --color-ink-900: #111315;
+  --color-ink-850: #171a1d;
+  --color-graphite-700: #22262a;
+  --color-graphite-600: #2e3439;
+  --color-steel-500: #6b747c;
+  --color-steel-400: #8b949c;
+  /* Warm-neutral, so a raised paper surface never reads cool against the canvas. */
+  --color-paper-100: #eaeae7;
+  --color-paper-050: #f5f5f2;
+  --color-paper-000: #ffffff;
+  --color-ledger-500: #147a4b;
+  --color-amber-500: #a86f13;
+  --color-red-500: #b13b36;
+
+  /* Semantic surfaces and text */
+  --color-bg: var(--color-paper-000);
+  --color-surface: var(--color-paper-000);
+  --color-raised: var(--color-paper-100);
+  --color-line: #deded9;
+  --color-line-strong: #b9bbb7;
+  --color-ink: var(--color-ink-900);
+  --color-ink-strong: var(--color-ink-950);
+  --color-muted: #5f6467;
+  --color-faint: #858a8d;
+
+  /*
+   * Navigation chrome.
+   *
+   * The rail sits on the same white field as the product. Structure comes from
+   * the collapsed shape, restrained borders, and black type rather than a dark
+   * block behind the interface.
+   */
+  --color-rail: var(--color-paper-000);
+  --color-rail-hover: #f2f3f4;
+  --color-rail-raised: #eceff1;
+  --color-rail-line: #eceeed;
+  --color-rail-line-strong: #d7dcdf;
+  --color-rail-ink: var(--color-ink-950);
+  --color-rail-muted: #3f464b;
+  --color-rail-faint: #858d93;
+
+  /* Reserved accents */
+  --color-money: var(--color-ledger-500);
+  --color-attention: var(--color-amber-500);
+  /* The same reserved amber, lifted to stay legible on the ink rail. */
+  --color-attention-rail: #e0a63a;
+  --color-danger: var(--color-red-500);
+  --color-focus: var(--color-ink-950);
+  /* An ink focus ring is invisible on the ink rail. */
+  --color-focus-inverse: var(--color-ink-950);
+
+  /* Typography */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+
+  /* Restrained radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Motion: quick deceleration, never bounce */
+  --ease-firma: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The private console uses FIRMA23's dominant paper field by default. */
+:root.light {
+  --color-bg: var(--color-paper-000);
+  --color-surface: var(--color-paper-000);
+  --color-raised: var(--color-paper-100);
+  --color-line: #d8dcdf;
+  --color-line-strong: #bcc3c8;
+  --color-ink: var(--color-ink-900);
+  --color-ink-strong: var(--color-ink-950);
+  --color-muted: var(--color-steel-500);
+  --color-faint: #97a0a7;
+  --color-focus: var(--color-ink-950);
+}

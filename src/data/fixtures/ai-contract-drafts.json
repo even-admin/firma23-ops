@@ -1,0 +1,74 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "91000000-0000-4000-8000-000000000001",
+      "sourceDocumentId": "90000000-0000-4000-8000-000000000001",
+      "orgId": "a0000000-0000-4000-8000-000000000001",
+      "matchedProjectId": "c0000000-0000-4000-8000-000000000001",
+      "matchedServiceVersionIds": [
+        "d0000000-0000-4000-8000-000000000001",
+        "d0000000-0000-4000-8000-000000000002",
+        "d0000000-0000-4000-8000-000000000003"
+      ],
+      "matchedAllocationRuleVersionId": "e0000000-0000-4000-8000-000000000001",
+      "extractedAt": "2026-08-21",
+      "sponsorName": {
+        "value": "Secretaría de Economía y Trabajo de Yucatán",
+        "confidence": "high",
+        "evidence": [
+          {
+            "locationLabel": "Encabezado del documento",
+            "quote": "Secretaría de Economía y Trabajo de Yucatán"
+          }
+        ]
+      },
+      "programName": {
+        "value": "SETY 2026",
+        "confidence": "high",
+        "evidence": [{ "locationLabel": "Título del documento", "quote": "Servicios SETY 2026" }]
+      },
+      "currency": "MXN",
+      "exampleDistributableBase": {
+        "amountCentavos": 897270,
+        "currency": "MXN",
+        "confidence": "medium",
+        "evidence": [
+          {
+            "locationLabel": "Ejemplo financiero confirmado",
+            "quote": "Depósito bancario de la Secretaría: $8,972.70"
+          }
+        ]
+      },
+      "exampleDistributableBaseNote": "Importe observado en las oportunidades ya registradas de SETY 2026, no un total del contrato. El documento describe el programa; cada beneficiario genera su propio depósito.",
+      "reviewIssues": [
+        {
+          "key": "beneficiary-missing",
+          "severity": "missing",
+          "fieldLabel": "Beneficiario",
+          "detail": "El documento describe el programa, no un beneficiario específico. Agrega nombre y ubicación al crear cada oportunidad."
+        },
+        {
+          "key": "package-scope-ambiguous",
+          "severity": "ambiguous",
+          "fieldLabel": "Alcance de Identidad/Branding y Página web",
+          "detail": "El PDF no aclara si estos dos servicios van incluidos en cada paquete o son adicionales por beneficiario. Las imágenes oficiales de la Secretaría son la autoridad cuando hay conflicto; confírmalo antes de aprobar."
+        }
+      ],
+      "suggestedAssignments": [
+        {
+          "key": "closer",
+          "roleKey": "closer",
+          "rationale": "Cierre del beneficiario ante la Secretaría, según la regla de reparto activa de SETY 2026.",
+          "confidence": "high"
+        },
+        {
+          "key": "delivery",
+          "roleKey": "delivery",
+          "rationale": "Equipo de producción del servicio contratado. Sin integrantes sugeridos todavía: elige un beneficiario para filtrar por habilidad y disponibilidad.",
+          "confidence": "medium"
+        }
+      ]
+    }
+  ]
+}

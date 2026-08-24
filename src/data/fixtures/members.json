@@ -1,0 +1,53 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "b0000000-0000-4000-8000-000000000001",
+      "slug": "luis-ramirez",
+      "displayName": "Luis Ramírez",
+      "initials": "LR",
+      "role": "founder",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000002",
+      "slug": "diego-martinez-herrera",
+      "displayName": "Diego Martínez Herrera",
+      "initials": "DMH",
+      "role": "founder",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000003",
+      "slug": "sebastian-benitez",
+      "displayName": "Sebastián Benítez",
+      "initials": "SB",
+      "role": "member",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000004",
+      "slug": "emiliano-pasos",
+      "displayName": "Emiliano Pasos",
+      "initials": "EP",
+      "role": "member",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000005",
+      "slug": "pablo-heisenberg",
+      "displayName": "Pablo Heisenberg",
+      "initials": "PH",
+      "role": "member",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000006",
+      "slug": "diego-martinez-hernandez",
+      "displayName": "Diego Martínez Hernández",
+      "initials": "DMN",
+      "role": "member",
+      "orgId": "a0000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

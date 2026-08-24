@@ -1,0 +1,45 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "e0000000-0000-4000-8000-000000000002",
+      "projectId": "c0000000-0000-4000-8000-000000000002",
+      "version": 1,
+      "effectiveFrom": "2026-03-01",
+      "currency": "MXN",
+      "immutable": true,
+      "basePolicy": {
+        "kind": "cash_event_types",
+        "includeTypes": [
+          "deposit",
+          "contribution"
+        ],
+        "label": "Depósito más aportación del cliente",
+        "note": "Este proyecto sí distribuye la aportación del cliente. La política es dato del proyecto, no una regla del sistema."
+      },
+      "shares": [
+        {
+          "key": "house",
+          "recipientBehavior": "org_recipient",
+          "label": "Casa",
+          "weightBp": 2500,
+          "recipientOrgId": "a0000000-0000-4000-8000-000000000002"
+        },
+        {
+          "key": "closer",
+          "recipientBehavior": "member_pool",
+          "label": "Cierre",
+          "weightBp": 2500,
+          "recipientOrgId": null
+        },
+        {
+          "key": "delivery",
+          "recipientBehavior": "member_pool",
+          "label": "Implementación",
+          "weightBp": 5000,
+          "recipientOrgId": null
+        }
+      ]
+    }
+  ]
+}

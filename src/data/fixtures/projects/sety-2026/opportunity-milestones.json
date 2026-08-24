@@ -1,0 +1,236 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "60000000-0000-4000-8000-000000000001",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000001",
+      "position": 1,
+      "name": "Kickoff y brief",
+      "status": "done",
+      "dueAt": "2026-09-10",
+      "completedAt": "2026-09-09",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000002",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "name": "Guion y calendario",
+      "status": "done",
+      "dueAt": "2026-09-12",
+      "completedAt": "2026-09-11",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000003",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "name": "Ocho posts estáticos",
+      "status": "done",
+      "dueAt": "2026-09-14",
+      "completedAt": "2026-09-13",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000004",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000004",
+      "position": 4,
+      "name": "Ocho videos o reels",
+      "status": "in_progress",
+      "dueAt": "2026-09-16",
+      "completedAt": null,
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000005",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000005",
+      "position": 5,
+      "name": "Ocho carruseles",
+      "status": "pending",
+      "dueAt": "2026-09-18",
+      "completedAt": null,
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000006",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000006",
+      "position": 6,
+      "name": "Manual de uso",
+      "status": "pending",
+      "dueAt": "2026-09-20",
+      "completedAt": null,
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000007",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "templateId": "50000000-0000-4000-8000-000000000007",
+      "position": 7,
+      "name": "Entrega y aceptación",
+      "status": "pending",
+      "dueAt": "2026-09-22",
+      "completedAt": null,
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000008",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000001",
+      "position": 1,
+      "name": "Kickoff y brief",
+      "status": "done",
+      "dueAt": "2026-07-10",
+      "completedAt": "2026-07-09",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000009",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "name": "Guion y calendario",
+      "status": "done",
+      "dueAt": "2026-07-12",
+      "completedAt": "2026-07-11",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000a",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "name": "Ocho posts estáticos",
+      "status": "done",
+      "dueAt": "2026-07-14",
+      "completedAt": "2026-07-13",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000b",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000004",
+      "position": 4,
+      "name": "Ocho videos o reels",
+      "status": "done",
+      "dueAt": "2026-07-16",
+      "completedAt": "2026-07-15",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000c",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000005",
+      "position": 5,
+      "name": "Ocho carruseles",
+      "status": "done",
+      "dueAt": "2026-07-18",
+      "completedAt": "2026-07-17",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000d",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000006",
+      "position": 6,
+      "name": "Manual de uso",
+      "status": "done",
+      "dueAt": "2026-07-20",
+      "completedAt": "2026-07-19",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000e",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "templateId": "50000000-0000-4000-8000-000000000007",
+      "position": 7,
+      "name": "Entrega y aceptación",
+      "status": "done",
+      "dueAt": "2026-07-22",
+      "completedAt": "2026-07-21",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "60000000-0000-4000-8000-00000000000f",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000001",
+      "position": 1,
+      "name": "Kickoff y brief",
+      "status": "done",
+      "dueAt": "2026-08-10",
+      "completedAt": "2026-08-09",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000010",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "name": "Guion y calendario",
+      "status": "done",
+      "dueAt": "2026-08-12",
+      "completedAt": "2026-08-11",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000011",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "name": "Ocho posts estáticos",
+      "status": "done",
+      "dueAt": "2026-08-14",
+      "completedAt": "2026-08-13",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000012",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000004",
+      "position": 4,
+      "name": "Ocho videos o reels",
+      "status": "done",
+      "dueAt": "2026-08-16",
+      "completedAt": "2026-08-15",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000013",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000005",
+      "position": 5,
+      "name": "Ocho carruseles",
+      "status": "done",
+      "dueAt": "2026-08-18",
+      "completedAt": "2026-08-17",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000014",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000006",
+      "position": 6,
+      "name": "Manual de uso",
+      "status": "done",
+      "dueAt": "2026-08-20",
+      "completedAt": "2026-08-19",
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000015",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "templateId": "50000000-0000-4000-8000-000000000007",
+      "position": 7,
+      "name": "Entrega y aceptación",
+      "status": "blocked",
+      "dueAt": "2026-08-22",
+      "completedAt": null,
+      "assignedMemberId": "b0000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

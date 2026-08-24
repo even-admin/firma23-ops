@@ -1,0 +1,158 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "30000000-0000-4000-8000-000000000001",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "type": "invoice",
+      "label": "Factura Secretaría · paquete SETY",
+      "amountCentavos": 1000000,
+      "currency": "MXN",
+      "occurredAt": "2026-07-30"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000002",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "type": "withholding",
+      "label": "Retención ISR",
+      "amountCentavos": -10776,
+      "currency": "MXN",
+      "occurredAt": "2026-07-30"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000003",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "type": "withholding",
+      "label": "Retención IVA",
+      "amountCentavos": -91954,
+      "currency": "MXN",
+      "occurredAt": "2026-07-30"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000004",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "type": "deposit",
+      "label": "Depósito Secretaría",
+      "amountCentavos": 897270,
+      "currency": "MXN",
+      "occurredAt": "2026-08-07"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000005",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "type": "contribution",
+      "label": "Contribución del beneficiario",
+      "amountCentavos": 160000,
+      "currency": "MXN",
+      "occurredAt": "2026-08-02"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000011",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "invoice",
+      "label": "Factura Secretaría · paquete SETY",
+      "amountCentavos": 1000000,
+      "currency": "MXN",
+      "occurredAt": "2026-06-24"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000012",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "withholding",
+      "label": "Retención ISR",
+      "amountCentavos": -10776,
+      "currency": "MXN",
+      "occurredAt": "2026-06-24"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000013",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "withholding",
+      "label": "Retención IVA",
+      "amountCentavos": -91954,
+      "currency": "MXN",
+      "occurredAt": "2026-06-24"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000014",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "deposit",
+      "label": "Depósito Secretaría",
+      "amountCentavos": 897270,
+      "currency": "MXN",
+      "occurredAt": "2026-07-03"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000015",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "contribution",
+      "label": "Contribución del beneficiario",
+      "amountCentavos": 160000,
+      "currency": "MXN",
+      "occurredAt": "2026-06-27"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000016",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "payout",
+      "label": "Pago a la casa",
+      "amountCentavos": -269181,
+      "currency": "MXN",
+      "occurredAt": "2026-08-14"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000017",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "type": "payout",
+      "label": "Pago de cierre",
+      "amountCentavos": -179454,
+      "currency": "MXN",
+      "occurredAt": "2026-08-14"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000021",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "type": "invoice",
+      "label": "Factura Secretaría · paquete SETY",
+      "amountCentavos": 1000000,
+      "currency": "MXN",
+      "occurredAt": "2026-08-10"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000022",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "type": "withholding",
+      "label": "Retención ISR",
+      "amountCentavos": -10776,
+      "currency": "MXN",
+      "occurredAt": "2026-08-10"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000023",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "type": "withholding",
+      "label": "Retención IVA",
+      "amountCentavos": -91954,
+      "currency": "MXN",
+      "occurredAt": "2026-08-10"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000024",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "type": "deposit",
+      "label": "Depósito Secretaría",
+      "amountCentavos": 897270,
+      "currency": "MXN",
+      "occurredAt": "2026-08-18"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000025",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "type": "contribution",
+      "label": "Contribución del beneficiario",
+      "amountCentavos": 160000,
+      "currency": "MXN",
+      "occurredAt": "2026-08-12"
+    }
+  ]
+}

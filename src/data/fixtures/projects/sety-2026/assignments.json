@@ -1,0 +1,104 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "roleKey": "closer",
+      "roleLabel": "Cierre",
+      "weightBp": 10000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "roleKey": "delivery",
+      "roleLabel": "Producción audiovisual",
+      "weightBp": 4000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "roleKey": "delivery",
+      "roleLabel": "Diseño gráfico",
+      "weightBp": 3500,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "opportunityId": "f0000000-0000-4000-8000-000000000001",
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "roleKey": "delivery",
+      "roleLabel": "Copy y guion",
+      "weightBp": 2500,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "memberId": "b0000000-0000-4000-8000-000000000004",
+      "roleKey": "closer",
+      "roleLabel": "Cierre",
+      "weightBp": 10000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000006",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "roleKey": "delivery",
+      "roleLabel": "Producción audiovisual",
+      "weightBp": 4000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000007",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "roleKey": "delivery",
+      "roleLabel": "Diseño gráfico",
+      "weightBp": 3500,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000008",
+      "opportunityId": "f0000000-0000-4000-8000-000000000002",
+      "memberId": "b0000000-0000-4000-8000-000000000006",
+      "roleKey": "delivery",
+      "roleLabel": "Copy y guion",
+      "weightBp": 2500,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000009",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "memberId": "b0000000-0000-4000-8000-000000000001",
+      "roleKey": "closer",
+      "roleLabel": "Cierre",
+      "weightBp": 10000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000000a",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "memberId": "b0000000-0000-4000-8000-000000000003",
+      "roleKey": "delivery",
+      "roleLabel": "Producción audiovisual",
+      "weightBp": 5000,
+      "status": "approved"
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000000b",
+      "opportunityId": "f0000000-0000-4000-8000-000000000003",
+      "memberId": "b0000000-0000-4000-8000-000000000005",
+      "roleKey": "delivery",
+      "roleLabel": "Diseño gráfico",
+      "weightBp": 5000,
+      "status": "approved"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "fixtureVersion": 1,
+  "records": [
+    {
+      "id": "70000000-0000-4000-8000-000000000001",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000002",
+      "label": "Guiones aprobados",
+      "url": "https://evidencia.firma23.test/f0000000/2",
+      "kind": "document",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000006",
+      "submittedAt": "2026-09-11"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000002",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000003",
+      "label": "Carpeta de posts estáticos",
+      "url": "https://evidencia.firma23.test/f0000000/3",
+      "kind": "image",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000005",
+      "submittedAt": "2026-09-13"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000003",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000009",
+      "label": "Guiones aprobados",
+      "url": "https://evidencia.firma23.test/f0000000/2",
+      "kind": "document",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000006",
+      "submittedAt": "2026-07-11"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000004",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-00000000000a",
+      "label": "Carpeta de posts estáticos",
+      "url": "https://evidencia.firma23.test/f0000000/3",
+      "kind": "image",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000005",
+      "submittedAt": "2026-07-13"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000005",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-00000000000b",
+      "label": "Reels entregados",
+      "url": "https://evidencia.firma23.test/f0000000/4",
+      "kind": "video",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000003",
+      "submittedAt": "2026-07-15"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000006",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000010",
+      "label": "Guiones aprobados",
+      "url": "https://evidencia.firma23.test/f0000000/2",
+      "kind": "document",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000006",
+      "submittedAt": "2026-08-11"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000007",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000011",
+      "label": "Carpeta de posts estáticos",
+      "url": "https://evidencia.firma23.test/f0000000/3",
+      "kind": "image",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000005",
+      "submittedAt": "2026-08-13"
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000008",
+      "opportunityMilestoneId": "60000000-0000-4000-8000-000000000012",
+      "label": "Reels entregados",
+      "url": "https://evidencia.firma23.test/f0000000/4",
+      "kind": "video",
+      "submittedByMemberId": "b0000000-0000-4000-8000-000000000003",
+      "submittedAt": "2026-08-15"
+    }
+  ]
+}
