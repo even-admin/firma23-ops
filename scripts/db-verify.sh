@@ -386,7 +386,7 @@ fi
 echo
 echo "=== scenario 5: stat_events authority ==="
 
-expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" "row-level security policy" <<'SQL'
+expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" "permission denied for table stat_events" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 insert into public.stat_events (member_id, opportunity_id, metric_key, quantity, source_kind, source_id)
@@ -533,22 +533,22 @@ SQL
 echo
 echo "=== scenario 8b: anon must be refused at the grant layer, not the function body (H2) ==="
 
-expect_failure "record_cash_event as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "record_cash_event as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'x', 100, 'MXN', current_date, 'authz-anon-cash-1');
 SQL
 
-expect_failure "approve_settlement as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "approve_settlement as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-anon-approve-1');
 SQL
 
-expect_failure "reverse_settlement as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "reverse_settlement as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 'authz-anon-reverse-1');
 SQL
 
-expect_failure "record_payout as anon is refused by GRANT, never reaches the founder check" "permission denied for function" <<'SQL'
+expect_failure "record_payout as anon is refused at the schema boundary, never reaches the founder check" "permission denied for schema public" <<'SQL'
 set role anon;
 select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'x', current_date, '[{"settlementLineId":"40000000-0000-4000-8000-000000000001","amountCentavos":1}]'::jsonb, 'authz-anon-payout-1');
 SQL
