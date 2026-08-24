@@ -5,7 +5,7 @@ import { Amount } from '@/components/money/Amount';
 import { StatusPill } from '@/components/opportunity/StatusPill';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticProjectRepository } from '@/data/repositories/synthetic/projects';
 import { formatBasisPoints } from '@/lib/money';
 
@@ -15,7 +15,7 @@ export default async function ProjectDetailPage({
   readonly params: Promise<{ readonly projectSlug: string }>;
 }) {
   const { projectSlug } = await params;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const project = await syntheticProjectRepository.getBySlug(projectSlug, viewer);
   if (project === null) notFound();
 

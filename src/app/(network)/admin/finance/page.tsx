@@ -9,12 +9,12 @@ import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
 import { isFounder } from '@/lib/viewer';
 
 async function FinanceBody() {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   if (!isFounder(viewer)) {
     return (
       <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">

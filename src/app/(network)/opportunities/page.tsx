@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticSettlementRepository } from '@/data/repositories/synthetic/settlements';
 import { isFounder } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
@@ -23,7 +23,7 @@ async function OpportunitiesBody({
   readonly searchParams: Promise<BoardSearchParams>;
 }) {
   const query = await searchParams;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
 
   // Full financial detail is founder-only. In M2 this is a Postgres policy, not a
   // branch; the branch exists so the denied state is reviewable now.

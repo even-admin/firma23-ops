@@ -5,7 +5,7 @@ import { OperatorCard } from '@/components/operator/OperatorCard';
 import { SkillChips } from '@/components/operator/SkillChips';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticMemberRepository } from '@/data/repositories/synthetic/members';
 import { cn } from '@/lib/cn';
 
@@ -15,7 +15,7 @@ export default async function OperatorProfilePage({
   readonly params: Promise<{ readonly memberSlug: string }>;
 }) {
   const { memberSlug } = await params;
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const profile = await syntheticMemberRepository.getProfileBySlug(memberSlug, viewer);
   if (profile === null) notFound();
 

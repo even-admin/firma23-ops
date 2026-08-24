@@ -6,12 +6,12 @@ import { Amount } from '@/components/money/Amount';
 import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticLeaderboardRepository } from '@/data/repositories/synthetic/leaderboard';
 import { formatBasisPoints } from '@/lib/money';
 
 async function LeaderboardBody() {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const rows = await syntheticLeaderboardRepository.list(viewer);
 
   return (

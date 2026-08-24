@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react';
 
-import { switchPrototypeViewer } from '@/app/actions/viewer';
+import { signOutAction } from '@/app/login/actions';
 import { AppShell } from '@/components/chrome/AppShell';
+import { SessionPanel } from '@/components/chrome/SessionPanel';
 import { ViewerSwitcher } from '@/components/chrome/ViewerSwitcher';
-import { getPrototypeViewer } from '@/data/prototype-viewer-session';
+import { switchPrototypeViewer } from '@/app/actions/viewer';
+import { getViewer } from '@/data/viewer-session';
 import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
 import { syntheticProjectRepository } from '@/data/repositories/synthetic/projects';
+import { isSupabaseConfigured } from '@/lib/backend';
 import { buildNavGroups } from '@/lib/nav';
 import { isFounder } from '@/lib/viewer';
 
 export default async function NetworkLayout({ children }: { readonly children: ReactNode }) {
-  const viewer = await getPrototypeViewer();
+  const viewer = await getViewer();
   const projects = await syntheticProjectRepository.list(viewer);
 
   /*
@@ -28,12 +31,18 @@ export default async function NetworkLayout({ children }: { readonly children: R
     pendingApprovals,
   });
 
+  // The prototype role switcher grants nothing and is a synthetic-mode
+  // affordance only; a real session's role comes from Postgres membership,
+  // never a browser control, so it never appears once Supabase is
+  // configured — showing it then would be actively misleading.
+  const viewerSwitcher = isSupabaseConfigured() ? (
+    <SessionPanel role={viewer.role} action={signOutAction} />
+  ) : (
+    <ViewerSwitcher role={viewer.role} action={switchPrototypeViewer} />
+  );
+
   return (
-    <AppShell
-      role={viewer.role}
-      groups={groups}
-      viewerSwitcher={<ViewerSwitcher role={viewer.role} action={switchPrototypeViewer} />}
-    >
+    <AppShell role={viewer.role} groups={groups} viewerSwitcher={viewerSwitcher}>
       {children}
     </AppShell>
   );
