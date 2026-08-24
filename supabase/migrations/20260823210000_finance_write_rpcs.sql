@@ -23,17 +23,30 @@
 -- exactly one audit_events row in the same transaction as its real write
 -- (never on a pure idempotent replay, which performs no write at all).
 --
--- approve_settlement, reverse_settlement, and record_payout additionally
--- take `select ... for update` on the affected opportunity row as their
--- first real action, holding it to commit. This is what actually makes
--- their idempotency and invariant checks safe: `insert ... on conflict do
--- nothing` only protects two callers using the *same* idempotency key: it
--- cannot stop two callers with *different* keys from both passing a
--- plain-read invariant check before either commits (the same TOCTOU shape
--- as the key race, just varying a different, wrongly-assumed-safe
--- dimension). The lock serializes every write against a given opportunity,
--- which closes that gap for every check that follows it, not just the one
--- instance a stress test happened to sample.
+-- All four RPCs take `select ... for update` on the affected opportunity
+-- row after resolving/validating authorization and ownership, and before
+-- any state-dependent read, holding the lock to commit. This is what
+-- actually makes their idempotency and invariant checks safe: `insert ...
+-- on conflict do nothing` only protects two callers using the *same*
+-- idempotency key: it cannot stop two callers with *different* keys from
+-- both passing a plain-read invariant check before either commits (the
+-- same TOCTOU shape as the key race, just varying a different,
+-- wrongly-assumed-safe dimension). The lock serializes every write against
+-- a given opportunity, which closes that gap for every check that follows
+-- it, not just the one instance a stress test happened to sample.
+--
+-- record_cash_event's own base-drift guard is the concrete case this
+-- protects: without the lock, a concurrent approve_settlement could derive
+-- and commit its base in the gap between the guard's read and the
+-- INSERT — the guard would have correctly seen "no active settlement yet"
+-- a moment before one existed. The lock closes that gap by forcing the two
+-- calls to fully serialize; it does not rely on the incidental FOR KEY
+-- SHARE lock the cash_events FK check takes, which only happened to
+-- protect the opposite interleaving (insert-then-approve).
+--
+-- record_cash_event takes only the opportunity lock, never a line lock —
+-- global lock order across all four RPCs stays opportunity, then lines
+-- only where needed (record_payout alone takes the second level).
 --
 -- Additive only. No table created in migrations 20260821090000-090500 is
 -- altered in a way that changes any existing row's meaning: cash_events and
@@ -51,12 +64,24 @@ alter table public.settlements add constraint settlements_opportunity_idempotenc
 
 -- ---------------------------------------------------------------------------
 -- payout_command_receipts — one row per successful record_payout call
--- (never per allocation), scoped by org so a key collision cannot leak or
--- lock out another organization's namespace (M3). Replaces the previous
--- `idempotency_key like (:prefix || ':%')` count (M2), which both invited
--- LIKE-metacharacter injection from a client-chosen key and required a
--- separate row per allocation to reconstruct "was this exact request
--- already handled."
+-- (never per allocation), scoped by org AND opportunity so a key collision
+-- cannot leak or lock out another organization's namespace (M3) and cannot
+-- race across two opportunities in the same org either (R3): record_payout
+-- locks one opportunity at a time, so uniqueness scoped to only (org_id,
+-- idempotency_key) let two concurrent calls against DIFFERENT
+-- opportunities, sharing an org and key, both pass this table's lookup
+-- (neither call's lock blocked the other) and collide instead on the
+-- unrelated global unique index on settlement_line_payouts.idempotency_key
+-- — a raw uniqueness failure instead of a clean idempotency decision.
+-- Scoping the receipt (and the per-allocation key below) by opportunity_id
+-- too makes the uniqueness domain match the lock domain: two different
+-- opportunities can never collide, concurrently or sequentially, matching
+-- how cash_events and settlements already scope their own keys.
+--
+-- Replaces the previous `idempotency_key like (:prefix || ':%')` count
+-- (M2), which both invited LIKE-metacharacter injection from a
+-- client-chosen key and required a separate row per allocation to
+-- reconstruct "was this exact request already handled."
 -- ---------------------------------------------------------------------------
 
 create table public.payout_command_receipts (
@@ -68,7 +93,7 @@ create table public.payout_command_receipts (
   payout_cash_event_id uuid not null references public.cash_events(id),
   allocation_ids uuid[] not null,
   created_at timestamptz not null default now(),
-  unique (org_id, idempotency_key)
+  unique (org_id, opportunity_id, idempotency_key)
 );
 
 alter table public.payout_command_receipts enable row level security;
@@ -266,7 +291,9 @@ $$;
 -- the opportunity's own snapshotted rule currency, and — for a type the
 -- rule's base_policy actually counts — an opportunity that already has an
 -- active approved settlement, so an approved base can never silently drift
--- after the fact.
+-- after the fact. Takes the opportunity lock before that drift guard so the
+-- guard is an actual invariant, not a TOCTOU-vulnerable read a concurrent
+-- approve_settlement can slip past.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.record_cash_event(
@@ -307,6 +334,14 @@ begin
   if p_type = 'payout' then
     raise exception 'record_cash_event cannot create a payout event; use record_payout';
   end if;
+
+  -- Serialize against approve_settlement, reverse_settlement, and every
+  -- other concurrent record_cash_event/record_payout call on this same
+  -- opportunity, held to commit. Without this, the drift guard below is a
+  -- plain read: a concurrent approve_settlement could derive and commit its
+  -- base in the window between this guard's read and this function's own
+  -- INSERT, seeing "no active settlement yet" a moment before one existed.
+  perform 1 from public.opportunities where id = p_opportunity_id for update;
 
   -- Idempotent replay first: a retry of an already-recorded event must
   -- still succeed even if the opportunity has since been cancelled or
@@ -655,6 +690,15 @@ grant execute on function public.approve_settlement(uuid, uuid, text) to authent
 -- (not-yet-reallocated) amount is reported back so nothing is silently lost
 -- track of, and guard_settlement_line_payout_insert independently blocks any
 -- *new* positive allocation against the now-reversed settlement.
+--
+-- This is reported, not required to be resolved: no constraint, queue, or
+-- schedule forces a founder to ever reallocate a stranded payout. A
+-- founder-visible "reversed settlements with outstanding payout
+-- allocations" surface is explicitly DEFERRED to the final founder finance
+-- UI, not part of this pass (which adds no UI). outstandingPayoutCentavos
+-- is preserved end to end — this RPC's own return column, through to
+-- ReverseSettlementResult (src/types/views.ts) — specifically so that
+-- surface has a value to read once it exists.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.reverse_settlement(
@@ -809,7 +853,9 @@ grant execute on function public.reverse_settlement(uuid, uuid, text) to authent
 -- reverse-and-reissue transfer this product actually performs.
 --
 -- Idempotency is one payout_command_receipts row per call (never per
--- allocation), scoped by org.
+-- allocation), scoped by (org, opportunity) — matching cash_events and
+-- settlements, and matching the single opportunity this function locks per
+-- call, so a reused key can never race across two opportunities either.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.record_payout(
@@ -927,9 +973,10 @@ begin
 
   -- A negative allocation may only ever leave a reversed settlement's line,
   -- and only when matched by an equal positive allocation onto an active
-  -- (unreversed, approved, original) settlement's line. A *positive*
-  -- allocation onto a reversed line is rejected unconditionally by
-  -- guard_settlement_line_payout_insert regardless of this check.
+  -- (unreversed, approved, original) settlement's line — enforced below,
+  -- not merely assumed. A *positive* allocation onto a reversed line is
+  -- rejected unconditionally by guard_settlement_line_payout_insert
+  -- regardless of this check.
   for v_idx in 0..jsonb_array_length(p_allocations) - 1 loop
     v_alloc := p_allocations -> v_idx;
     v_line_id := (v_alloc ->> 'settlementLineId')::uuid;
@@ -944,6 +991,17 @@ begin
     from public.settlement_lines sl
     where sl.id = v_line_id;
 
+    -- Outright rejection, not silent exclusion from both totals: without
+    -- this, a negative allocation off an active line matches neither the
+    -- reversed-negative nor the active-positive bucket, so it is invisible
+    -- to the balance check below and money can be redirected between two
+    -- active lines of the same opportunity with no reversal involved.
+    if not v_line_check.is_reversed and v_amount < 0 then
+      raise exception
+        'a negative allocation may only leave a reversed settlement''s line (allocation %, line %)',
+        v_idx, v_line_id;
+    end if;
+
     if v_line_check.is_reversed and v_amount < 0 then
       v_reversed_negative_total := v_reversed_negative_total + (-v_amount);
     elsif not v_line_check.is_reversed and v_amount > 0 then
@@ -957,13 +1015,16 @@ begin
   end if;
 
   -- Idempotency: one receipt row per call, never per allocation, scoped by
-  -- org so no cross-tenant key collision or lockout is possible.
+  -- (org_id, opportunity_id) so no cross-tenant key collision or lockout is
+  -- possible, and no cross-opportunity race within the same org either
+  -- (R3) — matching the lock this function already holds on exactly one
+  -- opportunity at a time.
   v_fingerprint := coalesce(p_opportunity_id::text, '') || '|' || coalesce(p_label, '') || '|'
     || coalesce(p_occurred_at::text, '') || '|' || p_allocations::text || '|'
     || coalesce(p_existing_cash_event_id::text, '');
 
   select * into v_receipt from public.payout_command_receipts
-  where org_id = p_org_id and idempotency_key = p_idempotency_key;
+  where org_id = p_org_id and opportunity_id = p_opportunity_id and idempotency_key = p_idempotency_key;
 
   if v_receipt.id is not null then
     if v_receipt.request_fingerprint <> v_fingerprint then
@@ -1011,7 +1072,7 @@ begin
       settlement_line_id, payout_cash_event_id, amount_centavos, currency, created_by_member_id, idempotency_key
     ) values (
       v_line_id, new_event_id, v_amount, v_currency, caller_id,
-      p_org_id::text || ':' || p_idempotency_key || ':' || v_idx::text
+      p_org_id::text || ':' || p_opportunity_id::text || ':' || p_idempotency_key || ':' || v_idx::text
     );
 
     v_affected_line_ids := v_affected_line_ids || v_line_id;
@@ -1038,12 +1099,16 @@ begin
   ) values (
     p_org_id, p_opportunity_id, p_idempotency_key, v_fingerprint, new_event_id, v_affected_line_ids
   )
-  on conflict (org_id, idempotency_key) do nothing;
-  -- No fallback read needed on conflict: the opportunity lock above already
-  -- serializes every caller for this opportunity, so this insert losing a
-  -- race is not expected in practice. If it somehow did, the payout work
-  -- immediately above already committed correctly under this call's own
-  -- name — that result, returned below, is unaffected either way.
+  on conflict (org_id, opportunity_id, idempotency_key) do nothing;
+  -- No fallback read needed on conflict: the uniqueness domain now matches
+  -- the lock domain exactly (org_id, opportunity_id, idempotency_key), and
+  -- this function holds the opportunity lock for the one opportunity in
+  -- that tuple for the whole call — no other caller can be racing this
+  -- exact key for this exact opportunity, concurrently or otherwise, so
+  -- this insert losing a race is not expected in practice. If it somehow
+  -- did, the payout work immediately above already committed correctly
+  -- under this call's own name — that result, returned below, is
+  -- unaffected either way.
 
   return query select new_event_id, false;
 end;

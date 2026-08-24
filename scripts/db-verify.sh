@@ -66,11 +66,22 @@ expect_success() {
 expect_failure() {
   local desc="$1"
   local expected_substring="${2:-}"
+  # Mandatory, not optional (R5): a scenario that doesn't name the error it
+  # expects passes on ANY error — a typo'd UUID, a missing fixture, a wrong
+  # constraint — which is the exact false-pass shape M5 was about. A call
+  # site missing this argument is a harness bug, so it fails loudly here
+  # rather than silently degrading to "any error will do".
+  if [ -z "$expected_substring" ]; then
+    FAIL=$((FAIL + 1))
+    FAILURES+=("$desc (missing expected-error substring)")
+    echo "FAIL (harness bug — expect_failure called without an expected-error substring): $desc"
+    return
+  fi
   if run_sql >"$WORKDIR/last.log" 2>&1; then
     FAIL=$((FAIL + 1))
     FAILURES+=("$desc")
     echo "FAIL (expected failure, but it succeeded): $desc"
-  elif [ -n "$expected_substring" ] && ! grep -qF "$expected_substring" "$WORKDIR/last.log"; then
+  elif ! grep -qF "$expected_substring" "$WORKDIR/last.log"; then
     FAIL=$((FAIL + 1))
     FAILURES+=("$desc (wrong error)")
     echo "FAIL (wrong error — expected to contain \"$expected_substring\"): $desc"
@@ -159,19 +170,19 @@ psql_run -f "$HARNESS_DIR/01_test_identities.sql" >"$WORKDIR/setup.log" 2>&1 || 
 echo
 echo "=== scenario 1: exact settlement reversal ==="
 
-expect_failure "reversal base is not the exact negative of the original" <<'SQL'
+expect_failure "reversal base is not the exact negative of the original" "must equal the exact negative of" <<'SQL'
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000001', -299999, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-bad-base');
 SQL
 
-expect_failure "reversal with the exact negative base but ZERO lines" <<'SQL'
+expect_failure "reversal with the exact negative base but ZERO lines" "has no lines" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000001', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-zero-lines');
 commit;
 SQL
 
-expect_failure "partial reversal that sums correctly but omits the closer line entirely" <<'SQL'
+expect_failure "partial reversal that sums correctly but omits the closer line entirely" "does not exactly negate its original's line multiset" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000004', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000001', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-omit-closer');
@@ -180,7 +191,7 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "reversal that exactly negates both lines plus one bogus extra line" <<'SQL'
+expect_failure "reversal that exactly negates both lines plus one bogus extra line" "does not exactly negate its original's line multiset" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000005', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000001', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-extra-line');
@@ -211,12 +222,12 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "a second approved reversal against the same original still fails" <<'SQL'
+expect_failure "a second approved reversal against the same original still fails" "settlements_one_approved_reversal_per_original" <<'SQL'
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000008', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000001', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-second-reversal');
 SQL
 
-expect_failure "reversal with a per-line currency mismatch against its own settlement" <<'SQL'
+expect_failure "reversal with a per-line currency mismatch against its own settlement" "must match its settlement's currency" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-000000000009', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000007', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-currency-mismatch');
@@ -226,7 +237,7 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "reversal with a mismatched amount on one line" <<'SQL'
+expect_failure "reversal with a mismatched amount on one line" "does not exactly negate its original's line multiset" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-00000000000a', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000007', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-amount-mismatch');
@@ -236,7 +247,7 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "reversal with correct amounts but changed metadata (recipient_label)" <<'SQL'
+expect_failure "reversal with correct amounts but changed metadata (recipient_label)" "does not exactly negate its original's line multiset" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('a1000000-0000-4000-8000-00000000000f', 'f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'a1000000-0000-4000-8000-000000000007', -300000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s1-metadata-mismatch');
@@ -259,7 +270,7 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "a reversal collapsing the duplicate pair into one line is rejected (multiplicity 1 vs 2)" <<'SQL'
+expect_failure "a reversal collapsing the duplicate pair into one line is rejected (multiplicity 1 vs 2)" "does not exactly negate its original's line multiset" <<'SQL'
 begin;
 insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
 values ('b1000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'approved', 'reversal', 'b1000000-0000-4000-8000-000000000001', -100000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-s2-collapse');
@@ -293,7 +304,7 @@ insert into public.settlement_lines (id, settlement_id, share_key, recipient_beh
 commit;
 SQL
 
-expect_failure "inserting one more line on the already-committed reversal, in a brand-new transaction, still fails exactness" <<'SQL'
+expect_failure "inserting one more line on the already-committed reversal, in a brand-new transaction, still fails exactness" "does not exactly negate its original's line multiset" <<'SQL'
 insert into public.settlement_lines (id, settlement_id, share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, amount_centavos, currency, sequence) values
   ('c2000000-0000-4000-8000-000000000003', 'c1000000-0000-4000-8000-000000000002', 'bonus', 'member_pool', 'Late Extra', 'b0000000-0000-4000-8000-000000000003', 'Bonus', 0, 0, 'MXN', 2);
 SQL
@@ -301,7 +312,7 @@ SQL
 echo
 echo "=== scenario 4: payout integrity ==="
 
-expect_failure "cross-opportunity payout allocation fails immediately" <<'SQL'
+expect_failure "cross-opportunity payout allocation fails immediately" "cannot pay a line on opportunity" <<'SQL'
 begin;
 insert into public.cash_events (id, opportunity_id, type, label, amount_centavos, occurred_at, idempotency_key)
 values ('a3000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000003', 'payout', 'Pago de prueba cross-opportunity', -90000, current_date, 'db-verify-s4-cross-opportunity');
@@ -310,7 +321,7 @@ values ('40000000-0000-4000-8000-000000000001', 'a3000000-0000-4000-8000-0000000
 rollback;
 SQL
 
-expect_failure "orphan payout event (zero allocations) fails at commit" <<'SQL'
+expect_failure "orphan payout event (zero allocations) fails at commit" "but must equal" <<'SQL'
 begin;
 insert into public.cash_events (id, opportunity_id, type, label, amount_centavos, occurred_at, idempotency_key)
 values ('a3000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000003', 'payout', 'Pago huérfano de prueba', -50000, current_date, 'db-verify-s4-orphan-payout');
@@ -335,7 +346,7 @@ values ('a2000000-0000-4000-8000-00000000000a', 'a3000000-0000-4000-8000-0000000
 commit;
 SQL
 
-expect_failure "an allocation that would overpay the closer line fails at commit" <<'SQL'
+expect_failure "an allocation that would overpay the closer line fails at commit" "must fall within" <<'SQL'
 begin;
 insert into public.cash_events (id, opportunity_id, type, label, amount_centavos, occurred_at, idempotency_key)
 values ('a3000000-0000-4000-8000-000000000012', 'f0000000-0000-4000-8000-000000000003', 'payout', 'Pago excedente de cierre', -200000, current_date, 'db-verify-s4-closer-overpay');
@@ -344,33 +355,45 @@ values ('a2000000-0000-4000-8000-00000000000a', 'a3000000-0000-4000-8000-0000000
 commit;
 SQL
 
-expect_success "append-only payout transfer: move 50000 of the house line's payout to the closer line against the same event, net unchanged" <<'SQL'
-begin;
-insert into public.settlement_line_payouts (settlement_line_id, payout_cash_event_id, amount_centavos, currency, created_by_member_id, idempotency_key)
-values ('a2000000-0000-4000-8000-000000000009', 'a3000000-0000-4000-8000-000000000010', -50000, 'MXN', 'b0000000-0000-4000-8000-000000000001', 'db-verify-transfer-out');
-insert into public.settlement_line_payouts (settlement_line_id, payout_cash_event_id, amount_centavos, currency, created_by_member_id, idempotency_key)
-values ('a2000000-0000-4000-8000-00000000000a', 'a3000000-0000-4000-8000-000000000010', 50000, 'MXN', 'b0000000-0000-4000-8000-000000000001', 'db-verify-transfer-in');
-commit;
+# Superseded by the R2 finding: an active-to-active transfer with no
+# reversal involved is not a doctrine-valid operation (only a
+# reversed-to-active transfer is, via record_payout's existing-event mode —
+# see scenario 17/B3 and AT-R2 below). This used to be a raw table insert
+# asserted as a *success*, which never exercised record_payout's own
+# validation at all and so could not have caught R2's gap. It now goes
+# through the RPC and asserts the rejection, on the same house/closer lines
+# (both active, unreversed) the old version used.
+expect_failure "AT-R2: record_payout refuses a same-event transfer between two active (unreversed) lines — active-to-active is not doctrine-valid, only reversed-to-active is" \
+  "a negative allocation may only leave a reversed settlement's line" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select public.record_payout(
+  'a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000003',
+  'Intento de transferencia activa-a-activa', current_date,
+  '[{"settlementLineId":"a2000000-0000-4000-8000-000000000009","amountCentavos":-50000},
+    {"settlementLineId":"a2000000-0000-4000-8000-00000000000a","amountCentavos":50000}]'::jsonb,
+  'db-verify-active-to-active-transfer-rejected',
+  'a3000000-0000-4000-8000-000000000010'::uuid);
 SQL
 
 TRANSFER_HOUSE_TOTAL="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = 'a2000000-0000-4000-8000-000000000009';")"
-if [ "$TRANSFER_HOUSE_TOTAL" = "40000" ]; then
-  PASS=$((PASS + 1)); echo "PASS: house line net allocation after transfer is 40000 (was 90000, -50000 transferred out)"
+if [ "$TRANSFER_HOUSE_TOTAL" = "90000" ]; then
+  PASS=$((PASS + 1)); echo "PASS: house line net allocation is unchanged at 90000 — the rejected transfer moved nothing"
 else
-  FAIL=$((FAIL + 1)); FAILURES+=("house line net allocation after transfer"); echo "FAIL: expected house line net 40000, got $TRANSFER_HOUSE_TOTAL"
+  FAIL=$((FAIL + 1)); FAILURES+=("house line net allocation after rejected transfer"); echo "FAIL: expected house line net 90000 (unchanged), got $TRANSFER_HOUSE_TOTAL"
 fi
 
 echo
 echo "=== scenario 5: stat_events authority ==="
 
-expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" <<'SQL'
+expect_failure "even a founder cannot insert a stat_event directly (no browser write path at all)" "row-level security policy" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 insert into public.stat_events (member_id, opportunity_id, metric_key, quantity, source_kind, source_id)
 values ('b0000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000001', 'opportunity_closed', 1, 'db_verify', '99999999-0000-4000-8000-000000000001');
 SQL
 
-expect_failure "a zero-quantity original is rejected by CHECK even bypassing RLS" <<'SQL'
+expect_failure "a zero-quantity original is rejected by CHECK even bypassing RLS" "violates check constraint" <<'SQL'
 insert into public.stat_events (member_id, opportunity_id, metric_key, quantity, source_kind, source_id)
 values ('b0000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000001', 'opportunity_closed', 0, 'db_verify', '99999999-0000-4000-8000-000000000002');
 SQL
@@ -389,7 +412,7 @@ else
   FAIL=$((FAIL + 1)); FAILURES+=("signed stat reversal nets to zero"); echo "FAIL: expected net 0, got $REVERSAL_NET"
 fi
 
-expect_failure "a reversal with the wrong quantity is rejected" <<'SQL'
+expect_failure "a reversal with the wrong quantity is rejected" "must carry the exact negative" <<'SQL'
 insert into public.stat_events (id, member_id, opportunity_id, metric_key, quantity, source_kind, source_id)
 values ('d0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000001', 'opportunity_closed', 1, 'db_verify', '99999999-0000-4000-8000-000000000004');
 insert into public.stat_events (member_id, opportunity_id, metric_key, quantity, source_kind, source_id, reverses_stat_event_id)
@@ -399,7 +422,7 @@ SQL
 echo
 echo "=== scenario 6: intake isolation and idempotency ==="
 
-expect_failure "cross-org: org 1 cannot run_intake against org 2's source document" <<'SQL'
+expect_failure "cross-org: org 1 cannot run_intake against org 2's source document" "does not belong to org" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.run_intake('a0000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-0000000000ff', 'db-verify-cross-org-1');
@@ -426,7 +449,7 @@ else
   FAIL=$((FAIL + 1)); FAILURES+=("identical replay audit event count"); echo "FAIL: expected exactly 1 audit event, got $AUDIT_ROWS"
 fi
 
-expect_failure "mismatched idempotency-key reuse: same key, different source document, is a deterministic conflict" <<'SQL'
+expect_failure "mismatched idempotency-key reuse: same key, different source document, is a deterministic conflict" "already used for a different source document" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.run_intake('a0000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000001', 'db-verify-mismatch-key');
@@ -495,7 +518,7 @@ set role authenticated;
 select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-unauth-1');
 SQL
 
-expect_failure "approve_settlement rejects a founder acting on an opportunity outside their own org" <<'SQL'
+expect_failure "approve_settlement rejects a founder acting on an opportunity outside their own org" "does not belong to org" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
 select * from public.approve_settlement('a0000000-0000-4000-8000-00000000000f', 'f0000000-0000-4000-8000-000000000001', 'authz-wrongorg-1');
@@ -633,7 +656,7 @@ fi
 echo
 echo "=== scenario 10: record_cash_event via the RPC ==="
 
-expect_failure "record_cash_event refuses to create a payout-type event" <<'SQL'
+expect_failure "record_cash_event refuses to create a payout-type event" "use record_payout" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'payout', 'x', -100, 'MXN', current_date, 'cash-rpc-no-payout-1');
@@ -698,13 +721,19 @@ set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC cierre parcial', current_date, '[{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":100000}]'::jsonb, 'payout-rpc-closer-partial-1');
 SQL
 
-expect_failure "record_payout rejects an allocation that would overpay the closer line" <<SQL
+expect_failure "record_payout rejects an allocation that would overpay the closer line" "must fall within" <<SQL
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC exceso', current_date, '[{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":79455}]'::jsonb, 'payout-rpc-closer-overpay-1');
 SQL
 
-expect_success "record_payout reallocates against a historical event (transfer): house -50000, closer +50000, net zero" <<SQL
+# Superseded by R2, same as scenario 4's equivalent test: house and closer
+# are both active, unreversed lines here, so a transfer between them is not
+# doctrine-valid (only reversed-to-active is — see scenario 17/B3). This
+# used to assert the transfer as a success; it now asserts the rejection,
+# and every downstream total below reflects nothing having moved.
+expect_failure "AT-R2: record_payout refuses a same-event transfer between two active (unreversed) lines" \
+  "a negative allocation may only leave a reversed settlement's line" <<SQL
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Transferencia RPC', current_date, '[{"settlementLineId":"$HOUSE_LINE_O1","amountCentavos":-50000},{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":50000}]'::jsonb, 'payout-rpc-transfer-1', '$HOUSE_PAYOUT_EVENT'::uuid);
@@ -714,17 +743,17 @@ HOUSE_LINE_TOTAL_2="$(query_scalar "select coalesce(sum(amount_centavos),0) from
 CLOSER_LINE_TOTAL_2="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$CLOSER_LINE_O1';")"
 HOUSE_EVENT_TOTAL="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where payout_cash_event_id = '$HOUSE_PAYOUT_EVENT';")"
 
-if [ "$HOUSE_LINE_TOTAL_2" = "219181" ] && [ "$CLOSER_LINE_TOTAL_2" = "150000" ] && [ "$HOUSE_EVENT_TOTAL" = "269181" ]; then
-  PASS=$((PASS + 1)); echo "PASS: transfer moved 50000 from house (now 219181) to closer (now 150000); the house payout event's own total is unchanged (269181)"
+if [ "$HOUSE_LINE_TOTAL_2" = "269181" ] && [ "$CLOSER_LINE_TOTAL_2" = "100000" ] && [ "$HOUSE_EVENT_TOTAL" = "269181" ]; then
+  PASS=$((PASS + 1)); echo "PASS: the rejected transfer moved nothing — house remains 269181, closer remains 100000, house event total unchanged (269181)"
 else
-  FAIL=$((FAIL + 1)); FAILURES+=("record_payout: historical transfer net-unchanged"); echo "FAIL: house=$HOUSE_LINE_TOTAL_2 closer=$CLOSER_LINE_TOTAL_2 event=$HOUSE_EVENT_TOTAL"
+  FAIL=$((FAIL + 1)); FAILURES+=("record_payout: rejected transfer moved nothing"); echo "FAIL: house=$HOUSE_LINE_TOTAL_2 closer=$CLOSER_LINE_TOTAL_2 event=$HOUSE_EVENT_TOTAL"
 fi
 
 PAYOUT_AUDIT_COUNT="$(query_scalar "select count(*) from public.audit_events where action = 'record_payout' and target_id = '$HOUSE_PAYOUT_EVENT';")"
-if [ "$PAYOUT_AUDIT_COUNT" = "2" ]; then
-  PASS=$((PASS + 1)); echo "PASS: exactly one audit event per real record_payout call against this event (full payout + transfer = 2)"
+if [ "$PAYOUT_AUDIT_COUNT" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: the rejected transfer wrote no audit event (only the original full payout did)"
 else
-  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: record_payout"); echo "FAIL: expected 2 audit events for this event, got $PAYOUT_AUDIT_COUNT"
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: record_payout"); echo "FAIL: expected 1 audit event for this event, got $PAYOUT_AUDIT_COUNT"
 fi
 
 expect_success "identical replay of record_payout's full house payout returns the same event, no new rows" <<SQL
@@ -734,7 +763,7 @@ select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f000
 SQL
 
 HOUSE_LINE_TOTAL_AFTER_REPLAY="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$HOUSE_LINE_O1';")"
-if [ "$HOUSE_LINE_TOTAL_AFTER_REPLAY" = "219181" ]; then
+if [ "$HOUSE_LINE_TOTAL_AFTER_REPLAY" = "269181" ]; then
   PASS=$((PASS + 1)); echo "PASS: replaying record_payout did not insert any additional allocation"
 else
   FAIL=$((FAIL + 1)); FAILURES+=("record_payout replay: no duplicate rows"); echo "FAIL: house line total changed to $HOUSE_LINE_TOTAL_AFTER_REPLAY after replay"
@@ -1069,6 +1098,161 @@ if [ "$REVERSED_LINE_TOTAL_AFTER" = "0" ] && [ "$REPLACEMENT_LINE_TOTAL_AFTER" =
   PASS=$((PASS + 1)); echo "PASS: historical transfer left the reversed line at net 0 and the active replacement line at 100000"
 else
   FAIL=$((FAIL + 1)); FAILURES+=("B3 historical transfer net amounts"); echo "FAIL: reversed line=$REVERSED_LINE_TOTAL_AFTER (want 0), replacement line=$REPLACEMENT_LINE_TOTAL_AFTER (want 100000)"
+fi
+
+echo
+echo "=== scenario 18 (AT-R1): a base-contributing cash event racing an approval must never drift ==="
+echo "Forces the interleaving with a harness-only BEFORE INSERT pause trigger on cash_events —"
+echo "not the external FIFO the review's own draft used, which never actually paused execution"
+echo "inside record_cash_event after its guard. This does: the pause fires from within"
+echo "record_cash_event's own INSERT statement, after its drift guard has already run."
+
+psql_run <<'SQL'
+create or replace function public.at_r1_pause_before_insert()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- Only this test's own rows pause — never a seed insert, a fixture load,
+  -- or any other scenario's cash event.
+  if new.idempotency_key like 'at-r1-cash-%' then
+    perform pg_sleep(2);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger at_r1_pause
+  before insert on public.cash_events
+  for each row execute function public.at_r1_pause_before_insert();
+SQL
+
+# Ten fresh opportunities, one per round, each with a snapshotted rule and a
+# balanced pool copied from opportunity 1 — never approved going in, so each
+# round starts from the same "no active settlement yet" state the drift
+# guard actually has to get right.
+for round in 1 2 3 4 5 6 7 8 9 10; do
+  OPP="$(printf 'f0000000-0000-4000-8000-a1000000%04d' "$round")"
+  psql_run <<SQL
+begin;
+insert into public.opportunities (id, project_id, service_version_id, allocation_rule_version_id, code, beneficiary_name, beneficiary_location, status, opened_at)
+select '$OPP', project_id, service_version_id, allocation_rule_version_id, 'AT-R1-$round', beneficiary_name, beneficiary_location, 'in_delivery', now()
+from public.opportunities where id = 'f0000000-0000-4000-8000-000000000001';
+insert into public.assignments (opportunity_id, member_id, role_key, role_label, weight_bp, status)
+select '$OPP', member_id, role_key, role_label, weight_bp, status
+from public.assignments where opportunity_id = 'f0000000-0000-4000-8000-000000000001';
+commit;
+SQL
+
+  # Session A: holds the opportunity lock (post-fix) or nothing at all
+  # (pre-fix) from just after its drift guard, through the harness's forced
+  # 2-second pause inside its own INSERT, until it commits.
+  ( psql -h "$WORKDIR" -p "$PGPORT" -U postgres -d postgres -tA \
+      -c "set role authenticated;
+          set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+          select cash_event_id from public.record_cash_event(
+            'a0000000-0000-4000-8000-000000000001', '$OPP',
+            'deposit', 'AT-R1 racing deposit', 500000, 'MXN', current_date, 'at-r1-cash-$round');" \
+      >"$WORKDIR/at_r1_a_$round.log" 2>&1 ) &
+  APID=$!
+
+  # Session B: fires ~1s in, once A has cleared its own auth/ownership
+  # checks and (post-fix) acquired the opportunity lock, but while A is
+  # still inside its paused INSERT.
+  sleep 1
+  psql -h "$WORKDIR" -p "$PGPORT" -U postgres -d postgres -tA \
+    -c "set role authenticated;
+        set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+        select settlement_id from public.approve_settlement(
+          'a0000000-0000-4000-8000-000000000001', '$OPP', 'at-r1-approve-$round');" \
+    >"$WORKDIR/at_r1_b_$round.log" 2>&1
+  wait $APID
+
+  DRIFT="$(query_scalar "
+    select (s.base_centavos <> coalesce((
+        select sum(c.amount_centavos) from public.cash_events c
+         join public.opportunities o on o.id = c.opportunity_id
+         join public.allocation_rule_versions arv on arv.id = o.allocation_rule_version_id
+         where c.opportunity_id = '$OPP'
+           and c.type in (select jsonb_array_elements_text(arv.base_policy -> 'includeTypes'))
+      ), 0))
+    from public.settlements s
+    where s.opportunity_id = '$OPP' and s.kind = 'original' and s.status = 'approved';
+  ")"
+
+  if [ "$DRIFT" = "f" ]; then
+    PASS=$((PASS + 1)); echo "PASS (round $round/10): approved base still equals the ledger's base-contributing total"
+  else
+    FAIL=$((FAIL + 1)); FAILURES+=("AT-R1 round $round")
+    echo "FAIL (round $round/10): approved base drifted from the ledger"
+    cat "$WORKDIR/at_r1_a_$round.log" "$WORKDIR/at_r1_b_$round.log" | sed 's/^/    /'
+  fi
+done
+
+psql_run <<'SQL'
+drop trigger at_r1_pause on public.cash_events;
+drop function public.at_r1_pause_before_insert();
+SQL
+
+echo
+echo "=== scenario 19 (AT-R3): same org, same idempotency key, two different opportunities, concurrent — no raw uniqueness failure ==="
+
+expect_success "set up two fresh opportunities in the same org, each with one approved settlement + line" <<'SQL'
+begin;
+insert into public.opportunities (id, project_id, service_version_id, allocation_rule_version_id, code, beneficiary_name, beneficiary_location, status, opened_at)
+select 'f0000000-0000-4000-8000-0000000000d1', project_id, service_version_id, allocation_rule_version_id, 'AT-R3-1', beneficiary_name, beneficiary_location, 'in_delivery', now()
+from public.opportunities where id = 'f0000000-0000-4000-8000-000000000001';
+insert into public.opportunities (id, project_id, service_version_id, allocation_rule_version_id, code, beneficiary_name, beneficiary_location, status, opened_at)
+select 'f0000000-0000-4000-8000-0000000000d2', project_id, service_version_id, allocation_rule_version_id, 'AT-R3-2', beneficiary_name, beneficiary_location, 'in_delivery', now()
+from public.opportunities where id = 'f0000000-0000-4000-8000-000000000001';
+insert into public.settlements (id, opportunity_id, allocation_rule_version_id, status, kind, corrects_settlement_id, base_centavos, currency, approved_at, approved_by_member_id, idempotency_key)
+values
+  ('b4000000-0000-4000-8000-0000000000d1', 'f0000000-0000-4000-8000-0000000000d1', 'e0000000-0000-4000-8000-000000000001', 'approved', 'original', null, 100000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-at-r3-original-1'),
+  ('b4000000-0000-4000-8000-0000000000d2', 'f0000000-0000-4000-8000-0000000000d2', 'e0000000-0000-4000-8000-000000000001', 'approved', 'original', null, 100000, 'MXN', now(), 'b0000000-0000-4000-8000-000000000001', 'db-verify-at-r3-original-2');
+insert into public.settlement_lines (id, settlement_id, share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, amount_centavos, currency, sequence) values
+  ('c4000000-0000-4000-8000-0000000000d1', 'b4000000-0000-4000-8000-0000000000d1', 'house', 'org_recipient', 'EVEN', null, 'Casa', 10000, 100000, 'MXN', 1),
+  ('c4000000-0000-4000-8000-0000000000d2', 'b4000000-0000-4000-8000-0000000000d2', 'house', 'org_recipient', 'EVEN', null, 'Casa', 10000, 100000, 'MXN', 1);
+commit;
+SQL
+
+AT_R3_DIR="$WORKDIR/at_r3"
+mkdir -p "$AT_R3_DIR"
+declare -a R3PIDS=()
+for i in 1 2; do
+  LINE_VAR="c4000000-0000-4000-8000-0000000000d$i"
+  OPP_VAR="f0000000-0000-4000-8000-0000000000d$i"
+  (
+    psql -h "$WORKDIR" -p "$PGPORT" -U postgres -d postgres -tA \
+      -c "set role authenticated;
+          set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+          select cash_event_id from public.record_payout(
+            'a0000000-0000-4000-8000-000000000001', '$OPP_VAR',
+            'AT-R3 payout', current_date,
+            '[{\"settlementLineId\":\"$LINE_VAR\",\"amountCentavos\":1000}]'::jsonb,
+            'at-r3-shared-key');" \
+      >"$AT_R3_DIR/out_$i.txt" 2>"$AT_R3_DIR/err_$i.txt"
+  ) &
+  R3PIDS+=($!)
+done
+for pid in "${R3PIDS[@]}"; do wait "$pid"; done
+
+AT_R3_RAW_UNIQUENESS="$(grep -l "duplicate key value violates unique constraint" "$AT_R3_DIR"/err_*.txt 2>/dev/null | wc -l | tr -d ' ')"
+AT_R3_LINE1_TOTAL="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = 'c4000000-0000-4000-8000-0000000000d1';")"
+AT_R3_LINE2_TOTAL="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = 'c4000000-0000-4000-8000-0000000000d2';")"
+
+if [ "$AT_R3_RAW_UNIQUENESS" = "0" ]; then
+  PASS=$((PASS + 1)); echo "PASS: no caller received a raw unique-constraint error"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-R3: raw uniqueness failure leaked")
+  echo "FAIL: a caller received a raw unique-constraint error"
+  cat "$AT_R3_DIR"/err_*.txt | sed 's/^/    /'
+fi
+
+if [ "$AT_R3_LINE1_TOTAL" = "1000" ] && [ "$AT_R3_LINE2_TOTAL" = "1000" ]; then
+  PASS=$((PASS + 1)); echo "PASS: both independent commands succeeded — same org, same key, different opportunities do not collide"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-R3: both commands should have succeeded independently")
+  echo "FAIL: line1=$AT_R3_LINE1_TOTAL (want 1000), line2=$AT_R3_LINE2_TOTAL (want 1000)"
 fi
 
 echo

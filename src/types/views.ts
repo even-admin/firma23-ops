@@ -393,7 +393,10 @@ export type ReverseSettlementResult =
       readonly kind: 'reversed';
       readonly settlementId: string;
       readonly replayed: boolean;
-      /** Payout money already allocated against the reversed original that has not yet been reallocated onto a replacement settlement. */
+      /**
+       * Payout money already allocated against the reversed original that has not yet been reallocated onto a replacement settlement.
+       * Reported, not enforced: nothing requires a founder to ever clear this. A founder-visible queue surfacing it is deferred to the final founder finance UI — this field exists so that surface has a value to read once it's built.
+       */
       readonly outstandingPayoutCentavos: number;
     }
   | { readonly kind: 'unavailable'; readonly reason: string }
