@@ -287,7 +287,16 @@ export interface BuildApprovedSettlementInput {
   readonly approver: Member;
 }
 
-/** Sum of a line's payout allocations, and the status that sum implies. */
+/**
+ * Sum of a line's payout allocations, and the status that sum implies.
+ *
+ * Only ever called on a line of an original settlement — the database
+ * forbids a payout from ever targeting a reversal's line, and
+ * buildApprovedSettlement below rejects a reversal before this can run. An
+ * allocation total outside 0..line.amount is a data-integrity failure, not
+ * a display edge case, so it is rejected rather than clamped to the
+ * nearest valid status.
+ */
 function derivePayoutStatus(
   line: SettlementLine,
   payouts: readonly SettlementLinePayout[],
@@ -296,8 +305,13 @@ function derivePayoutStatus(
     payouts.filter((payout) => payout.settlementLineId === line.id).map((payout) => payout.amount),
     line.amount.currency,
   );
-  if (allocated.amount <= 0) return { allocated, status: 'unpaid' };
-  if (allocated.amount >= line.amount.amount) return { allocated, status: 'paid' };
+  if (allocated.amount < 0 || allocated.amount > line.amount.amount) {
+    throw new AllocationError(
+      `Settlement line ${line.id} payout allocations total ${allocated.amount} but must fall within 0..${line.amount.amount}`,
+    );
+  }
+  if (allocated.amount === 0) return { allocated, status: 'unpaid' };
+  if (allocated.amount === line.amount.amount) return { allocated, status: 'paid' };
   return { allocated, status: 'partial' };
 }
 

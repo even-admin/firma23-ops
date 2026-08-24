@@ -4,8 +4,8 @@ import type { ViewerContext } from '@/lib/viewer';
 import type { LeaderboardRepository } from '@/data/repositories/leaderboard';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import {
+  activeApprovedLinesFor,
   approvedEarnings,
-  approvedLinesFor,
   paidEarnings,
   payoutStatusFor,
   projectedEarnings,
@@ -50,7 +50,11 @@ export const syntheticLeaderboardRepository: LeaderboardRepository = {
     const member = [...dataset.members.values()].find((entry) => entry.slug === slug);
     if (member === undefined) return null;
 
-    const entries: ProvenanceEntry[] = approvedLinesFor(dataset, member.id)
+    // Only the currently active, unreversed approved original per
+    // opportunity — a reversal's own lines and a reversed original's lines
+    // are excluded from per-row display, even though both still contribute
+    // to the signed approvedEarnings/paidEarnings totals above.
+    const entries: ProvenanceEntry[] = activeApprovedLinesFor(dataset, member.id)
       .map((line) => {
         const settlement = dataset.settlements.find((entry) => entry.id === line.settlementId);
         if (settlement === undefined) {

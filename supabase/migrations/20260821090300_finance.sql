@@ -135,6 +135,14 @@ begin
   then
     raise exception 'settlement % must match its original''s opportunity, currency, and rule version', new.id;
   end if;
+  -- Exact reversal: the base itself must be the precise negation, not merely
+  -- non-positive. A reversal that only partially offsets its original (or
+  -- overshoots it) is not a real correction.
+  if new.base_centavos <> -original.base_centavos then
+    raise exception
+      'settlement % base % must equal the exact negative of original %''s base %',
+      new.id, new.base_centavos, original.id, original.base_centavos;
+  end if;
   return new;
 end;
 $$;
@@ -142,6 +150,70 @@ $$;
 create trigger settlements_guard_reversal_matches_original
   before insert on public.settlements
   for each row execute function public.guard_settlement_reversal_matches_original();
+
+-- Invariant: an approved settlement (original or reversal) must carry at
+-- least one line, and a reversal's complete line multiset must exactly
+-- negate its original's — matched by (share_key, member_id) identity, with
+-- every descriptive column equal and the amount the exact negative. This is
+-- deferred and lives on `settlements` (not `settlement_lines`) specifically
+-- so a reversal with ZERO lines is still caught: a trigger on
+-- settlement_lines never fires at all when no row is ever inserted there.
+create or replace function public.check_settlement_reversal_exact()
+returns trigger
+language plpgsql
+as $$
+declare
+  affected public.settlements;
+  line_count integer;
+  mismatched_count integer;
+begin
+  affected := new;
+
+  if affected.status <> 'approved' then
+    return null;
+  end if;
+
+  select count(*) into line_count
+  from public.settlement_lines
+  where settlement_id = affected.id;
+
+  if line_count = 0 then
+    raise exception 'approved settlement % has no lines', affected.id;
+  end if;
+
+  if affected.kind <> 'reversal' then
+    return null;
+  end if;
+
+  select count(*) into mismatched_count
+  from (
+    select * from public.settlement_lines where settlement_id = affected.corrects_settlement_id
+  ) o
+  full outer join (
+    select * from public.settlement_lines where settlement_id = affected.id
+  ) r
+    on o.share_key = r.share_key and o.member_id is not distinct from r.member_id
+  where o.id is null
+     or r.id is null
+     or r.amount_centavos <> -o.amount_centavos
+     or r.recipient_behavior is distinct from o.recipient_behavior
+     or r.recipient_label is distinct from o.recipient_label
+     or r.role_label is distinct from o.role_label
+     or r.weight_bp is distinct from o.weight_bp;
+
+  if mismatched_count > 0 then
+    raise exception
+      'settlement % (reversal of %) does not exactly negate its original''s line multiset',
+      affected.id, affected.corrects_settlement_id;
+  end if;
+  return null;
+end;
+$$;
+
+create constraint trigger settlements_reversal_lines_exact
+  after insert or update on public.settlements
+  deferrable initially deferred
+  for each row execute function public.check_settlement_reversal_exact();
 
 -- Once approved, a settlement is frozen. Corrections are reversal entries in
 -- a future settlement, never a mutation of this row. Invariant 7.
@@ -366,6 +438,15 @@ begin
     raise exception 'settlement_line_payout % must reference a payout cash event', new.id;
   end if;
 
+  -- A payout event can only ever pay lines that belong to its own
+  -- opportunity. Without this, a payout cash event posted on opportunity A
+  -- could fund a settlement line on opportunity B.
+  if event.opportunity_id <> settlement.opportunity_id then
+    raise exception
+      'settlement_line_payout % cannot pay a line on opportunity % from a cash event on opportunity %',
+      new.id, settlement.opportunity_id, event.opportunity_id;
+  end if;
+
   if line.currency <> event.currency or line.currency <> new.currency then
     raise exception 'settlement_line_payout % currency must match its line and cash event', new.id;
   end if;
@@ -444,6 +525,43 @@ create constraint trigger settlement_line_payouts_matches_event
   deferrable initially deferred
   for each row execute function public.check_settlement_line_payout_matches_event();
 
+-- Invariant: a payout cash event must reconcile at commit even when it has
+-- received ZERO allocation rows. check_settlement_line_payout_matches_event
+-- above only ever fires when a settlement_line_payouts row is inserted
+-- against a given event — an "orphan" payout event that nobody ever
+-- allocated against would otherwise pass silently. This trigger lives on
+-- cash_events itself so a payout row with zero allocations is still caught.
+create or replace function public.check_payout_cash_event_reconciles()
+returns trigger
+language plpgsql
+as $$
+declare
+  affected public.cash_events;
+  allocated bigint;
+begin
+  affected := new;
+  if affected.type <> 'payout' then
+    return null;
+  end if;
+
+  select coalesce(sum(amount_centavos), 0) into allocated
+  from public.settlement_line_payouts
+  where payout_cash_event_id = affected.id;
+
+  if allocated <> -affected.amount_centavos then
+    raise exception
+      'payout cash event % allocations total % but must equal %',
+      affected.id, allocated, -affected.amount_centavos;
+  end if;
+  return null;
+end;
+$$;
+
+create constraint trigger cash_events_payout_reconciles
+  after insert or update on public.cash_events
+  deferrable initially deferred
+  for each row execute function public.check_payout_cash_event_reconciles();
+
 -- ---------------------------------------------------------------------------
 -- stat_events — append-only, system/founder-derived, never client-editable.
 --
@@ -473,7 +591,15 @@ create table public.stat_events (
   source_kind text not null,
   source_id uuid not null,
   reverses_stat_event_id uuid references public.stat_events(id),
-  occurred_at timestamptz not null default now()
+  occurred_at timestamptz not null default now(),
+  -- A zero-quantity original is a no-op fact, not a real event; only a
+  -- reversal may legitimately need to reference a quantity that could
+  -- otherwise look degenerate (it never does, since it must be the exact
+  -- negative of a nonzero original, but the constraint is scoped to
+  -- originals only for clarity).
+  constraint stat_events_original_quantity_nonzero check (
+    reverses_stat_event_id is not null or quantity <> 0
+  )
 );
 
 -- An original fact's source identity is unique; a reversal legitimately
@@ -496,11 +622,11 @@ create policy stat_events_select_org on public.stat_events
     public.is_active_member((select org_id from public.members m where m.id = member_id))
   );
 
-create policy stat_events_founder_insert on public.stat_events
-  for insert
-  with check (
-    public.is_active_founder((select org_id from public.members m where m.id = member_id))
-  );
+-- No INSERT policy: stat_events has no browser write path at all until its
+-- own audited canonical RPC ships (mirroring the finance tables' P1 write
+-- doctrine). A direct founder-insert policy here would let performance
+-- history be written without the audit trail and idempotency guarantees a
+-- real RPC provides.
 
 -- A reversal must exactly negate the original it names: same member,
 -- opportunity, metric, and source, and the exact negative quantity.

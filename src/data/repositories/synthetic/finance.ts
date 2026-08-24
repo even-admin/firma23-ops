@@ -1,11 +1,11 @@
 import { copy } from '@/copy/es-MX';
-import { BASIS_POINTS_TOTAL, subMoney, sumMoney } from '@/lib/money';
+import { subMoney, sumMoney } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import { cashEventViews } from '@/data/repositories/synthetic/shared';
+import { cashEventViews, poolWeightSummary } from '@/data/repositories/synthetic/shared';
 import type { FinanceOverview, FinanceRow, SettlementPreview } from '@/types/views';
 
 export const syntheticFinanceRepository: FinanceRepository = {
@@ -82,12 +82,10 @@ export const syntheticFinanceRepository: FinanceRepository = {
       throw new DataError(`Opportunity ${opportunity.id} references a missing rule version`);
     }
 
-    const deliveryWeightTotalBp = dataset.assignments
-      .filter(
-        (assignment) =>
-          assignment.opportunityId === opportunity.id && assignment.roleKey === 'delivery',
-      )
-      .reduce<number>((acc, assignment) => acc + assignment.weightBp, 0);
+    const pool = poolWeightSummary(
+      ruleVersion,
+      dataset.assignments.filter((assignment) => assignment.opportunityId === opportunity.id),
+    );
 
     const milestonesOutstanding = dataset.opportunityMilestones.filter(
       (milestone) => milestone.opportunityId === opportunity.id && milestone.status !== 'done',
@@ -100,8 +98,8 @@ export const syntheticFinanceRepository: FinanceRepository = {
       basePolicyLabel: built.distributableBase.policyLabel,
       basePolicyNote: built.distributableBase.policyNote,
       cashEvents: cashEventViews(dataset, opportunity.id, ruleVersion.basePolicy.includeTypes),
-      deliveryWeightTotalBp,
-      weightsBalanced: deliveryWeightTotalBp === BASIS_POINTS_TOTAL,
+      deliveryWeightTotalBp: pool.totalBp,
+      weightsBalanced: pool.balanced,
       milestonesOutstanding,
       // M1 has no write path at all. Saying so is more honest than a dead button.
       approvalBlockedReason: copy.settle.blockedInM1,

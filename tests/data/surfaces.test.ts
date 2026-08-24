@@ -83,9 +83,12 @@ describe('opportunity detail', () => {
     expect(outOfBase.some((event) => event.type === 'contribution')).toBe(true);
   });
 
-  it('reports delivery weights totalling 10,000 basis points', async () => {
+  it('reports pool weights totalling 10,000bp per member_pool share (closer + delivery)', async () => {
     const detail = await syntheticOpportunityRepository.getById(SETY_SETTLED, PROTOTYPE_FOUNDER);
-    expect(detail?.deliveryWeightTotalBp).toBe(BASIS_POINTS_TOTAL);
+    // SETY's rule has two member_pool shares (closer, delivery), each of
+    // which must independently balance to 10,000bp — the aggregate is their
+    // sum, not a single hardcoded 'delivery' role's total.
+    expect(detail?.deliveryWeightTotalBp).toBe(2 * BASIS_POINTS_TOTAL);
   });
 
   it('returns null for an unknown opportunity', async () => {

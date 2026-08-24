@@ -67,6 +67,31 @@ create policy intake_runs_select_founder on public.intake_runs
 -- No insert/update policy for `authenticated`: intake_runs are only ever
 -- written by the run_intake() function below.
 
+-- Defense-in-depth database-level organization consistency: even though
+-- run_intake() is the only writer and already verifies this itself, a
+-- future bug in that function (or a different writer) should not be able to
+-- record a run against a source document from another org.
+create or replace function public.guard_intake_run_org_consistency()
+returns trigger
+language plpgsql
+as $$
+declare
+  doc_org_id uuid;
+begin
+  if new.source_document_id is not null then
+    select org_id into doc_org_id from public.source_documents where id = new.source_document_id;
+    if doc_org_id is null or doc_org_id <> new.org_id then
+      raise exception 'intake_run % source document does not belong to org %', new.id, new.org_id;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger intake_runs_guard_org_consistency
+  before insert or update on public.intake_runs
+  for each row execute function public.guard_intake_run_org_consistency();
+
 create table public.ai_contract_drafts (
   id uuid primary key default gen_random_uuid(),
   intake_run_id uuid not null references public.intake_runs(id),
@@ -106,6 +131,37 @@ create policy ai_contract_drafts_select_founder on public.ai_contract_drafts
 -- No insert/update policy for `authenticated` on this table either. A draft
 -- is born from run_intake() and can only change status through
 -- confirm_contract_draft() or discard_contract_draft(), both below.
+
+-- Defense-in-depth database-level organization consistency, mirroring the
+-- guard on intake_runs above: a draft's source document, and its matched
+-- project if any, must belong to the same org as the draft itself.
+create or replace function public.guard_ai_contract_draft_org_consistency()
+returns trigger
+language plpgsql
+as $$
+declare
+  doc_org_id uuid;
+  project_org_id uuid;
+begin
+  select org_id into doc_org_id from public.source_documents where id = new.source_document_id;
+  if doc_org_id is null or doc_org_id <> new.org_id then
+    raise exception 'ai_contract_draft % source document does not belong to org %', new.id, new.org_id;
+  end if;
+
+  if new.matched_project_id is not null then
+    select org_id into project_org_id from public.projects where id = new.matched_project_id;
+    if project_org_id is null or project_org_id <> new.org_id then
+      raise exception 'ai_contract_draft % matched project does not belong to org %', new.id, new.org_id;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger ai_contract_drafts_guard_org_consistency
+  before insert or update on public.ai_contract_drafts
+  for each row execute function public.guard_ai_contract_draft_org_consistency();
 
 create table public.audit_events (
   id uuid primary key default gen_random_uuid(),
@@ -157,57 +213,79 @@ set search_path = public
 as $$
 declare
   caller_id uuid;
-  existing_run_id uuid;
   new_run_id uuid;
   seed_draft_id uuid;
+  resolved_status text;
+  resolved_error text;
+  doc_org_id uuid;
 begin
   caller_id := public.current_member_id();
   if caller_id is null or not public.is_active_founder(p_org_id) then
     raise exception 'founder access required: run_intake';
   end if;
 
-  -- Scoped to org_id: an idempotency key is only ever compared within the
-  -- caller's own org, so it can never match, and thus leak, another org's
-  -- intake run.
-  select id into existing_run_id
-  from public.intake_runs
-  where org_id = p_org_id and idempotency_key = p_idempotency_key;
-
-  if existing_run_id is not null then
-    return query
-      select ir.id, ir.draft_id, ir.status from public.intake_runs ir where ir.id = existing_run_id;
-    return;
+  -- The source document itself must belong to the caller's org before
+  -- anything else runs, so a guessed or leaked id from another org can
+  -- never be used to read that org's draft content.
+  select org_id into doc_org_id from public.source_documents where id = p_source_document_id;
+  if doc_org_id is null or doc_org_id <> p_org_id then
+    raise exception 'source document % does not belong to org %', p_source_document_id, p_org_id;
   end if;
 
   -- Local adapter: reuse the most recent draft already recorded for this
   -- source document rather than fabricate a new one, so repeated intake on
   -- the same document is deterministic. A live provider integration would
   -- insert a fresh ai_contract_drafts row here instead before proceeding.
+  -- Scoped by org_id in addition to source_document_id — belt-and-suspenders
+  -- against a draft ever resolving outside the caller's own org.
   select id into seed_draft_id
   from public.ai_contract_drafts
   where source_document_id = p_source_document_id
+    and org_id = p_org_id
   order by extracted_at desc
   limit 1;
 
-  if seed_draft_id is null then
-    insert into public.intake_runs (
-      org_id, requested_by_member_id, status, source_document_id, idempotency_key, synthetic, completed_at, error_message
-    ) values (
-      p_org_id, caller_id, 'error', p_source_document_id, p_idempotency_key, true, now(),
-      'No draft is available for this source document yet.'
-    )
-    returning id into new_run_id;
-  else
-    insert into public.intake_runs (
-      org_id, requested_by_member_id, status, source_document_id, draft_id, idempotency_key, synthetic, completed_at
-    ) values (
-      p_org_id, caller_id, 'ready', p_source_document_id, seed_draft_id, p_idempotency_key, true, now()
-    )
-    returning id into new_run_id;
+  if seed_draft_id is not null and exists (
+    select 1 from public.ai_contract_drafts d
+    where d.id = seed_draft_id
+      and d.matched_project_id is not null
+      and not exists (
+        select 1 from public.projects p where p.id = d.matched_project_id and p.org_id = p_org_id
+      )
+  ) then
+    raise exception 'draft % matches a project outside org %', seed_draft_id, p_org_id;
   end if;
 
-  insert into public.audit_events (org_id, actor_member_id, action, target_table, target_id, summary)
-  values (p_org_id, caller_id, 'run_intake', 'intake_runs', new_run_id, 'Founder ran document intake');
+  if seed_draft_id is null then
+    resolved_status := 'error';
+    resolved_error := 'No draft is available for this source document yet.';
+  else
+    resolved_status := 'ready';
+    resolved_error := null;
+  end if;
+
+  -- Atomic upsert, not select-then-insert: two concurrent calls with the
+  -- same (org_id, idempotency_key) cannot both observe "no existing run"
+  -- and both insert. Exactly one insert wins; the loser falls through to
+  -- read the winner's already-committed row, so a retried request is
+  -- genuinely idempotent under concurrency, not merely under sequential
+  -- retries.
+  insert into public.intake_runs (
+    org_id, requested_by_member_id, status, source_document_id, draft_id, idempotency_key, synthetic, completed_at, error_message
+  ) values (
+    p_org_id, caller_id, resolved_status, p_source_document_id, seed_draft_id, p_idempotency_key, true, now(), resolved_error
+  )
+  on conflict (org_id, idempotency_key) do nothing
+  returning id into new_run_id;
+
+  if new_run_id is null then
+    select id into new_run_id
+    from public.intake_runs
+    where org_id = p_org_id and idempotency_key = p_idempotency_key;
+  else
+    insert into public.audit_events (org_id, actor_member_id, action, target_table, target_id, summary)
+    values (p_org_id, caller_id, 'run_intake', 'intake_runs', new_run_id, 'Founder ran document intake');
+  end if;
 
   return query select ir.id, ir.draft_id, ir.status from public.intake_runs ir where ir.id = new_run_id;
 end;
