@@ -51,15 +51,23 @@ authorization or a prior change to the Git deployment policy.
 
 ### Auth delivery (Development only)
 
-On 2026-08-24, Supabase Auth custom SMTP was enabled for this canonical
-Development project using Resend. The verified sending domain is
-`auth.firma23.com`; DNS has Resend SPF and DKIM records, while DMARC remains
-intentionally deferred. Auth sends as `FIRMA23 <acceso@auth.firma23.com>`.
-The Resend credential is restricted to sending from that domain and is stored
-only as the encrypted SMTP password in Supabase; it is not present in this
-repository, local environment files, or Vercel. The Auth email limit is the
-custom-SMTP default of 30 emails/hour. This change did not touch the database,
-migrations, Production, or the noncanonical project.
+On 2026-08-24, Resend reported its native Supabase integration as ready for the
+canonical Development project and the verified sending domain
+`auth.firma23.com`. DNS has Resend SPF and DKIM records; DMARC remains pending.
+The intended sender is `FIRMA23 <acceso@auth.firma23.com>`.
+
+Delivery is not verified. After reloading the Supabase Dashboard, Custom SMTP
+remained disabled and its fields were not populated. Auth logs showed a config
+reload and an email-rate-limit change from 30 to 25 emails/hour, but neither is
+evidence that SMTP credentials were installed. Two earlier manual SMTP attempts
+failed with `535 Authentication credentials invalid`; those attempts predated
+the native integration. No OTP was sent after the native integration reported
+ready. Resolve the dashboard discrepancy with Resend/Supabase support before
+another delivery test or credential rotation.
+
+No SMTP secret is present in this repository, local environment files, or
+Vercel. This investigation did not touch the database, migrations, Production,
+or the noncanonical project.
 
 The reviewed M2/P3 schema and deterministic M1 seed are now applied to this
 development project only:
