@@ -349,6 +349,77 @@ export interface SettlementPreview {
 }
 
 // ---------------------------------------------------------------------------
+// Canonical finance write boundary (P3)
+//
+// The synthetic/local-adapter mode has no write path for any of these at
+// all — every implementation there returns `unavailable`, never a faked
+// `recorded`/`approved`/`reversed`/`reversed` result. Only the Supabase
+// adapter, calling the audited record_cash_event/approve_settlement/
+// reverse_settlement/record_payout RPCs, can produce those.
+// ---------------------------------------------------------------------------
+
+export interface RecordCashEventInput {
+  readonly opportunityId: string;
+  readonly type: CashEventType;
+  readonly label: string;
+  readonly amount: Money;
+  readonly occurredAt: string;
+  /** Supplied by the caller per attempt; a retry with the same key never double-posts. */
+  readonly idempotencyKey: string;
+}
+
+export type RecordCashEventResult =
+  | { readonly kind: 'recorded'; readonly cashEventId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+export interface ApproveSettlementInput {
+  readonly opportunityId: string;
+  readonly idempotencyKey: string;
+}
+
+export type ApproveSettlementResult =
+  | { readonly kind: 'approved'; readonly settlementId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+export interface ReverseSettlementInput {
+  readonly settlementId: string;
+  readonly idempotencyKey: string;
+}
+
+export type ReverseSettlementResult =
+  | { readonly kind: 'reversed'; readonly settlementId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+/** One line's payout allocation. Positive pays it; negative transfers/corrects a prior allocation away from it. */
+export interface RecordPayoutAllocationInput {
+  readonly settlementLineId: string;
+  readonly amount: Money;
+}
+
+export interface RecordPayoutInput {
+  readonly opportunityId: string;
+  readonly label: string;
+  readonly occurredAt: string;
+  readonly allocations: readonly RecordPayoutAllocationInput[];
+  readonly idempotencyKey: string;
+  /**
+   * Null creates a brand-new payout cash event (every allocation must be
+   * positive). Set to reallocate against a historical payout event instead
+   * — the reverse-and-reissue transfer pattern — which requires the batch
+   * to net to exactly zero so the event's own total never changes.
+   */
+  readonly existingCashEventId?: string | null;
+}
+
+export type RecordPayoutResult =
+  | { readonly kind: 'recorded'; readonly cashEventId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+// ---------------------------------------------------------------------------
 // Document-first contract intake
 // ---------------------------------------------------------------------------
 

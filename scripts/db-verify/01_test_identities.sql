@@ -29,6 +29,13 @@ insert into public.memberships (org_id, member_id, status, activated_at) values
 insert into public.source_documents (id, org_id, uploaded_by_member_id, filename, kind) values
   ('90000000-0000-4000-8000-0000000000ff', 'a0000000-0000-4000-8000-00000000000f', 'b0000000-0000-4000-8000-0000000000ff', 'other-doc.pdf', 'quote');
 
+-- A founder whose membership has since been revoked, for authorization tests.
+insert into auth.users (id, email) values ('44444444-4444-4444-8444-444444444444', 'revoked-founder@test.local');
+insert into public.members (id, org_id, slug, display_name, initials, role, auth_user_id) values
+  ('b0000000-0000-4000-8000-0000000000fe', 'a0000000-0000-4000-8000-000000000001', 'revoked-founder', 'Revoked Founder', 'RF', 'founder', '44444444-4444-4444-8444-444444444444');
+insert into public.memberships (org_id, member_id, status, activated_at, invited_at) values
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-0000000000fe', 'revoked', null, now());
+
 -- A fresh, controlled 2-line approved settlement on opportunity 3 (SETY
 -- rule), isolated from the fixture settlement on opportunity 2, so the
 -- reversal-exactness scenarios below are unambiguous and don't disturb the

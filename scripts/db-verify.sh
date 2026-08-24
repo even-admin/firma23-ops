@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
-# Disposable-Postgres regression harness for the P1 finance/intake schema.
+# Disposable-Postgres regression harness for the P1-P3 finance/intake schema.
 #
 # Spins up a throwaway local Postgres instance (never a real Supabase
 # project), applies every migration under supabase/migrations/** plus
 # supabase/seed.sql from zero, then runs a battery of scenarios that must
 # each succeed or fail exactly as named. Exits non-zero if any scenario
 # didn't match its expectation, or if setup itself failed.
+#
+# P3 adds scenarios for the canonical finance write RPCs (record_cash_event,
+# approve_settlement, reverse_settlement, record_payout): authorization
+# (unauthenticated, non-founder member, wrong-org founder, revoked founder),
+# concurrent identical approval, idempotency mismatch, audit-event
+# atomicity, approval derivation against real SETY figures, exact reversal
+# via the RPC, and full/partial/transfer payout via the RPC.
 #
 # Usage: scripts/db-verify.sh
 # Requires: postgresql (initdb, pg_ctl, psql) on PATH. Installs nothing,
@@ -433,6 +440,295 @@ if [ "$CONCURRENT_RUN_IDS" = "1" ]; then
 else
   FAIL=$((FAIL + 1)); FAILURES+=("20-way concurrency: same run_id for every caller"); echo "FAIL: callers disagreed on run_id ($CONCURRENT_RUN_IDS distinct values)"
 fi
+
+echo
+echo "=== scenario 8: P3 finance write RPCs — authorization ==="
+
+expect_failure "record_cash_event rejects a non-founder active member" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'x', 100, 'MXN', current_date, 'authz-member-cash-1');
+SQL
+
+expect_failure "approve_settlement rejects a non-founder active member" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-member-approve-1');
+SQL
+
+expect_failure "reverse_settlement rejects a non-founder active member" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 'authz-member-reverse-1');
+SQL
+
+expect_failure "record_payout rejects a non-founder active member" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'x', current_date, '[{"settlementLineId":"40000000-0000-4000-8000-000000000001","amountCentavos":1}]'::jsonb, 'authz-member-payout-1');
+SQL
+
+expect_failure "approve_settlement rejects an unauthenticated caller (authenticated role, no JWT claim)" <<'SQL'
+set role authenticated;
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-unauth-1');
+SQL
+
+expect_failure "approve_settlement rejects a founder acting on an opportunity outside their own org" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
+select * from public.approve_settlement('a0000000-0000-4000-8000-00000000000f', 'f0000000-0000-4000-8000-000000000001', 'authz-wrongorg-1');
+SQL
+
+expect_failure "approve_settlement rejects a founder whose membership has been revoked" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-8444-444444444444';
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'authz-revoked-1');
+SQL
+
+echo
+echo "=== scenario 9: approve_settlement — 20-way concurrent identical approval + derivation correctness ==="
+CONCURRENT_APPROVE_DIR="$WORKDIR/concurrent_approve"
+mkdir -p "$CONCURRENT_APPROVE_DIR"
+declare -a APIDS=()
+for i in $(seq 1 20); do
+  (
+    psql -h "$WORKDIR" -p "$PGPORT" -U postgres -d postgres -tA <<'SQL' > "$CONCURRENT_APPROVE_DIR/out_$i.txt" 2> "$CONCURRENT_APPROVE_DIR/err_$i.txt"
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select settlement_id from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'approve-race-key');
+SQL
+  ) &
+  APIDS+=($!)
+done
+for pid in "${APIDS[@]}"; do wait "$pid"; done
+
+APPROVE_ERRORS="$(grep -l "ERROR" "$CONCURRENT_APPROVE_DIR"/err_*.txt 2>/dev/null | wc -l | tr -d ' ')"
+APPROVE_ROWS="$(query_scalar "select count(*) from public.settlements where opportunity_id = 'f0000000-0000-4000-8000-000000000001' and idempotency_key = 'approve-race-key';")"
+APPROVE_IDS="$(grep -hEo '^[0-9a-f-]{36}$' "$CONCURRENT_APPROVE_DIR"/out_*.txt 2>/dev/null | sort -u | wc -l | tr -d ' ')"
+
+if [ "$APPROVE_ERRORS" = "0" ]; then
+  PASS=$((PASS + 1)); echo "PASS: 20 concurrent identical approve_settlement calls produced zero errors"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("20-way approve concurrency: zero errors"); echo "FAIL: $APPROVE_ERRORS of 20 calls errored"
+  grep -h "ERROR" "$CONCURRENT_APPROVE_DIR"/err_*.txt 2>/dev/null | sort -u | sed 's/^/    /'
+fi
+if [ "$APPROVE_ROWS" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: 20 concurrent identical approve_settlement calls created exactly one settlement"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("20-way approve concurrency: exactly one settlement"); echo "FAIL: expected 1 settlement, got $APPROVE_ROWS"
+fi
+if [ "$APPROVE_IDS" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: every concurrent caller received the same settlement_id"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("20-way approve concurrency: same settlement_id for every caller"); echo "FAIL: callers disagreed on settlement_id ($APPROVE_IDS distinct values)"
+fi
+
+SETTLEMENT_O1="$(query_scalar "select id from public.settlements where opportunity_id = 'f0000000-0000-4000-8000-000000000001' and idempotency_key = 'approve-race-key';")"
+
+BASE_MATCH="$(query_scalar "select (base_centavos = 897270) from public.settlements where id = '$SETTLEMENT_O1';")"
+if [ "$BASE_MATCH" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS: derived base matches the documented SETY distributable base (897270)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("approval derivation: base matches SETY figure"); echo "FAIL: base did not match 897270"
+fi
+
+LINES_MATCH="$(query_scalar "
+  select
+    exists(select 1 from public.settlement_lines where settlement_id = '$SETTLEMENT_O1' and share_key = 'house' and amount_centavos = 269181)
+    and exists(select 1 from public.settlement_lines where settlement_id = '$SETTLEMENT_O1' and share_key = 'closer' and amount_centavos = 179454)
+    and (select array_agg(amount_centavos order by amount_centavos desc) from public.settlement_lines where settlement_id = '$SETTLEMENT_O1' and share_key = 'delivery') = array[179454,157022,112159]::bigint[];
+")"
+if [ "$LINES_MATCH" = "t" ]; then
+  PASS=$((PASS + 1)); echo "PASS: derived lines match the documented SETY 30/20/50 split exactly (house 269181, closer 179454, delivery 179454/157022/112159)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("approval derivation: lines match SETY split"); echo "FAIL: derived lines did not match the documented split"
+fi
+
+AUDIT_COUNT_1="$(query_scalar "select count(*) from public.audit_events where action = 'approve_settlement' and target_id = '$SETTLEMENT_O1';")"
+if [ "$AUDIT_COUNT_1" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: exactly one audit event was written for the real approval"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: approve_settlement"); echo "FAIL: expected exactly 1 audit event, got $AUDIT_COUNT_1"
+fi
+
+expect_success "sequential replay of approve_settlement with the same key returns the same settlement" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'approve-race-key');
+SQL
+
+AUDIT_COUNT_1_AFTER_REPLAY="$(query_scalar "select count(*) from public.audit_events where action = 'approve_settlement' and target_id = '$SETTLEMENT_O1';")"
+if [ "$AUDIT_COUNT_1_AFTER_REPLAY" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: a pure idempotent replay wrote no additional audit event"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: replay writes no new audit event"); echo "FAIL: audit count changed to $AUDIT_COUNT_1_AFTER_REPLAY after replay"
+fi
+
+echo
+echo "=== scenario 10: record_cash_event via the RPC ==="
+
+expect_failure "record_cash_event refuses to create a payout-type event" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'payout', 'x', -100, 'MXN', current_date, 'cash-rpc-no-payout-1');
+SQL
+
+expect_success "record_cash_event posts a fresh deposit via the RPC" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'Depósito adicional de prueba', 5000, 'MXN', current_date, 'cash-rpc-1');
+SQL
+
+CASH_EVENT_1="$(query_scalar "select id from public.cash_events where opportunity_id = 'f0000000-0000-4000-8000-000000000001' and idempotency_key = 'cash-rpc-1';")"
+CASH_AUDIT_1="$(query_scalar "select count(*) from public.audit_events where action = 'record_cash_event' and target_id = '$CASH_EVENT_1';")"
+if [ "$CASH_AUDIT_1" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: exactly one audit event was written for the real cash event"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: record_cash_event"); echo "FAIL: expected exactly 1 audit event, got $CASH_AUDIT_1"
+fi
+
+expect_success "identical replay of record_cash_event returns the same event, no error" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'Depósito adicional de prueba', 5000, 'MXN', current_date, 'cash-rpc-1');
+SQL
+
+CASH_AUDIT_1_AFTER_REPLAY="$(query_scalar "select count(*) from public.audit_events where action = 'record_cash_event' and target_id = '$CASH_EVENT_1';")"
+if [ "$CASH_AUDIT_1_AFTER_REPLAY" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: a pure idempotent cash-event replay wrote no additional audit event"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: record_cash_event replay"); echo "FAIL: audit count changed to $CASH_AUDIT_1_AFTER_REPLAY after replay"
+fi
+
+expect_failure "record_cash_event rejects the same key reused with a different amount" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_cash_event('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'deposit', 'Depósito adicional de prueba', 9999, 'MXN', current_date, 'cash-rpc-1');
+SQL
+
+echo
+echo "=== scenario 11: record_payout via the RPC — full, partial, overpay rejection, historical transfer ==="
+
+HOUSE_LINE_O1="$(query_scalar "select id from public.settlement_lines where settlement_id = '$SETTLEMENT_O1' and share_key = 'house';")"
+CLOSER_LINE_O1="$(query_scalar "select id from public.settlement_lines where settlement_id = '$SETTLEMENT_O1' and share_key = 'closer';")"
+
+expect_success "record_payout creates a full house payout via the RPC" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC casa', current_date, '[{"settlementLineId":"$HOUSE_LINE_O1","amountCentavos":269181}]'::jsonb, 'payout-rpc-house-1');
+SQL
+
+HOUSE_PAYOUT_EVENT="$(query_scalar "select id from public.cash_events where opportunity_id = 'f0000000-0000-4000-8000-000000000001' and idempotency_key = 'payout-rpc-house-1';")"
+HOUSE_LINE_TOTAL_1="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$HOUSE_LINE_O1';")"
+if [ "$HOUSE_LINE_TOTAL_1" = "269181" ]; then
+  PASS=$((PASS + 1)); echo "PASS: full house payout allocates exactly the line amount (269181)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("record_payout: full house payout amount"); echo "FAIL: expected 269181, got $HOUSE_LINE_TOTAL_1"
+fi
+
+expect_success "record_payout creates a partial closer payout (100000 of 179454) via the RPC" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC cierre parcial', current_date, '[{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":100000}]'::jsonb, 'payout-rpc-closer-partial-1');
+SQL
+
+expect_failure "record_payout rejects an allocation that would overpay the closer line" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC exceso', current_date, '[{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":79455}]'::jsonb, 'payout-rpc-closer-overpay-1');
+SQL
+
+expect_success "record_payout reallocates against a historical event (transfer): house -50000, closer +50000, net zero" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Transferencia RPC', current_date, '[{"settlementLineId":"$HOUSE_LINE_O1","amountCentavos":-50000},{"settlementLineId":"$CLOSER_LINE_O1","amountCentavos":50000}]'::jsonb, 'payout-rpc-transfer-1', '$HOUSE_PAYOUT_EVENT'::uuid);
+SQL
+
+HOUSE_LINE_TOTAL_2="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$HOUSE_LINE_O1';")"
+CLOSER_LINE_TOTAL_2="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$CLOSER_LINE_O1';")"
+HOUSE_EVENT_TOTAL="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where payout_cash_event_id = '$HOUSE_PAYOUT_EVENT';")"
+
+if [ "$HOUSE_LINE_TOTAL_2" = "219181" ] && [ "$CLOSER_LINE_TOTAL_2" = "150000" ] && [ "$HOUSE_EVENT_TOTAL" = "269181" ]; then
+  PASS=$((PASS + 1)); echo "PASS: transfer moved 50000 from house (now 219181) to closer (now 150000); the house payout event's own total is unchanged (269181)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("record_payout: historical transfer net-unchanged"); echo "FAIL: house=$HOUSE_LINE_TOTAL_2 closer=$CLOSER_LINE_TOTAL_2 event=$HOUSE_EVENT_TOTAL"
+fi
+
+PAYOUT_AUDIT_COUNT="$(query_scalar "select count(*) from public.audit_events where action = 'record_payout' and target_id = '$HOUSE_PAYOUT_EVENT';")"
+if [ "$PAYOUT_AUDIT_COUNT" = "2" ]; then
+  PASS=$((PASS + 1)); echo "PASS: exactly one audit event per real record_payout call against this event (full payout + transfer = 2)"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: record_payout"); echo "FAIL: expected 2 audit events for this event, got $PAYOUT_AUDIT_COUNT"
+fi
+
+expect_success "identical replay of record_payout's full house payout returns the same event, no new rows" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC casa', current_date, '[{"settlementLineId":"$HOUSE_LINE_O1","amountCentavos":269181}]'::jsonb, 'payout-rpc-house-1');
+SQL
+
+HOUSE_LINE_TOTAL_AFTER_REPLAY="$(query_scalar "select coalesce(sum(amount_centavos),0) from public.settlement_line_payouts where settlement_line_id = '$HOUSE_LINE_O1';")"
+if [ "$HOUSE_LINE_TOTAL_AFTER_REPLAY" = "219181" ]; then
+  PASS=$((PASS + 1)); echo "PASS: replaying record_payout did not insert any additional allocation"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("record_payout replay: no duplicate rows"); echo "FAIL: house line total changed to $HOUSE_LINE_TOTAL_AFTER_REPLAY after replay"
+fi
+
+expect_failure "record_payout rejects the same key reused with a different amount" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.record_payout('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Pago RPC casa', current_date, '[{"settlementLineId":"$HOUSE_LINE_O1","amountCentavos":1}]'::jsonb, 'payout-rpc-house-1');
+SQL
+
+echo
+echo "=== scenario 12: reverse_settlement via the RPC — exact reversal, audit atomicity, idempotency mismatch ==="
+
+expect_success "reverse_settlement creates the exact reversal via the RPC" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '$SETTLEMENT_O1', 'reverse-key-1');
+SQL
+
+REVERSAL_O1="$(query_scalar "select id from public.settlements where corrects_settlement_id = '$SETTLEMENT_O1' and kind = 'reversal';")"
+REVERSE_AUDIT_1="$(query_scalar "select count(*) from public.audit_events where action = 'reverse_settlement' and target_id = '$REVERSAL_O1';")"
+if [ "$REVERSE_AUDIT_1" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: exactly one audit event was written for the real reversal"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: reverse_settlement"); echo "FAIL: expected exactly 1 audit event, got $REVERSE_AUDIT_1"
+fi
+
+expect_success "identical replay of reverse_settlement returns the same reversal" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '$SETTLEMENT_O1', 'reverse-key-1');
+SQL
+
+REVERSE_AUDIT_1_AFTER_REPLAY="$(query_scalar "select count(*) from public.audit_events where action = 'reverse_settlement' and target_id = '$REVERSAL_O1';")"
+if [ "$REVERSE_AUDIT_1_AFTER_REPLAY" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: a pure idempotent reversal replay wrote no additional audit event"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("audit atomicity: reverse_settlement replay"); echo "FAIL: audit count changed to $REVERSE_AUDIT_1_AFTER_REPLAY after replay"
+fi
+
+expect_failure "approve_settlement rejects reusing a key already tied to a reversal on the same opportunity" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'reverse-key-1');
+SQL
+
+expect_success "reissue: a fresh original may be approved once the opportunity has zero unreversed originals" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.approve_settlement('a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'approve-race-key-2');
+SQL
+
+SETTLEMENT_O2="$(query_scalar "select id from public.settlements where opportunity_id = 'f0000000-0000-4000-8000-000000000001' and idempotency_key = 'approve-race-key-2';")"
+
+expect_failure "reverse_settlement rejects the same key reused for a different corrects_settlement_id on the same opportunity" <<SQL
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.reverse_settlement('a0000000-0000-4000-8000-000000000001', '$SETTLEMENT_O2', 'reverse-key-1');
+SQL
 
 echo
 echo "======================================================================"

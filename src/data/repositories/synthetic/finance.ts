@@ -6,7 +6,15 @@ import type { FinanceRepository } from '@/data/repositories/finance';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
 import { cashEventViews, poolWeightViews } from '@/data/repositories/synthetic/shared';
-import type { FinanceOverview, FinanceRow, SettlementPreview } from '@/types/views';
+import type {
+  FinanceOverview,
+  FinanceRow,
+  RecordCashEventInput,
+  RecordCashEventResult,
+  RecordPayoutInput,
+  RecordPayoutResult,
+  SettlementPreview,
+} from '@/types/views';
 
 export const syntheticFinanceRepository: FinanceRepository = {
   async getOverview(viewer: ViewerContext): Promise<FinanceOverview> {
@@ -103,5 +111,24 @@ export const syntheticFinanceRepository: FinanceRepository = {
       // M1 has no write path at all. Saying so is more honest than a dead button.
       approvalBlockedReason: copy.settle.blockedInM1,
     };
+  },
+
+  // The synthetic/local adapter never has a write path for canonical
+  // finance facts, matching every other write boundary in this dataset —
+  // it must not pretend a record was created when nothing was persisted.
+  async recordCashEvent(
+    _input: RecordCashEventInput,
+    viewer: ViewerContext,
+  ): Promise<RecordCashEventResult> {
+    assertFounder(viewer, 'recordCashEvent');
+    return { kind: 'unavailable', reason: copy.finance.writeBlockedReason };
+  },
+
+  async recordPayout(
+    _input: RecordPayoutInput,
+    viewer: ViewerContext,
+  ): Promise<RecordPayoutResult> {
+    assertFounder(viewer, 'recordPayout');
+    return { kind: 'unavailable', reason: copy.finance.writeBlockedReason };
   },
 };

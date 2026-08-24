@@ -205,6 +205,8 @@ export const copy = {
     pendingApprovals: 'Liquidaciones por aprobar',
     ledger: 'Movimientos',
     review: 'Revisar liquidación',
+    writeBlockedReason:
+      'Esta operación requiere un backend de Supabase configurado. Este entorno no tiene uno conectado todavía.',
   },
   settle: {
     title: 'Aprobación de liquidación',
