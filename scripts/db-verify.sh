@@ -1407,6 +1407,48 @@ else
 fi
 
 echo
+echo "=== scenario 20a (M2 Auth, M-A): the concurrent-fallback branch must not answer 'redeemed' when the membership row itself no longer exists ==="
+echo "A privileged delete (no policy exposes this — ops/service-role only), not a revoke, is what reaches this branch specifically."
+
+expect_success "prepare: a member linked and redeemed, then its membership row deleted by a privileged operation (not revoked — removed outright)" <<'SQL'
+begin;
+insert into public.members (id, org_id, slug, display_name, initials, role) values
+  ('b0000000-0000-4000-8000-000000000024', 'a0000000-0000-4000-8000-000000000001', 'invite-deleted-membership-test', 'Invite Deleted Membership Test', 'DM', 'member');
+insert into public.memberships (org_id, member_id, status) values
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000024', 'invited');
+insert into public.member_invites (member_id, email, expires_at) values
+  ('b0000000-0000-4000-8000-000000000024', 'invite-deleted-membership@test.local', now() + interval '14 days');
+insert into auth.users (id, email) values
+  ('66666666-6666-4666-8666-000000000024', 'invite-deleted-membership@test.local');
+update public.members set auth_user_id = '66666666-6666-4666-8666-000000000024'
+ where id = 'b0000000-0000-4000-8000-000000000024';
+update public.member_invites set redeemed_at = now()
+ where member_id = 'b0000000-0000-4000-8000-000000000024';
+delete from public.memberships where member_id = 'b0000000-0000-4000-8000-000000000024';
+commit;
+SQL
+
+MA_STATE="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000024';
+  select state from public.redeem_invite();
+" | tail -n1)"
+MA_IDS_NULL="$(query_scalar "
+  set role authenticated;
+  set request.jwt.claim.sub = '66666666-6666-4666-8666-000000000024';
+  select (member_id is null and org_id is null) from public.redeem_invite();
+" | tail -n1)"
+MA_AUDIT_COUNT="$(query_scalar "select count(*) from public.audit_events where action = 'redeem_invite' and target_id = (select id from public.member_invites where member_id = 'b0000000-0000-4000-8000-000000000024');")"
+
+if [ "$MA_STATE" != "redeemed" ] && [ "$MA_STATE" != "invited" ] && [ "$MA_IDS_NULL" = "t" ] && [ "$MA_AUDIT_COUNT" = "0" ]; then
+  PASS=$((PASS + 1))
+  echo "PASS (AT-M-A): with the membership row gone, the fallback never reports a privileged state and writes no additional audit row (got state='$MA_STATE')"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("AT-M-A: fallback branch answered privileged without an active membership")
+  echo "FAIL: state=$MA_STATE (must not be redeemed/invited), ids_null=$MA_IDS_NULL (want t), audit_count=$MA_AUDIT_COUNT (want 0)"
+fi
+
+echo
 echo "=== scenario 20b (M2 Auth, M5): 20-way concurrent first redemption must not duplicate membership or audit rows ==="
 CONCURRENT_REDEEM_DIR="$WORKDIR/concurrent_redeem"
 run_concurrent "$CONCURRENT_REDEEM_DIR" 20 "set role authenticated; set request.jwt.claim.sub = '88888888-8888-4888-8888-000000000023'; select state from public.redeem_invite();"

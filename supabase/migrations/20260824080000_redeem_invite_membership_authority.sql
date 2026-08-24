@@ -44,6 +44,18 @@
 -- email's invite is redeemed and now points at my own auth_user_id" and
 -- returns 'redeemed' instead of a false 'unavailable', without a second
 -- write of any kind.
+--
+-- M-A (re-review of this same migration, before it was ever applied) — that
+-- concurrent-fallback branch had the identical gap H2 fixed in the early
+-- branch: it proved a redeemed invite pointed at this caller's own
+-- auth_user_id, but never joined memberships or checked status, so it could
+-- still answer 'redeemed' with real ids for a member whose membership row
+-- had since been deleted by a privileged operation (not merely revoked —
+-- deleted outright, which is reachable only because no policy exposes
+-- delete on memberships, i.e. an ops/service-role action, not any app
+-- path). The join is now symmetric with the early branch: no active
+-- membership row, no 'redeemed', no ids — the caller falls through to the
+-- existing 'unavailable' return just below, exactly as if never invited.
 
 create unique index member_invites_email_lower_unique
   on public.member_invites (lower(btrim(email)));
@@ -112,14 +124,21 @@ begin
     -- now-redeemed row). Distinguish the two: if this email's invite is
     -- redeemed and points at *this caller's own* auth_user_id, the race was
     -- against ourselves — report 'redeemed', not a false 'unavailable', and
-    -- write nothing.
+    -- write nothing. But that alone is not proof of current authority any
+    -- more than the early branch's link was (M-A): require the same active
+    -- membership row here too. Missing or non-active falls straight through
+    -- to 'unavailable' below — no separate 'revoked' branch is needed here,
+    -- since the early branch above already reports 'revoked' for every
+    -- caller whose membership row still exists but isn't active.
     select m.id, m.org_id
       into existing_member_id, existing_org_id
     from public.member_invites mi
     join public.members m on m.id = mi.member_id
+    join public.memberships ms on ms.member_id = m.id and ms.org_id = m.org_id
     where lower(btrim(mi.email)) = caller_email
       and mi.redeemed_at is not null
-      and m.auth_user_id = caller_auth_id;
+      and m.auth_user_id = caller_auth_id
+      and ms.status = 'active';
 
     if existing_member_id is not null then
       return query select 'redeemed'::text, existing_member_id, existing_org_id;

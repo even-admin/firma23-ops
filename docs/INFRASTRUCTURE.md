@@ -115,8 +115,8 @@ authenticated-only RPCs; `authenticated` has it on all six
 (`has_function_privilege` checked directly). RLS policies on
 members/memberships/cash_events/settlements/settlement_lines match the
 reviewed migrations exactly (`pg_policies` checked directly). The full local
-RLS/RPC/Auth harness passes 151 scenarios against the identical schema (see
-"M2 Auth repair" below for the 14 that specifically exercise
+RLS/RPC/Auth harness passes 153 scenarios against the identical schema (see
+"M2 Auth repair" below for the 16 that specifically exercise
 `redeem_invite()` — none of the earlier 137 did).
 
 No second identity was created to test the founder path end to end — the
@@ -158,15 +158,22 @@ Two HIGH findings closed, both fail-closed corrections, no remote change:
   or any value other than the literal `'founder'`, resolves to `member`.
 - **H2 — a revoked membership kept reporting `'redeemed'`.** Corrected via a
   new, additive migration
-  (`20260824080000_redeem_invite_membership_authority.sql`) — see below.
+  (`20260824080000_redeem_invite_membership_authority.sql`), described in
+  full just below.
 
 `scripts/db-verify.sh` now runs `redeem_invite()` for real, under
 `set role authenticated` + `request.jwt.claim.sub`, exactly like the
-finance RPCs already were (scenario 20/20b, 14 scenarios): authenticated
+finance RPCs already were (scenario 20/20a/20b, 16 scenarios): authenticated
 with no invite, a valid pending invite, replay after redemption, an expired
 invite, case-insensitive email matching, a revoked membership, an
-unauthenticated call, and 20 concurrent first-redemption calls (exactly one
-audit row, one active membership, zero errors).
+unauthenticated call, 20 concurrent first-redemption calls (exactly one
+audit row, one active membership, zero errors), and — from a re-review of
+this same not-yet-applied migration — a member whose membership row was
+deleted outright by a privileged operation (not revoked, removed), which
+the migration's own concurrent-fallback branch originally missed (M-A,
+fixed in the same migration before it was ever applied anywhere: that
+branch now requires the identical active-membership join the early branch
+already had, and falls through to `unavailable` when it is missing).
 
 **Deferred, not built in this pass:** a founder-facing revoke/re-issue
 invitation flow. `member_invites` has no `update`/`delete` policy and no
