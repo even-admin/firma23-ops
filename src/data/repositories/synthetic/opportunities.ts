@@ -3,7 +3,7 @@ import { assertFounder } from '@/lib/viewer';
 import type { OpportunityRepository } from '@/data/repositories/opportunities';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import { cashEventViews, poolWeightSummary } from '@/data/repositories/synthetic/shared';
+import { cashEventViews, poolWeightViews } from '@/data/repositories/synthetic/shared';
 import { DataError } from '@/lib/result';
 import type { AssignmentView, EvidenceView, MilestoneView, OpportunityDetail } from '@/types/views';
 
@@ -78,7 +78,7 @@ export const syntheticOpportunityRepository: OpportunityRepository = {
         };
       });
 
-    const pool = poolWeightSummary(ruleVersion, assignments);
+    const pools = poolWeightViews(ruleVersion, assignments);
 
     return {
       summary: built.summary,
@@ -91,7 +91,7 @@ export const syntheticOpportunityRepository: OpportunityRepository = {
       milestones,
       assignments,
       milestonesDone: milestones.filter((milestone) => milestone.status === 'done').length,
-      deliveryWeightTotalBp: pool.totalBp,
+      pools,
     };
   },
 };

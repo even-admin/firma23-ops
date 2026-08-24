@@ -198,7 +198,7 @@ export default async function StateGalleryPage() {
                 status: 'approved',
               },
             ]}
-            deliveryWeightTotalBp={10_000}
+            pools={[{ key: 'delivery', label: 'Producción', totalBp: 10_000, balanced: true }]}
           />
           <AssignmentList
             assignments={[
@@ -214,7 +214,7 @@ export default async function StateGalleryPage() {
                 status: 'proposed',
               },
             ]}
-            deliveryWeightTotalBp={6_000}
+            pools={[{ key: 'delivery', label: 'Producción', totalBp: 6_000, balanced: false }]}
           />
         </div>
       </Section>

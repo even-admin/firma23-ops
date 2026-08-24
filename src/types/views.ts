@@ -180,6 +180,19 @@ export interface CashEventView {
   readonly countsTowardBase: boolean;
 }
 
+/**
+ * One member_pool share's assignment-weight total, independent of every
+ * other pool. A rule may define more than one (SETY has closer and
+ * delivery); each must reach 10,000bp on its own, so this is never
+ * aggregated into a single scalar across pools.
+ */
+export interface PoolWeightView {
+  readonly key: string;
+  readonly label: string;
+  readonly totalBp: number;
+  readonly balanced: boolean;
+}
+
 export interface OpportunityDetail {
   readonly summary: OpportunitySummary;
   readonly rail: RailModel;
@@ -191,7 +204,7 @@ export interface OpportunityDetail {
   readonly milestones: readonly MilestoneView[];
   readonly assignments: readonly AssignmentView[];
   readonly milestonesDone: number;
-  readonly deliveryWeightTotalBp: number;
+  readonly pools: readonly PoolWeightView[];
 }
 
 // ---------------------------------------------------------------------------
@@ -328,8 +341,8 @@ export interface SettlementPreview {
   readonly basePolicyLabel: string;
   readonly basePolicyNote: string;
   readonly cashEvents: readonly CashEventView[];
-  readonly deliveryWeightTotalBp: number;
-  readonly weightsBalanced: boolean;
+  /** Settlement readiness requires every pool here to be independently balanced. */
+  readonly pools: readonly PoolWeightView[];
   readonly milestonesOutstanding: number;
   /** M1 never approves. This states why the control is disabled. */
   readonly approvalBlockedReason: string;

@@ -153,24 +153,34 @@ create trigger settlements_guard_reversal_matches_original
 
 -- Invariant: an approved settlement (original or reversal) must carry at
 -- least one line, and a reversal's complete line multiset must exactly
--- negate its original's — matched by (share_key, member_id) identity, with
--- every descriptive column equal and the amount the exact negative. This is
--- deferred and lives on `settlements` (not `settlement_lines`) specifically
--- so a reversal with ZERO lines is still caught: a trigger on
--- settlement_lines never fires at all when no row is ever inserted there.
-create or replace function public.check_settlement_reversal_exact()
-returns trigger
+-- negate its original's. Comparison is multiset-aware (bidirectional
+-- EXCEPT ALL over every descriptive column plus the negated amount), not a
+-- join keyed on (share_key, member_id) — a join can be fooled by two lines
+-- that legitimately share a key (nothing else requires share_key+member_id
+-- to be unique within a settlement); EXCEPT ALL counts occurrences, so a
+-- duplicate on one side with no duplicate counterpart on the other is
+-- still caught.
+--
+-- Callable directly (validate_settlement_reversal_exact) so it can be
+-- invoked from a trigger on EITHER `settlements` or `settlement_lines`: a
+-- reversal is typically approved and given its lines in one transaction,
+-- but a line inserted against an already-approved settlement in a later,
+-- separate transaction would never re-fire a trigger declared only on
+-- `settlements` (that row is immutable once approved and is never touched
+-- again) — a trigger on settlement_lines' own inserts is what catches that.
+create or replace function public.validate_settlement_reversal_exact(p_settlement_id uuid)
+returns void
 language plpgsql
 as $$
 declare
   affected public.settlements;
   line_count integer;
-  mismatched_count integer;
+  extra_in_original integer;
+  extra_in_reversal integer;
 begin
-  affected := new;
-
-  if affected.status <> 'approved' then
-    return null;
+  select * into affected from public.settlements where id = p_settlement_id;
+  if affected is null or affected.status <> 'approved' then
+    return;
   end if;
 
   select count(*) into line_count
@@ -182,30 +192,51 @@ begin
   end if;
 
   if affected.kind <> 'reversal' then
-    return null;
+    return;
   end if;
 
-  select count(*) into mismatched_count
+  -- Rows present in the original (negated) with no matching occurrence in
+  -- the reversal: a missing line, or a line whose currency/amount/metadata
+  -- doesn't match.
+  select count(*) into extra_in_original
   from (
-    select * from public.settlement_lines where settlement_id = affected.corrects_settlement_id
-  ) o
-  full outer join (
-    select * from public.settlement_lines where settlement_id = affected.id
-  ) r
-    on o.share_key = r.share_key and o.member_id is not distinct from r.member_id
-  where o.id is null
-     or r.id is null
-     or r.amount_centavos <> -o.amount_centavos
-     or r.recipient_behavior is distinct from o.recipient_behavior
-     or r.recipient_label is distinct from o.recipient_label
-     or r.role_label is distinct from o.role_label
-     or r.weight_bp is distinct from o.weight_bp;
+    select share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, currency,
+           -amount_centavos as signed_amount_centavos
+    from public.settlement_lines where settlement_id = affected.corrects_settlement_id
+    except all
+    select share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, currency,
+           amount_centavos as signed_amount_centavos
+    from public.settlement_lines where settlement_id = affected.id
+  ) unmatched_original;
 
-  if mismatched_count > 0 then
+  -- Rows present in the reversal with no matching occurrence in the
+  -- original (negated): an extra line, or a duplicate with no duplicate
+  -- counterpart on the original side.
+  select count(*) into extra_in_reversal
+  from (
+    select share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, currency,
+           amount_centavos as signed_amount_centavos
+    from public.settlement_lines where settlement_id = affected.id
+    except all
+    select share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, currency,
+           -amount_centavos as signed_amount_centavos
+    from public.settlement_lines where settlement_id = affected.corrects_settlement_id
+  ) unmatched_reversal;
+
+  if extra_in_original > 0 or extra_in_reversal > 0 then
     raise exception
-      'settlement % (reversal of %) does not exactly negate its original''s line multiset',
-      affected.id, affected.corrects_settlement_id;
+      'settlement % (reversal of %) does not exactly negate its original''s line multiset (% missing/mismatched, % extra/mismatched)',
+      affected.id, affected.corrects_settlement_id, extra_in_original, extra_in_reversal;
   end if;
+end;
+$$;
+
+create or replace function public.check_settlement_reversal_exact()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform public.validate_settlement_reversal_exact(new.id);
   return null;
 end;
 $$;
@@ -333,6 +364,52 @@ create policy settlement_lines_select_own on public.settlement_lines
 create trigger settlement_lines_immutable
   before update or delete on public.settlement_lines
   for each row execute function public.forbid_mutation();
+
+-- A line's currency can never disagree with its own settlement's currency —
+-- the two currency CHECKs above only validate each column's shape (a valid
+-- ISO code), not that the two agree with each other.
+create or replace function public.guard_settlement_line_currency()
+returns trigger
+language plpgsql
+as $$
+declare
+  parent_currency text;
+begin
+  select currency into parent_currency from public.settlements where id = new.settlement_id;
+  if parent_currency is null then
+    raise exception 'settlement_line % references a nonexistent settlement', new.id;
+  end if;
+  if new.currency <> parent_currency then
+    raise exception
+      'settlement_line % currency % must match its settlement''s currency %',
+      new.id, new.currency, parent_currency;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger settlement_lines_guard_currency
+  before insert on public.settlement_lines
+  for each row execute function public.guard_settlement_line_currency();
+
+-- Complements settlements_reversal_lines_exact above: that trigger fires on
+-- `settlements` insert/update, so it never re-fires for a line inserted
+-- later against an already-approved (and thus immutable) settlement row. A
+-- deferred trigger here closes that gap.
+create or replace function public.check_settlement_line_reversal_exact()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform public.validate_settlement_reversal_exact(new.settlement_id);
+  return null;
+end;
+$$;
+
+create constraint trigger settlement_lines_reversal_lines_exact
+  after insert on public.settlement_lines
+  deferrable initially deferred
+  for each row execute function public.check_settlement_line_reversal_exact();
 
 -- Invariant 5: settlement lines sum exactly to the approved base.
 create or replace function public.check_settlement_lines_sum()

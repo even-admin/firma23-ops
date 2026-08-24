@@ -218,6 +218,7 @@ declare
   resolved_status text;
   resolved_error text;
   doc_org_id uuid;
+  existing_source_document_id uuid;
 begin
   caller_id := public.current_member_id();
   if caller_id is null or not public.is_active_founder(p_org_id) then
@@ -279,9 +280,20 @@ begin
   returning id into new_run_id;
 
   if new_run_id is null then
-    select id into new_run_id
+    -- Lost the insert race, or this is a genuine replay: either way, an
+    -- existing row is out there. An idempotency key means "the same
+    -- request, retried" — it does not mean "any request, retried" — so
+    -- reusing it against a different source document is a deterministic
+    -- conflict, not silently returned as if it were the earlier request.
+    select id, source_document_id into new_run_id, existing_source_document_id
     from public.intake_runs
     where org_id = p_org_id and idempotency_key = p_idempotency_key;
+
+    if existing_source_document_id <> p_source_document_id then
+      raise exception
+        'idempotency key % was already used for a different source document (existing %, requested %)',
+        p_idempotency_key, existing_source_document_id, p_source_document_id;
+    end if;
   else
     insert into public.audit_events (org_id, actor_member_id, action, target_table, target_id, summary)
     values (p_org_id, caller_id, 'run_intake', 'intake_runs', new_run_id, 'Founder ran document intake');

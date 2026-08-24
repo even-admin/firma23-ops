@@ -22,6 +22,7 @@ import type {
   MemberStats,
   MilestoneView,
   OperatorCardView,
+  PoolWeightView,
   SkillView,
 } from '@/types/views';
 
@@ -197,23 +198,32 @@ describe('StatusPill', () => {
   });
 });
 
-function assignment(id: string, weightBp: number): AssignmentView {
+function assignment(id: string, weightBp: number, roleKey = 'delivery'): AssignmentView {
   return {
     id,
     memberId: id,
     memberSlug: id,
     displayName: 'Emiliano Pasos',
     initials: 'EP',
-    roleKey: 'delivery',
+    roleKey,
     roleLabel: 'Producción',
     weightBp: basisPoints(weightBp),
     status: 'approved',
   };
 }
 
+function pool(key: string, label: string, totalBp: number): PoolWeightView {
+  return { key, label, totalBp, balanced: totalBp === 10_000 };
+}
+
 describe('AssignmentList', () => {
   it('flags a delivery pool whose weights do not total 10,000 basis points', () => {
-    render(<AssignmentList assignments={[assignment('a', 6_000)]} deliveryWeightTotalBp={6_000} />);
+    render(
+      <AssignmentList
+        assignments={[assignment('a', 6_000)]}
+        pools={[pool('delivery', 'Producción', 6_000)]}
+      />,
+    );
     expect(screen.getByText(copy.detail.weightsUnbalanced)).toBeInTheDocument();
     // The single row reads 60% and so does the pool total; only the total is amber.
     const shown = screen.getAllByText('60%');
@@ -225,10 +235,40 @@ describe('AssignmentList', () => {
     render(
       <AssignmentList
         assignments={[assignment('a', 6_000), assignment('b', 4_000)]}
-        deliveryWeightTotalBp={10_000}
+        pools={[pool('delivery', 'Producción', 10_000)]}
       />,
     );
     expect(screen.getByText(copy.detail.weightsBalanced)).toBeInTheDocument();
+  });
+
+  it('never aggregates two balanced pools into a false 200% total (SETY: closer + delivery)', () => {
+    render(
+      <AssignmentList
+        assignments={[
+          assignment('closer-1', 10_000, 'closer'),
+          assignment('deliver-1', 6_000, 'delivery'),
+          assignment('deliver-2', 4_000, 'delivery'),
+        ]}
+        pools={[pool('closer', 'Cierre', 10_000), pool('delivery', 'Producción', 10_000)]}
+      />,
+    );
+    // Each pool reads its own 100% independently; "200%" must never appear.
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0);
+    expect(screen.queryByText('200%')).not.toBeInTheDocument();
+    expect(screen.getAllByText(copy.detail.weightsBalanced)).toHaveLength(2);
+    expect(screen.getAllByText('Cierre').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Producción').length).toBeGreaterThan(0);
+  });
+
+  it('reports each required pool as balanced or not independently, never blocking settlement readiness on the other pool', () => {
+    render(
+      <AssignmentList
+        assignments={[assignment('closer-1', 10_000, 'closer'), assignment('deliver-1', 6_000, 'delivery')]}
+        pools={[pool('closer', 'Cierre', 10_000), pool('delivery', 'Producción', 6_000)]}
+      />,
+    );
+    expect(screen.getByText(copy.detail.weightsBalanced)).toBeInTheDocument();
+    expect(screen.getByText(copy.detail.weightsUnbalanced)).toBeInTheDocument();
   });
 });
 

@@ -137,7 +137,7 @@ export const copy = {
     ledger: 'Movimientos de efectivo',
     inBase: 'En la base',
     outOfBase: 'Fuera de la base',
-    weights: 'Pesos de producción',
+    weights: 'Pesos',
     weightsBalanced: 'Pesos completos',
     weightsUnbalanced: 'Pesos incompletos',
     milestoneStatus: {
@@ -212,7 +212,7 @@ export const copy = {
     approve: 'Aprobar liquidación',
     blockedInM1: 'La aprobación se habilita en M2, con RLS y registro de auditoría en Postgres.',
     checks: 'Verificaciones',
-    checkWeights: 'Pesos de producción completos',
+    checkWeights: 'Pesos completos',
     checkMilestones: 'Hitos pendientes',
     checkBase: 'Base distribuible confirmada',
     alreadyApproved: 'Esta oportunidad ya tiene una liquidación aprobada',

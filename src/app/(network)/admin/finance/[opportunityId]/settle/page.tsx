@@ -43,11 +43,14 @@ export default async function SettlePage({
     readonly value: string;
     readonly ok: boolean;
   }[] = [
-    {
-      label: copy.settle.checkWeights,
-      value: formatBasisPoints(preview.deliveryWeightTotalBp),
-      ok: preview.weightsBalanced,
-    },
+    // One row per member_pool — settlement readiness requires every pool to
+    // be independently balanced, never a single figure aggregated across
+    // all of them (SETY's closer and delivery pools each need their own row).
+    ...preview.pools.map((pool) => ({
+      label: `${pool.label} — ${copy.settle.checkWeights}`,
+      value: formatBasisPoints(pool.totalBp),
+      ok: pool.balanced,
+    })),
     {
       label: copy.settle.checkMilestones,
       value: String(preview.milestonesOutstanding),

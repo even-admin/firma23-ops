@@ -83,12 +83,22 @@ describe('opportunity detail', () => {
     expect(outOfBase.some((event) => event.type === 'contribution')).toBe(true);
   });
 
-  it('reports pool weights totalling 10,000bp per member_pool share (closer + delivery)', async () => {
+  it('reports each member_pool share as its own independently balanced pool (closer + delivery, never a combined 200%)', async () => {
     const detail = await syntheticOpportunityRepository.getById(SETY_SETTLED, PROTOTYPE_FOUNDER);
-    // SETY's rule has two member_pool shares (closer, delivery), each of
-    // which must independently balance to 10,000bp — the aggregate is their
-    // sum, not a single hardcoded 'delivery' role's total.
-    expect(detail?.deliveryWeightTotalBp).toBe(2 * BASIS_POINTS_TOTAL);
+    const byKey = new Map(detail?.pools.map((pool) => [pool.key, pool]));
+    expect(byKey.get('closer')).toEqual({
+      key: 'closer',
+      label: 'Cierre',
+      totalBp: BASIS_POINTS_TOTAL,
+      balanced: true,
+    });
+    expect(byKey.get('delivery')).toEqual({
+      key: 'delivery',
+      label: 'Producción',
+      totalBp: BASIS_POINTS_TOTAL,
+      balanced: true,
+    });
+    expect(detail?.pools).toHaveLength(2);
   });
 
   it('returns null for an unknown opportunity', async () => {
@@ -203,7 +213,7 @@ describe('founder finance', () => {
       PROTOTYPE_FOUNDER,
     );
     expect(preview?.approvalBlockedReason).toContain('M2');
-    expect(preview?.weightsBalanced).toBe(true);
+    expect(preview?.pools.every((pool) => pool.balanced)).toBe(true);
   });
 
   it('reports outstanding milestones on the approval preview', async () => {

@@ -5,7 +5,7 @@ import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import { cashEventViews, poolWeightSummary } from '@/data/repositories/synthetic/shared';
+import { cashEventViews, poolWeightViews } from '@/data/repositories/synthetic/shared';
 import type { FinanceOverview, FinanceRow, SettlementPreview } from '@/types/views';
 
 export const syntheticFinanceRepository: FinanceRepository = {
@@ -82,7 +82,7 @@ export const syntheticFinanceRepository: FinanceRepository = {
       throw new DataError(`Opportunity ${opportunity.id} references a missing rule version`);
     }
 
-    const pool = poolWeightSummary(
+    const pools = poolWeightViews(
       ruleVersion,
       dataset.assignments.filter((assignment) => assignment.opportunityId === opportunity.id),
     );
@@ -98,8 +98,7 @@ export const syntheticFinanceRepository: FinanceRepository = {
       basePolicyLabel: built.distributableBase.policyLabel,
       basePolicyNote: built.distributableBase.policyNote,
       cashEvents: cashEventViews(dataset, opportunity.id, ruleVersion.basePolicy.includeTypes),
-      deliveryWeightTotalBp: pool.totalBp,
-      weightsBalanced: pool.balanced,
+      pools,
       milestonesOutstanding,
       // M1 has no write path at all. Saying so is more honest than a dead button.
       approvalBlockedReason: copy.settle.blockedInM1,

@@ -69,10 +69,7 @@ export default async function OpportunityDetailPage({
 
       <section className="flex flex-col gap-3">
         <h2 className="label-micro text-faint">{copy.detail.assignments}</h2>
-        <AssignmentList
-          assignments={detail.assignments}
-          deliveryWeightTotalBp={detail.deliveryWeightTotalBp}
-        />
+        <AssignmentList assignments={detail.assignments} pools={detail.pools} />
       </section>
 
       <section className="flex flex-col gap-3">

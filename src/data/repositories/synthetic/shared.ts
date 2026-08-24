@@ -12,7 +12,7 @@ import { DataError } from '@/lib/result';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
 import type { OpportunityStatus, PayoutStatus, Settlement, SettlementLine } from '@/types/domain';
-import type { CashEventView, MemberStats } from '@/types/views';
+import type { CashEventView, MemberStats, PoolWeightView } from '@/types/views';
 
 export const ACTIVE_STATUSES: readonly OpportunityStatus[] = [
   'draft',
@@ -141,23 +141,32 @@ export function paidEarnings(dataset: SyntheticDataset, memberId: string): Money
  * since different projects define different pool roles and a rule may have
  * more than one member_pool share.
  */
-export function poolWeightSummary(
-  ruleVersion: { readonly shares: readonly { readonly key: string; readonly recipientBehavior: string }[] },
+/**
+ * One row per member_pool share on the rule — never aggregated together.
+ * SETY has two independent pools (closer, delivery); each must reach
+ * 10,000bp on its own. Summing them into one scalar is exactly the bug
+ * this replaces: two balanced 10,000bp pools would have read as a single
+ * "20,000bp" figure, and a 15,000/5,000bp split across two unbalanced
+ * pools could read as a falsely "balanced" 20,000bp total.
+ */
+export function poolWeightViews(
+  ruleVersion: {
+    readonly shares: readonly {
+      readonly key: string;
+      readonly label: string;
+      readonly recipientBehavior: string;
+    }[];
+  },
   assignments: readonly { readonly roleKey: string; readonly weightBp: number }[],
-): { readonly totalBp: number; readonly balanced: boolean } {
-  const memberPoolShares = ruleVersion.shares.filter(
-    (share) => share.recipientBehavior === 'member_pool',
-  );
-  let totalBp = 0;
-  let balanced = true;
-  for (const share of memberPoolShares) {
-    const shareTotal = assignments
-      .filter((assignment) => assignment.roleKey === share.key)
-      .reduce<number>((acc, assignment) => acc + assignment.weightBp, 0);
-    totalBp += shareTotal;
-    if (shareTotal !== BASIS_POINTS_TOTAL) balanced = false;
-  }
-  return { totalBp, balanced };
+): readonly PoolWeightView[] {
+  return ruleVersion.shares
+    .filter((share) => share.recipientBehavior === 'member_pool')
+    .map((share) => {
+      const totalBp = assignments
+        .filter((assignment) => assignment.roleKey === share.key)
+        .reduce<number>((acc, assignment) => acc + assignment.weightBp, 0);
+      return { key: share.key, label: share.label, totalBp, balanced: totalBp === BASIS_POINTS_TOTAL };
+    });
 }
 
 /**
