@@ -49,6 +49,18 @@ authorization or a prior change to the Git deployment policy.
 - Region: `us-east-1`.
 - Project ref: `agsfxtbgwlkcwfyrykfo`.
 
+### Auth delivery (Development only)
+
+On 2026-08-24, Supabase Auth custom SMTP was enabled for this canonical
+Development project using Resend. The verified sending domain is
+`auth.firma23.com`; DNS has Resend SPF and DKIM records, while DMARC remains
+intentionally deferred. Auth sends as `FIRMA23 <acceso@auth.firma23.com>`.
+The Resend credential is restricted to sending from that domain and is stored
+only as the encrypted SMTP password in Supabase; it is not present in this
+repository, local environment files, or Vercel. The Auth email limit is the
+custom-SMTP default of 30 emails/hour. This change did not touch the database,
+migrations, Production, or the noncanonical project.
+
 The reviewed M2/P3 schema and deterministic M1 seed are now applied to this
 development project only:
 
