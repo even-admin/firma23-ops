@@ -79,90 +79,92 @@ No `ProcessTimeline`, universal KPI cards, menus, alerts, view-models, repositor
 
 ## Verification
 
-### Lint / typecheck / unit tests / build
+Two full regression passes exist for this integration. **Only the second pass, against the exact final clean HEAD, counts as acceptance evidence.** Both are recorded here in full for auditability; the first is explicitly superseded.
 
-Run at the final HEAD (`b834030`), clean worktree before and after each:
+### Tooling note — the two passes used different browser automation, and why
 
-- `npm run lint` — clean, zero warnings/errors.
+The first pass's browser matrix used `npx playwright`, which lazily fetched a fresh `playwright@1.62.1` into the local npx cache (`~/.npm/_npx/`, outside this repo) and then fell back to an already-installed Playwright package in an unrelated sibling repo (`/Users/racosta/klokk/node_modules/playwright`, `1.61.1`) once that fetch's version proved incompatible with the cached Chromium revision. Checked afterward: `git status --porcelain=v1` and `git diff --stat -- package.json package-lock.json` were both empty at every point during and after that pass — the `npx` invocation touched only the external, out-of-repo npx cache, never this worktree's `package.json`/`package-lock.json`/`node_modules`, so there was nothing to restore. The `~/.npm/_npx` cache entry is not project state and was left untouched, per instruction.
+
+For the second, final pass, browser automation instead used the pre-verified local installation supplied directly:
+
+- Playwright module: `/Users/racosta/.agents/skills/gstack/node_modules/playwright` (already installed, no fetch).
+- Chromium binary: `/Users/racosta/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell` (already downloaded, launched via explicit `executablePath`).
+- No `npx playwright` was run again. No package was installed. Requests targeted `http://localhost:$CONDUCTOR_PORT` (not `127.0.0.1`), matching this project's `allowedDevOrigins`.
+
+### Pass 1 (superseded) — ran against candidate `b834030`, before this handoff file existed
+
+At the time this pass ran, `b834030` (`refactor(copy): move two cross-namespace copy reuses to route ownership`) was the newest commit — the handoff file you are reading did not exist yet, so it was not yet part of the tree under test.
+
+- `npm run lint` — clean.
+- `npm run typecheck` — clean.
+- `npx vitest run` — 26 files, 349 tests, all passed.
+- `npm run build` — clean; `BUILD_ID` `XYtfivkaPYvvbZP5naKD7`.
+- `scripts/db-verify.sh` — 153 passed, 0 failed.
+- Mode P: `/dev/states` → 404, `/favicon.ico` → 200; all 12 fixture + 4 invalid routes → 307 (unauthenticated redirect), as expected.
+- Mode S: full 96-cell matrix (founder ×48, member ×48) — 200s, exact viewports, zero overflow, exactly one h1, zero console errors, zero money-in-projected violations.
+- Dynamic 404 matrix: all four invalid routes → true 404.
+- Interaction assertions (767/768 table↔list switch, skip link, command-palette trap/restore, sidebar persistence, reduced motion): all passed.
+
+This pass is **superseded** for two reasons: it used the accidental `npx`/sibling-repo Playwright path above, and — more importantly — committing this very handoff file necessarily moves `HEAD` past `b834030`, so `b834030` can never be "the final clean HEAD." Its numbers are recorded for continuity only; do not cite them as final acceptance.
+
+### Pass 2 (authoritative) — ran against the final clean HEAD `59de8a50001c235b75f0d1862990c4d8a31196f9`
+
+This is the commit that results from adding this handoff file on top of `b834030`. Its tree differs from `b834030` by exactly one file (`docs/ui-handoffs/UI-INTEGRATOR.md`) — zero source, test, or config changes — so this pass is a genuine, independent rerun of the full regression against the exact SHA a reviewer would check out, using the corrected tooling throughout.
+
+**Preflight:** `git rev-parse HEAD` → `59de8a50001c235b75f0d1862990c4d8a31196f9`; `git status --porcelain=v1` → empty, confirmed immediately before lint and again immediately before the build.
+
+**Lint / typecheck / unit tests:**
+- `npm run lint` — clean.
 - `npm run typecheck` (`tsc --noEmit`) — clean.
-- `npx vitest run` — **26 test files, 349 tests, all passed** (includes every lane's focused tests plus all pre-existing shared/chrome/revenue-rail/surfaces tests).
-- `npm run build` (fresh `next build`, Turbopack) — compiled successfully; 15 routes emitted (9 dynamic, 6 static), zero build errors.
+- `npx vitest run` (project devDependency, no fetch) — **26 test files, 349 tests, all passed**.
 
-### `scripts/db-verify.sh`
+**Build:**
+- `rm -rf .next && npm run build` — compiled successfully; same 15 routes (9 dynamic, 6 static), zero build errors.
+- `BUILD_ID`: `Pw6HtJVUMQlEYso1n9z4g` (distinct from pass 1's `XYtfivkaPYvvbZP5naKD7`, confirming this was a genuinely fresh build, not a reused artifact).
 
-Local Postgres tooling (`initdb`, `pg_ctl`, `psql` — Homebrew `postgresql@17`) was available on `PATH`, so the full harness ran rather than being recorded unavailable.
+**`scripts/db-verify.sh`:** Homebrew `postgresql@17` (`initdb`/`pg_ctl`/`psql`) still on `PATH`. Result: **153 passed, 0 failed**, identical scenario coverage to pass 1 (schema/RPC contracts are untouched by this integration). Harness's own `trap cleanup` tore down its disposable Postgres instance and temp dir; confirmed afterward — no `postgres`/`pg_ctl` process, no leftover `/tmp/firma23-db-verify.*` directory.
 
-Result: **153 passed, 0 failed** across all 20+ scenarios (RLS/RPC auth boundaries, idempotency, 20-way and 10-round concurrency races, exact-reversal/audit atomicity, `redeem_invite()` state machine including the concurrent-fallback and 20-way concurrent-first-redemption scenarios). The harness's own `trap cleanup` tore down its disposable Postgres instance and temp dir on exit; confirmed no `postgres`/`pg_ctl` process and no leftover `/tmp/firma23-db-verify.*` directory remained afterward.
-
-### Mode P (fresh production server)
-
-- Preflight: worktree clean, `HEAD=b834030`, `$CONDUCTOR_PORT` (55190) confirmed free via `lsof` before start.
-- Removed `.next`, ran `npm run build` from that exact SHA.
-- `BUILD_ID`: `XYtfivkaPYvvbZP5naKD7`.
-- Started `npm run start -- --port 55190` as a fresh process (npm PID 10327, `next-server` child PID 10344), recorded start time `2026-08-25T18:50:49Z`.
+**Mode P (fresh production server):**
+- Preflight: worktree clean at `59de8a5`, `$CONDUCTOR_PORT` (55190) confirmed free via `lsof` before start.
+- `npm run start -- --port 55190` launched as a fresh process (npm PID 25130, `next-server` child PID 25163), start time `2026-08-25T19:00:31Z`.
 - `GET /dev/states` → **HTTP 404**.
 - `GET /favicon.ico` → **HTTP 200**, `content-type: image/x-icon`.
-- All twelve fixture routes and all four invalid routes returned **HTTP 307** (redirect to `/login`) when requested unauthenticated via `curl` — expected and correct: no `NEXT_PUBLIC_SUPABASE_*` vars are set anywhere in this workspace (no `.env.local` exists) and `isSyntheticModeAllowed()` is `false` under `next start` (`NODE_ENV=production`), so `resolveViewerSessionStateUncached()` correctly returns `backend-unavailable` → redirect, per `src/data/viewer-session.ts`'s H1 fix (never fail open to a synthetic/founder viewer on a production-mode server missing Supabase config).
-- Stopped the exact launched process (`kill 10327`); confirmed no `next-server`/`next dev` process remained and the port was free.
+- Stopped the exact launched process (`kill 25130`); confirmed no `next-server` process remained and the port was free.
 
-The authenticated-founder subset of the Mode-P dynamic-404 recheck (the contract's optional "repeat against Mode P only when a valid configured founder session can be supplied without changing Auth") is **UNAVAILABLE**: no Development/Production Supabase session can be supplied without creating an identity or sending OTP, both out of scope here. This is the same unavailability as Mode D below, not a separate gap.
+**Mode S (synthetic presentation) — full matrix, rerun:**
+- Server: fresh `next dev --port 55190`, `NEXT_PUBLIC_SUPABASE_URL=""` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=""` explicitly set empty in the process environment. npm PID 26840, `next-server` child PID 26867, start time `2026-08-25T19:00:53Z`. Port confirmed free before start and after stop.
+- Browser automation: `chromium.launch({ executablePath: <chrome-headless-shell-1228>, headless: true })` via the verified module path above.
+- **Founder — 12 routes × 4 widths (375/767/768/1280) = 48 cells:** HTTP 200 for all 48; measured `window.innerWidth` matched the requested width for all 48; zero horizontal overflow; exactly one `<h1>` on all 48; zero console errors; zero `text-money`/`border-money`/`bg-money` classes found inside any `[data-rail-kind="projection"]` subtree; no money-bearing route rendered zero `<data class="tnum">` (`Amount`) elements.
+- **Member — 7 allowed + 5 denied routes × 4 widths = 48 cells:** HTTP 200 for all 48 (denied routes render `PermissionDenied` in-page, matching the tracked contract, not an HTTP error); identical viewport/overflow/h1/console/money checks, zero failures across all 48.
+- **Combined total: 96/96 cells, identical result to pass 1** — confirms the corrected tooling reproduces the same evidence, not different evidence.
 
-### Mode S (synthetic presentation) — full matrix
+**Dynamic 404 matrix (Mode S founder, 1280, `curl` with founder cookie):** `/projects/nope`, `/opportunities/00000000-0000-4000-8000-000000000000`, `/network/nope`, `/leaderboard/nope/provenance` all → true HTTP **404**.
 
-Server: fresh `next dev --port 55190`, `NEXT_PUBLIC_SUPABASE_URL=""` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=""` explicitly set empty in the process environment (redundant with the absence of `.env.local`, set explicitly anyway per instruction), confirmed ready in server log, confirmed synthetic mode active (founder cookie renders `/admin`'s founder copy; no cookie renders member-denied copy on the same route). PID 12625 (npm) / 12676 (`next-server`), started `2026-08-25T18:52Z` (from server log timestamp), port confirmed free before start and after stop.
+**Interaction and visual assertions**, rerun with the verified tooling (Mode S founder, 1280 unless noted):
+- 767/768 table↔list switch on `/projects`: table `display:none` + list visible at 767; table visible + list `display:none` at 768.
+- Skip link: first `Tab` focuses `<a href="#main-content">` ("Saltar al contenido"); `Enter` moves focus to `#main-content`.
+- Command palette: `Cmd/Ctrl+K` from the "Buscar" opener opens `role="dialog"`; 15 `Tab` presses stay trapped inside; `Escape` closes it and restores focus to the exact opener.
+- Sidebar persistence: initial `localStorage['firma23.sidebar-mode']` is `null` (defaults to compact); toggling sets `hidden`; a reload preserves `hidden` and flips the toggle's `aria-label` to "Mostrar menú lateral".
+- Reduced motion: `prefers-reduced-motion: reduce` emulated at the context level → `matchMedia(...).matches === true`, sampled transition duration ≈ `0` (`1e-05s`), page still rendered.
 
-Browser automation: the existing local Playwright + Chromium installation at `/Users/racosta/klokk/node_modules/playwright` (Chromium `1228`, already downloaded — no install performed; Conductor viewport resize was not used).
+Every number in this section reproduced identically to pass 1, which is the expected result: the app code under test is byte-identical between `b834030` and `59de8a5` (only this markdown file differs), so the corrected tooling was verified to produce the same evidence, not merely different-looking evidence.
 
-**Founder — all 12 fixture routes × 4 widths (375, 767, 768, 1280) = 48 cells:**
-
-- HTTP status: 200 for all 48.
-- Actual measured `window.innerWidth` matched the requested width for all 48 (exact per-cell values recorded in `/tmp/matrix-report.json` during the run; not copied into the repo).
-- Horizontal overflow (`scrollWidth > clientWidth`): **zero** cells.
-- Exactly one `<h1>` per page: **48/48**.
-- Console errors (`console.error` + uncaught `pageerror`): **zero** across all 48.
-- `[data-rail-kind="projection"]` subtrees checked for any `text-money`/`border-money`/`bg-money` class on any descendant: **zero violations** across all cells that render a Revenue Rail.
-- `Amount`/`<data class="tnum">` rendered on every route that displays money (spot-checked: no money route had zero `<data class="tnum">` elements).
-
-**Member — 7 allowed routes (HOME, NETWORK, MEMBER, LEADERBOARD, PROVENANCE, PROJECTS, PROJECT) + 5 denied routes (OPPORTUNITIES, OPPORTUNITY, ADMIN, FINANCE, SETTLE) × 4 widths = 48 cells:**
-
-- HTTP status: 200 for all 48 (denied routes render `PermissionDenied` in-page, not an HTTP error — matches the tracked contract).
-- Same viewport/overflow/h1/console/money checks as founder: **zero failures** across all 48.
-- Denied-route bodies spot-checked to contain the real permission-denied copy (`"...permisos de fundador para ver este detalle"`), not a blank or crashed page.
-
-**Combined Mode S total: 96/96 cells passed every assertion.**
-
-### Dynamic 404 matrix
-
-At Mode S founder, `1280`, in-browser and via `curl` (both HTTP client and rendered-page check):
-
-- `/projects/nope` → 404
-- `/opportunities/00000000-0000-4000-8000-000000000000` → 404
-- `/network/nope` → 404
-- `/leaderboard/nope/provenance` → 404
-
-All four returned true HTTP 404, not merely a rendered not-found page with a 200. The Mode-P-authenticated repeat of this check is unavailable for the same reason as Mode D (below).
-
-### Interaction and visual assertions (Mode S founder, 1280 unless noted)
-
-- **767/768 table↔list switch** (`/projects`, `ProjectRecordTable`): at 767 the `<table>` computed `display: none` and the mobile `<ul>` list was visible; at 768 the table was visible and the list computed `display: none`. Matches the `hidden … md:table` / `md:hidden` breakpoint contract exactly.
-- **Skip link**: first `Tab` from page load focused the skip link (`<a href="#main-content">`, text "Saltar al contenido"); `Enter` moved focus to `#main-content`, bypassing chrome.
-- **Command palette**: `Cmd/Ctrl+K` from the "Buscar" opener button opened `role="dialog"`; 15 subsequent `Tab` presses kept focus inside the dialog (trap confirmed); `Escape` closed the dialog and returned focus to the exact opener (`aria-label="Buscar"` button re-focused).
-- **Sidebar compact/hidden persistence**: initial `localStorage['firma23.sidebar-mode']` was `null` (defaults to compact per contract); clicking the TopBar toggle set it to `hidden`; a full page reload preserved `hidden` and the toggle's `aria-label` correctly flipped to "Mostrar menú lateral". (Playwright runs in an isolated, ephemeral Chromium profile — this never touched any real browser's storage.)
-- **Reduced motion**: with `prefers-reduced-motion: reduce` emulated at the browser-context level, `window.matchMedia('(prefers-reduced-motion: reduce)').matches` was `true` and a sampled transitioning element's computed `transition-duration` was effectively `0` (`1e-05s`), confirming motion is removed while final state still renders (page did not blank or fail to render).
-
-All of the above were re-run fresh against the exact integrated candidate SHA (`b834030`) in this pass; no lane's prior screenshot or claim was reused as evidence, per the launch contract.
+The authenticated-founder subset of the Mode-P dynamic-404 recheck remains **UNAVAILABLE** in both passes, for the same reason as Mode D below.
 
 ## Unavailable / out of scope
 
 - **Mode D (configured Development founder)**: **UNAVAILABLE**, not substituted. No `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for a canonical Development project exists anywhere in this workspace (`.env.example` ships blank values only) or in the local macOS keychain (checked; not found). Creating or copying such configuration, or authenticating a real founder session, is outside this pass's authorization. Mode S was never substituted for it.
 - **Mode-P authenticated-founder recheck of the dynamic-404 matrix**: unavailable for the same reason as Mode D.
 - **Adversarial review of the exact candidate SHA** and the **explicit Production/deployment-policy gate**: both are listed in `docs/UI-WORKSPACE-LAUNCH-PLAN.md`'s "Final integration gate" as prerequisites to the final UI PR, but neither was requested of this Integrator pass and neither was performed here. They remain open before `ui/integration` → `main` can be proposed.
-- Everything under "Do not" in the operating instructions (push, PR, merge, Preview, Production, Vercel, Supabase, OTP/email, credentials, external resources, package install, remote mutation) was not touched. Playwright/Chromium used an already-downloaded local binary (`/Users/racosta/klokk/node_modules/playwright`, Chromium 1228); nothing was installed for this pass.
+- Everything under "Do not" in the operating instructions (push, PR, merge, Preview, Production, Vercel, Supabase, OTP/email, credentials, external resources, package install, remote mutation) was not touched. The final pass's browser automation used already-installed local binaries (Playwright at `/Users/racosta/.agents/skills/gstack/node_modules/playwright`; Chromium headless-shell `1228` in `~/Library/Caches/ms-playwright/`); nothing was installed for either pass, and the earlier `npx` fetch (pass 1 only) left no trace in this repo.
 
 ## Final state
 
-- `HEAD`: `b8340301af66205bb5bff33e9f35f18bbed77d4f`.
-- `git status --porcelain=v1`: empty (clean) at handoff time.
-- All servers and browser processes started during this pass were stopped; both `$CONDUCTOR_PORT` uses (Mode P, Mode S) were confirmed free afterward.
-- Commits produced, in order: `2bb586c 54d507e 795fd02 09d62ae d12c808 c7f2730 ec76238 f665620 a8ccd42 f8c7e30 832dadd` (six lanes, eleven commits, all preserved individually) followed by `2f128ed` (correction A), `262db24` (correction D), `57c81f3` (correction B), `b834030` (correction C).
-- Nothing was pushed; no PR, merge, deploy, or remote mutation occurred.
+- Two candidate SHAs appear in this handoff; only the second is the final, acceptance-bearing one:
+  - `b834030` — six-lane integration + corrections A–D, **pass 1 evidence only (superseded)**.
+  - `59de8a50001c235b75f0d1862990c4d8a31196f9` — adds this handoff file, **pass 2 evidence is authoritative**.
+- `git status --porcelain=v1` at `59de8a5`: empty (clean), confirmed before and after every step of pass 2.
+- All servers and browser processes started during both passes were stopped; every `$CONDUCTOR_PORT` use across both passes was confirmed free before its start and after its stop.
+- Commits produced, in order: `2bb586c 54d507e 795fd02 09d62ae d12c808 c7f2730 ec76238 f665620 a8ccd42 f8c7e30 832dadd` (six lanes, eleven commits, all preserved individually), followed by `2f128ed` (correction A), `262db24` (correction D), `57c81f3` (correction B), `b834030` (correction C), followed by the commit that adds this file (`59de8a5`).
+- Nothing was pushed; no PR, merge, deploy, or remote mutation occurred in either pass.
+- This paragraph is the last edit made to this file for this integration pass. Editing this file again to record anything further would itself move `HEAD` past `59de8a5`; if that happens, the same rule applies recursively — re-run the full regression against whatever new SHA results before treating it as final, since only a pass that was actually executed against the exact SHA under review may be cited as acceptance evidence.
