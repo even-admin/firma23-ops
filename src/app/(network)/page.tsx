@@ -1,13 +1,12 @@
 import { Suspense } from 'react';
 
 import { OperationalHeader } from '@/components/chrome/OperationalHeader';
-import { AssignmentRow } from '@/components/operator/AssignmentRow';
-import { EmptyState } from '@/components/state/EmptyState';
+import { AssignmentQueue } from '@/components/dashboard/AssignmentQueue';
+import { NextActionQueue } from '@/components/dashboard/NextActionQueue';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
-import { cn } from '@/lib/cn';
 
 /*
  * Loading UI lives in a Suspense boundary inside the page, not in a segment-level
@@ -48,44 +47,12 @@ async function HomeBody() {
 
       <section className="flex flex-col gap-3">
         <h2 className="label-micro text-faint">{copy.home.nextActions}</h2>
-        {home.nextActions.length === 0 ? (
-          <EmptyState title={copy.home.noActions} />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {home.nextActions.map((action) => (
-              <li
-                key={action.key}
-                className="border-line bg-surface flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border p-4"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'size-1.5 shrink-0 rounded-full',
-                    action.tone === 'attention' ? 'bg-attention' : 'bg-steel-500',
-                  )}
-                />
-                <span className="text-ink text-sm font-medium">{action.label}</span>
-                <span className="text-faint truncate text-xs">{action.detail}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <NextActionQueue actions={home.nextActions} />
       </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="label-micro text-faint">{copy.home.assignments}</h2>
-        {home.assignments.length === 0 ? (
-          <EmptyState title={copy.home.noAssignments} detail={copy.home.noAssignmentsDetail} />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {home.assignments.map((assignment) => (
-              <AssignmentRow
-                key={`${assignment.opportunityId}:${assignment.roleLabel}`}
-                assignment={assignment}
-              />
-            ))}
-          </ul>
-        )}
+        <AssignmentQueue assignments={home.assignments} />
       </section>
     </>
   );
