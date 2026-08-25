@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { copy } from '@/copy/es-MX';
 
 export type IntakeStepKey = 'document' | 'extraction' | 'review' | 'confirmation';
 export type IntakeStepStatus = 'complete' | 'current' | 'upcoming';
@@ -9,24 +10,7 @@ interface IntakeStepperProps {
 
 const STEP_ORDER: readonly IntakeStepKey[] = ['document', 'extraction', 'review', 'confirmation'];
 
-/**
- * The four intake phase labels named in docs/UI-REFERENCE-CATALOG.md
- * ("Registration Stepper" adaptation): Documento, Extracción, Revisión,
- * Confirmación. `src/copy/es-MX.ts` is an Integrator-owned shared surface
- * UI-ADMIN may not edit directly (docs/UI-WORKSPACE-LAUNCH-PLAN.md ownership
- * matrix), so these live here pending centralization — tracked in
- * docs/ui-integration-requests/UI-ADMIN.md. Not a route-owned financial or
- * product rule, only display labels for a state machine already driven by
- * real phase/result data.
- */
-const STEP_LABELS: Record<IntakeStepKey, string> = {
-  document: 'Documento',
-  extraction: 'Extracción',
-  review: 'Revisión',
-  confirmation: 'Confirmación',
-};
-
-const STEPPER_LABEL = 'Progreso de la propuesta';
+const STEP_LABELS: Record<IntakeStepKey, string> = copy.admin.intake.stepper;
 
 /**
  * A truthful progress indicator over the document-first intake flow.
@@ -36,7 +20,7 @@ const STEPPER_LABEL = 'Progreso de la propuesta';
  */
 export function IntakeStepper({ statuses }: IntakeStepperProps) {
   return (
-    <ol aria-label={STEPPER_LABEL} className="flex flex-wrap items-center gap-2">
+    <ol aria-label={copy.admin.intake.stepper.ariaLabel} className="flex flex-wrap items-center gap-2">
       {STEP_ORDER.map((key, index) => {
         const status = statuses[key];
         return (

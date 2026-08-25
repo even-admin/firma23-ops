@@ -296,6 +296,13 @@ export const copy = {
       fileTooLarge: 'El archivo supera los 20 MB. Sube un documento más ligero.',
       fileTypeUnsupported: 'Ese tipo de archivo no es un formato de propuesta reconocido.',
       fileTypeHint: 'PDF, Word, PowerPoint o texto plano.',
+      stepper: {
+        ariaLabel: 'Progreso de la propuesta',
+        document: 'Documento',
+        extraction: 'Extracción',
+        review: 'Revisión',
+        confirmation: 'Confirmación',
+      },
     },
   },
   opportunity: {
