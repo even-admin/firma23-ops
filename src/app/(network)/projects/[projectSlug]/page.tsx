@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { Amount } from '@/components/money/Amount';
 import { StatusPill } from '@/components/opportunity/StatusPill';
+import { ProjectHeader } from '@/components/project/ProjectHeader';
+import { ProjectRuleHistory } from '@/components/project/ProjectRuleHistory';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { syntheticProjectRepository } from '@/data/repositories/synthetic/projects';
-import { formatBasisPoints } from '@/lib/money';
 
 export default async function ProjectDetailPage({
   params,
@@ -21,21 +21,7 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
-      <header className="flex flex-col gap-2">
-        <p className="label-micro text-faint">{project.sponsorName}</p>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
-            {project.name}
-          </h1>
-          <span className="label-micro border-line-strong text-muted rounded-sm border px-2 py-0.5">
-            {copy.projects.statusLabels[project.status]}
-          </span>
-        </div>
-        <p className="text-muted text-sm">
-          {copy.projects.settledApproved}:{' '}
-          <Amount value={project.approvedSettled} className="text-money" />
-        </p>
-      </header>
+      <ProjectHeader project={project} />
 
       <section className="flex flex-col gap-3">
         <h2 className="label-micro text-faint">{copy.projects.services}</h2>
@@ -60,43 +46,6 @@ export default async function ProjectDetailPage({
                   </span>
                 </div>
                 <p className="text-faint text-xs">{service.deliverablesSummary}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="label-micro text-faint">{copy.projects.rules}</h2>
-        {project.rules.length === 0 ? (
-          <EmptyState title={copy.projects.noRule} />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {project.rules.map((rule) => (
-              <li
-                key={rule.id}
-                className="border-line bg-surface flex flex-col gap-2 rounded-md border p-4"
-              >
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="text-ink text-sm font-medium">
-                    {copy.projects.versionPrefix}
-                    {rule.version}
-                  </span>
-                  <span className="text-faint text-xs">{rule.effectiveFrom}</span>
-                </div>
-                <ul className="flex flex-wrap gap-2">
-                  {rule.shares.map((share) => (
-                    <li
-                      key={share.key}
-                      className="border-line-strong text-muted label-micro tnum rounded-sm border px-2 py-0.5"
-                    >
-                      {share.label} {formatBasisPoints(share.weightBp)}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-faint text-xs">
-                  <span className="text-ink">{rule.basePolicyLabel}.</span> {rule.basePolicyNote}
-                </p>
               </li>
             ))}
           </ul>
@@ -130,6 +79,14 @@ export default async function ProjectDetailPage({
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="label-micro text-faint">{copy.projects.rules}</h2>
+        <ProjectRuleHistory
+          activeRuleId={project.activeRule === null ? null : project.activeRule.id}
+          rules={project.rules}
+        />
       </section>
     </div>
   );
