@@ -94,7 +94,7 @@ export function MilestoneChecklist({ milestones }: MilestoneChecklistProps) {
                     <a
                       href={evidence.url}
                       rel="noreferrer noopener"
-                      className="text-ink hover:text-ink-strong inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 md:min-h-0"
+                      className="text-ink hover:text-ink-strong inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4"
                     >
                       {evidence.label}
                     </a>

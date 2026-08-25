@@ -73,7 +73,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
               <p className="text-ink text-sm">{field.value}</p>
               {field.evidence.length === 0 ? null : (
                 <details>
-                  <summary className="text-muted hover:text-ink flex min-h-11 cursor-pointer items-center text-xs underline decoration-dotted underline-offset-4 md:min-h-0">
+                  <summary className="text-muted hover:text-ink flex min-h-11 cursor-pointer items-center text-xs underline decoration-dotted underline-offset-4">
                     {i.evidence}
                   </summary>
                   <ul className="mt-2 flex flex-col gap-1">

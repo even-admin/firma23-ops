@@ -44,7 +44,7 @@ export default async function OperatorProfilePage({
                   <a
                     href={item.url}
                     rel="noreferrer noopener"
-                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline decoration-dotted underline-offset-4 md:min-h-0"
+                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline decoration-dotted underline-offset-4"
                   >
                     {item.title}
                   </a>

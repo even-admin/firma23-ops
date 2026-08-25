@@ -58,7 +58,7 @@ async function AdminBody() {
               <span className="min-w-0 flex-1">
                 <Link
                   href={`/projects/${project.slug}`}
-                  className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline md:min-h-0"
+                  className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline"
                 >
                   {project.name}
                 </Link>

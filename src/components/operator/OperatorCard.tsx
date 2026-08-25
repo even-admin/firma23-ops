@@ -55,7 +55,7 @@ export function OperatorCard({
               {linkToProfile ? (
                 <Link
                   href={`/network/${operator.slug}`}
-                  className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
+                  className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
                 >
                   {operator.displayName}
                 </Link>

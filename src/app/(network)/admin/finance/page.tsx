@@ -94,7 +94,7 @@ async function FinanceBody() {
                 <h2 className="text-ink-strong truncate text-base font-medium">
                   <Link
                     href={`/opportunities/${row.opportunity.id}`}
-                    className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
+                    className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
                   >
                     {row.opportunity.beneficiaryName}
                   </Link>

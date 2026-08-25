@@ -137,7 +137,7 @@ export function ConfirmContractControl({
         <button
           type="button"
           onClick={confirm}
-          className="text-attention hover:text-ink-strong ease-firma flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150 md:min-h-0"
+          className="text-attention hover:text-ink-strong ease-firma flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150"
         >
           {i.retry}
         </button>

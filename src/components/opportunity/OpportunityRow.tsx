@@ -46,7 +46,7 @@ export function OpportunityRow({
           <h2 className="text-ink-strong truncate text-lg font-medium">
             <Link
               href={`/opportunities/${id}`}
-              className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
+              className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
             >
               {beneficiaryName}
             </Link>

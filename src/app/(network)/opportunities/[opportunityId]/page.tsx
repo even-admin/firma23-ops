@@ -40,7 +40,7 @@ export default async function OpportunityDetailPage({
         <p className="label-micro text-faint">
           <Link
             href={`/projects/${detail.summary.projectSlug}`}
-            className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
+            className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
           >
             {detail.summary.projectName}
           </Link>{' '}

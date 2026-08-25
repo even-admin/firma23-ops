@@ -66,7 +66,7 @@ export default async function ProjectDetailPage({
                 <span className="min-w-0 flex-1">
                   <Link
                     href={`/opportunities/${opportunity.id}`}
-                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline md:min-h-0"
+                    className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline"
                   >
                     {opportunity.beneficiaryName}
                   </Link>

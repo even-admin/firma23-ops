@@ -30,7 +30,7 @@ export function LeaderboardRankRow({ row }: LeaderboardRankRowProps) {
         <span className="min-w-0 flex-1">
           <Link
             href={`/network/${row.slug}`}
-            className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm font-medium underline-offset-4 hover:underline md:min-h-0"
+            className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm font-medium underline-offset-4 hover:underline"
           >
             {row.displayName}
           </Link>
@@ -63,7 +63,7 @@ export function LeaderboardRankRow({ row }: LeaderboardRankRowProps) {
         </span>
         <Link
           href={`/leaderboard/${row.slug}/provenance`}
-          className="text-faint hover:text-ink ml-auto inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 md:min-h-0"
+          className="text-faint hover:text-ink ml-auto inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4"
         >
           {copy.leaderboard.provenance}
         </Link>
