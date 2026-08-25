@@ -178,10 +178,7 @@ export function CommandPalette({ onClose, groups, role, opener }: CommandPalette
         className="border-line-strong bg-surface relative w-full max-w-xl overflow-hidden rounded-lg border"
       >
         <div className="border-line flex items-center border-b px-4">
-          <ChromeIcon
-            name="search"
-            className="text-faint mr-3 size-[18px] shrink-0"
-          />
+          <ChromeIcon name="search" className="text-faint mr-3 size-[18px] shrink-0" />
           <input
             ref={inputRef}
             value={query}
@@ -191,7 +188,7 @@ export function CommandPalette({ onClose, groups, role, opener }: CommandPalette
             }}
             placeholder={copy.search.placeholder}
             aria-label={copy.search.placeholder}
-            className="text-ink placeholder:text-faint min-w-0 flex-1 bg-transparent py-4 text-sm outline-none"
+            className="text-ink placeholder:text-faint focus-visible:outline-focus min-w-0 flex-1 rounded-sm bg-transparent py-4 text-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
           />
           <kbd className="border-line-strong text-faint ml-2 hidden h-5 items-center justify-center rounded-[4px] border px-1.5 font-mono text-[10px] font-medium sm:inline-flex">
             {copy.search.dismiss}

@@ -30,7 +30,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-ink-strong text-lg font-medium">{i.draftTitle}</h3>
+          <h2 className="text-ink-strong text-lg font-medium">{i.draftTitle}</h2>
           {draft.confidenceOverall === null ? null : (
             <ConfidenceBadge confidence={draft.confidenceOverall} />
           )}
@@ -50,7 +50,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
             {i.matchedProject}{' '}
             <Link
               href={`/projects/${draft.matchedProjectSlug}`}
-              className="text-ink-strong underline-offset-4 hover:underline"
+              className="text-ink-strong inline-flex min-h-11 items-center underline-offset-4 hover:underline"
             >
               {draft.matchedProjectName}
             </Link>
@@ -59,7 +59,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
       </header>
 
       <section className="flex flex-col gap-3">
-        <h4 className="label-micro text-faint">{i.fields}</h4>
+        <h3 className="label-micro text-faint">{i.fields}</h3>
         <ul className="flex flex-col gap-2">
           {draft.fields.map((field) => (
             <li
@@ -78,7 +78,10 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                   </summary>
                   <ul className="mt-2 flex flex-col gap-1">
                     {field.evidence.map((evidence) => (
-                      <li key={`${evidence.locationLabel}-${evidence.quote}`} className="text-faint text-xs">
+                      <li
+                        key={`${evidence.locationLabel}-${evidence.quote}`}
+                        className="text-faint text-xs"
+                      >
                         <span className="text-muted">{evidence.locationLabel}:</span> “
                         {evidence.quote}”
                       </li>
@@ -93,7 +96,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
 
       {draft.services.length === 0 ? null : (
         <section className="flex flex-col gap-3">
-          <h4 className="label-micro text-faint">{i.services}</h4>
+          <h3 className="label-micro text-faint">{i.services}</h3>
           <ul className="flex flex-col gap-2">
             {draft.services.map((service) => (
               <li
@@ -116,7 +119,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
 
       {draft.milestones.length === 0 ? null : (
         <section className="flex flex-col gap-3">
-          <h4 className="label-micro text-faint">{i.milestones}</h4>
+          <h3 className="label-micro text-faint">{i.milestones}</h3>
           <ol className="flex flex-col gap-2">
             {draft.milestones.map((milestone, index) => (
               <li
@@ -139,7 +142,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
 
       {draft.assignments.length === 0 ? null : (
         <section className="flex flex-col gap-3">
-          <h4 className="label-micro text-faint">{i.assignments}</h4>
+          <h3 className="label-micro text-faint">{i.assignments}</h3>
           <ul className="flex flex-col gap-2">
             {draft.assignments.map((assignment) => (
               <li
@@ -162,7 +165,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
 
       {draft.projectedAllocation === null ? null : (
         <section className="flex flex-col gap-3">
-          <h4 className="label-micro text-faint">{i.allocation}</h4>
+          <h3 className="label-micro text-faint">{i.allocation}</h3>
           <RevenueRail model={draft.projectedAllocation} variant="detail" />
           {draft.projectedAllocationNote === null ? null : (
             <p className="text-faint text-xs">{draft.projectedAllocationNote}</p>
@@ -172,7 +175,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
 
       {draft.reviewIssues.length === 0 ? null : (
         <section className="flex flex-col gap-3">
-          <h4 className="label-micro text-faint">{i.review}</h4>
+          <h3 className="label-micro text-faint">{i.review}</h3>
           <ul className="flex flex-col gap-2">
             {draft.reviewIssues.map((issue) => (
               <li

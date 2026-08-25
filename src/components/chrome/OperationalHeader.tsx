@@ -12,6 +12,7 @@ interface OperationalHeaderProps {
   readonly activeAssignmentCodes?: readonly string[];
   readonly primaryActionLabel: string;
   readonly primaryActionEnabled: boolean;
+  readonly primaryActionDescription: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export function OperationalHeader({
   activeAssignmentCodes = [],
   primaryActionLabel,
   primaryActionEnabled,
+  primaryActionDescription,
 }: OperationalHeaderProps) {
   const paidShare =
     money.approved.amount > 0 ? Math.round((money.paid.amount / money.approved.amount) * 100) : 0;
@@ -63,7 +65,7 @@ export function OperationalHeader({
           </div>
 
           <div className="mt-8">
-            <div className="border-line-strong flex h-2 overflow-hidden rounded-full border bg-surface">
+            <div className="border-line-strong bg-surface flex h-2 overflow-hidden rounded-full border">
               <span
                 aria-hidden="true"
                 className="bg-money h-full"
@@ -87,9 +89,9 @@ export function OperationalHeader({
           </div>
         </section>
 
-        <section className="border-line relative flex min-h-52 flex-col justify-between overflow-hidden rounded-md border p-4 text-paper-000 sm:p-5">
+        <section className="border-line text-paper-000 relative flex min-h-52 flex-col justify-between overflow-hidden rounded-md border p-4 sm:p-5">
           <MeshDriftCanvas />
-          <div className="absolute inset-0 bg-ink-950/10" aria-hidden="true" />
+          <div className="bg-ink-950/10 absolute inset-0" aria-hidden="true" />
           <div className="relative">
             <p className="label-micro text-paper-100/80">{copy.home.actionQueue}</p>
             <p className="text-paper-000 mt-2 text-4xl font-medium tracking-[-0.04em]">
@@ -112,7 +114,7 @@ export function OperationalHeader({
               ))}
             </ul>
           ) : (
-            <p className="relative text-sm text-paper-100/80">{copy.home.noAssignments}</p>
+            <p className="text-paper-100/80 relative text-sm">{copy.home.noAssignments}</p>
           )}
         </section>
       </div>
@@ -128,18 +130,24 @@ export function OperationalHeader({
             <span className="text-faint text-xs">{copy.money.notEarnedYet}</span>
           </p>
         </div>
-        <button
-          type="button"
-          disabled={!primaryActionEnabled}
-          className={cn(
-            'ease-firma min-h-11 rounded-md border px-4 text-sm font-medium transition-colors duration-150',
-            primaryActionEnabled
-              ? 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900'
-              : 'border-line-strong text-faint cursor-not-allowed',
-          )}
-        >
-          {primaryActionLabel}
-        </button>
+        <div className="flex max-w-sm flex-col items-start gap-1 sm:items-end">
+          <button
+            type="button"
+            disabled={!primaryActionEnabled}
+            aria-describedby="home-primary-action-description"
+            className={cn(
+              'ease-firma min-h-11 rounded-md border px-4 text-sm font-medium transition-colors duration-150',
+              primaryActionEnabled
+                ? 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900'
+                : 'border-line-strong text-faint cursor-not-allowed',
+            )}
+          >
+            {primaryActionLabel}
+          </button>
+          <p id="home-primary-action-description" className="text-faint text-xs sm:text-right">
+            {primaryActionDescription}
+          </p>
+        </div>
       </section>
     </header>
   );

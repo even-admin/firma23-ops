@@ -25,7 +25,11 @@ async function LeaderboardBody() {
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
-            <LeaderboardRankRow key={row.memberId} row={row} />
+            <LeaderboardRankRow
+              key={row.memberId}
+              row={row}
+              showProvenance={viewer.role === 'founder' || viewer.viewerId === row.memberId}
+            />
           ))}
         </ul>
       )}

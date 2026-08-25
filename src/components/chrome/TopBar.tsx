@@ -60,7 +60,7 @@ export function TopBar({ sidebarOpen, onToggleSidebar, onOpenSearch, breadcrumb 
         type="button"
         onClick={onOpenSearch}
         aria-label={copy.search.open}
-        className="border-line text-faint hover:border-line-strong hover:bg-surface hover:text-muted ease-firma flex h-11 items-center gap-2 rounded-md border bg-bg px-2.5 transition-colors duration-150 sm:w-64"
+        className="border-line text-faint hover:border-line-strong hover:bg-surface hover:text-muted ease-firma bg-bg flex h-11 min-w-11 items-center justify-center gap-2 rounded-md border px-2.5 transition-colors duration-150 sm:w-64 sm:justify-start"
       >
         <ChromeIcon name="search" className="size-4 shrink-0" />
         <span className="hidden text-[13px] sm:inline">{copy.search.open}</span>

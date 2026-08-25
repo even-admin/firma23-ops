@@ -1,5 +1,37 @@
 # UI-INTEGRATOR handoff
 
+> **Acceptance below is historical and superseded.** The adversarial review of
+> `603faf3a12ae527bcd3add21674d70d2ccbc837d` found product defects and
+> false-green-capable browser evidence. No SHA named in the earlier sections of
+> this file is accepted for merge or deployment.
+
+## Adversarial repair contract
+
+The repair closes the reviewed product boundaries without changing Supabase or
+remote infrastructure:
+
+- founders are filtered at the leaderboard repository boundary before ranking;
+- line-level provenance is founder-all and member-own, with member-other direct
+  access returning no record;
+- every configured session carries a persistent warning that read repositories
+  remain synthetic and route money is non-canonical;
+- organization-recipient totals sum every qualifying segment;
+- Home settlement rows correlate by rule share plus member and paid totals derive
+  from append-only payout allocations, including partial payouts;
+- the Home evidence CTA remains disabled with an accessible explanation until a
+  real authorized action exists;
+- Admin async outcomes announce and receive deterministic focus, discard requires
+  a second confirmation, headings are sequential, and interactive targets retain
+  the 44px floor.
+
+Final acceptance is intentionally not written back into this tracked file because
+that would change `HEAD` after the run. The reproducible gate is
+`scripts/ui-acceptance.sh`; it fails fast and writes candidate-scoped, ignored
+receipts under `.context/qa/ui-integrator/<exact-sha>/<run-id>/`. Only a packet
+whose opening and closing SHA/status match the reviewed candidate may be cited.
+Mode D remains a separate evidence class and may be recorded `UNAVAILABLE`; Mode S
+never substitutes for real Auth, membership, RLS, or canonical data.
+
 ## Preflight
 
 - Base / bootstrap SHA: `d0a9583030159da43014249b205547c77f85c638` (`docs(ui): establish FIRMA23 visual direction`).

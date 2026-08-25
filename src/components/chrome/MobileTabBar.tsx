@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { NavIcon } from '@/components/chrome/NavIcon';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
-import { isActive, NAV_ITEMS } from '@/lib/nav';
+import { isActive, MOBILE_NAV_ITEMS } from '@/lib/nav';
 import type { ViewerRole } from '@/lib/viewer';
 
 interface MobileTabBarProps {
@@ -184,7 +184,7 @@ export function MobileTabBar({ role }: MobileTabBarProps) {
           : 'translate-y-0 opacity-100',
       )}
     >
-      {NAV_ITEMS.map((item) => {
+      {MOBILE_NAV_ITEMS.map((item) => {
         const enabled = item.available && (!item.founderOnly || role === 'founder');
         const active = enabled && isActive(pathname, item.href);
         const classes = cn(
@@ -198,7 +198,7 @@ export function MobileTabBar({ role }: MobileTabBarProps) {
 
         const content = (
           <>
-            <NavIcon name={item.key} className="size-5" />
+            <NavIcon name={item.icon} className="size-5" />
             <span
               className={cn(
                 'ease-firma overflow-hidden text-xs font-medium whitespace-nowrap transition-[max-width,opacity,margin] duration-200',

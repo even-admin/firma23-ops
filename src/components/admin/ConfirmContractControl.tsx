@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import Link from 'next/link';
 
@@ -28,7 +28,9 @@ interface ConfirmContractControlProps {
   readonly readyToConfirm: boolean;
   /** Injectable for tests, which have no Next.js request scope for the real
    * Server Actions' cookies() call. Defaults to the real actions. */
-  readonly confirmAction?: (input: ConfirmContractDraftInput) => Promise<ConfirmContractDraftResult>;
+  readonly confirmAction?: (
+    input: ConfirmContractDraftInput,
+  ) => Promise<ConfirmContractDraftResult>;
   readonly discardAction?: (draftId: string) => Promise<DiscardContractDraftResult>;
   /** Notifies a parent (e.g. the intake stepper) once a real 'confirmed'
    * result comes back. Never called for 'unavailable' or 'error'. */
@@ -59,9 +61,16 @@ export function ConfirmContractControl({
 }: ConfirmContractControlProps) {
   const [result, setResult] = useState<ConfirmContractDraftResult | null>(null);
   const [discarded, setDiscarded] = useState(false);
+  const [discardArmed, setDiscardArmed] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const outcomeRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (discarded || result?.kind === 'confirmed') outcomeRef.current?.focus();
+  }, [discarded, result]);
 
   function confirm(): void {
+    setDiscardArmed(false);
     startTransition(async () => {
       const outcome = await confirmAction({ draftId, sponsorName, programName, currency });
       setResult(outcome);
@@ -71,6 +80,10 @@ export function ConfirmContractControl({
 
   function discard(): void {
     if (draftId === null) return;
+    if (!discardArmed) {
+      setDiscardArmed(true);
+      return;
+    }
     startTransition(async () => {
       const outcome = await discardAction(draftId);
       if (outcome.kind === 'discarded') setDiscarded(true);
@@ -79,7 +92,13 @@ export function ConfirmContractControl({
 
   if (discarded) {
     return (
-      <section className="border-line bg-surface flex flex-col gap-2 rounded-md border p-4">
+      <section
+        ref={outcomeRef}
+        tabIndex={-1}
+        role="status"
+        aria-live="polite"
+        className="border-line bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
+      >
         <p className="text-ink text-sm">{i.discarded}</p>
       </section>
     );
@@ -87,11 +106,17 @@ export function ConfirmContractControl({
 
   if (result?.kind === 'confirmed') {
     return (
-      <section className="border-money/40 bg-surface flex flex-col gap-2 rounded-md border p-4">
+      <section
+        ref={outcomeRef}
+        tabIndex={-1}
+        role="status"
+        aria-live="polite"
+        className="border-money/40 bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
+      >
         <p className="text-money text-sm font-medium">{i.confirmed}</p>
         <Link
           href={`/projects/${result.projectSlug}`}
-          className="text-ink-strong text-sm underline-offset-4 hover:underline"
+          className="text-ink-strong inline-flex min-h-11 items-center text-sm underline-offset-4 hover:underline"
         >
           {copy.projects.title} → {programName}
         </Link>
@@ -126,12 +151,28 @@ export function ConfirmContractControl({
             disabled={isPending}
             className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {i.discard}
+            {discardArmed ? i.confirmDiscard : i.discard}
           </button>
         )}
+        {discardArmed ? (
+          <button
+            type="button"
+            onClick={() => setDiscardArmed(false)}
+            disabled={isPending}
+            className="text-muted hover:text-ink ease-firma flex min-h-11 items-center px-2 text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150"
+          >
+            {i.cancelDiscard}
+          </button>
+        ) : null}
       </div>
-      <p id="intake-confirm-status" className="text-muted text-xs">
-        {errorMessage ?? blockedReason ?? i.confirmHint}
+      <p
+        id="intake-confirm-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="text-muted text-xs"
+      >
+        {discardArmed ? i.discardWarning : (errorMessage ?? blockedReason ?? i.confirmHint)}
       </p>
       {errorMessage === null ? null : (
         <button

@@ -36,7 +36,7 @@ export function ViewerSwitcher({ role, action }: ViewerSwitcherProps) {
               value={option.value}
               aria-pressed={active}
               className={cn(
-                'ease-firma min-h-9 flex-1 rounded-sm px-3 text-xs font-medium transition-colors duration-150',
+                'ease-firma min-h-11 flex-1 rounded-sm px-3 text-xs font-medium transition-colors duration-150',
                 active
                   ? 'bg-rail-ink text-rail'
                   : 'text-rail-muted hover:bg-rail-hover hover:text-rail-ink',

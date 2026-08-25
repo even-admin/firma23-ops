@@ -33,7 +33,8 @@ function header(overrides: Partial<Parameters<typeof OperationalHeader>[0]> = {}
       money={memberMoney}
       activeWorkCount={2}
       primaryActionLabel={copy.home.primaryAction}
-      primaryActionEnabled
+      primaryActionEnabled={false}
+      primaryActionDescription={copy.home.primaryActionUnavailable}
       {...overrides}
     />
   );
@@ -74,11 +75,12 @@ describe('OperationalHeader', () => {
     expect(approvedLabel.closest('div')).not.toBe(projectedLabel.closest('div'));
   });
 
-  it('disables the primary action when there is no active work', () => {
-    render(header({ activeWorkCount: 0, primaryActionEnabled: false }));
+  it('keeps the unavailable primary action disabled with an accessible explanation', () => {
+    render(header({ activeWorkCount: 2 }));
     const button = screen.getByRole('button', { name: copy.home.primaryAction });
     expect(button).toBeDisabled();
     expect(button.className).toContain('cursor-not-allowed');
+    expect(button).toHaveAccessibleDescription(copy.home.primaryActionUnavailable);
   });
 });
 
@@ -175,6 +177,10 @@ describe('MobileTabBar', () => {
   it('keeps the primary destinations reachable and gates the founder route', () => {
     render(<MobileTabBar role="member" />);
     expect(screen.getByRole('link', { name: copy.nav.home })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: copy.nav.projects })).toHaveAttribute(
+      'href',
+      '/projects',
+    );
     expect(screen.queryByRole('link', { name: copy.nav.opportunities })).not.toBeInTheDocument();
   });
 });

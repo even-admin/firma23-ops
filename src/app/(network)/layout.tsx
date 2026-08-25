@@ -4,6 +4,7 @@ import { signOutAction } from '@/app/login/actions';
 import { AppShell } from '@/components/chrome/AppShell';
 import { SessionPanel } from '@/components/chrome/SessionPanel';
 import { ViewerSwitcher } from '@/components/chrome/ViewerSwitcher';
+import { DataAuthorityNotice } from '@/components/state/DataAuthorityNotice';
 import { switchPrototypeViewer } from '@/app/actions/viewer';
 import { getViewer } from '@/data/viewer-session';
 import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
@@ -14,6 +15,7 @@ import { isFounder } from '@/lib/viewer';
 
 export default async function NetworkLayout({ children }: { readonly children: ReactNode }) {
   const viewer = await getViewer();
+  const configured = isSupabaseConfigured();
   const projects = await syntheticProjectRepository.list(viewer);
 
   /*
@@ -35,7 +37,7 @@ export default async function NetworkLayout({ children }: { readonly children: R
   // affordance only; a real session's role comes from Postgres membership,
   // never a browser control, so it never appears once Supabase is
   // configured — showing it then would be actively misleading.
-  const viewerSwitcher = isSupabaseConfigured() ? (
+  const viewerSwitcher = configured ? (
     <SessionPanel role={viewer.role} action={signOutAction} />
   ) : (
     <ViewerSwitcher role={viewer.role} action={switchPrototypeViewer} />
@@ -43,6 +45,7 @@ export default async function NetworkLayout({ children }: { readonly children: R
 
   return (
     <AppShell role={viewer.role} groups={groups} viewerSwitcher={viewerSwitcher}>
+      <DataAuthorityNotice configured={configured} />
       {children}
     </AppShell>
   );

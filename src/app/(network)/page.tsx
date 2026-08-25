@@ -42,7 +42,8 @@ async function HomeBody() {
           .filter((assignment) => assignment.active)
           .map((assignment) => assignment.code)}
         primaryActionLabel={copy.home.primaryAction}
-        primaryActionEnabled={home.activeWorkCount > 0}
+        primaryActionEnabled={false}
+        primaryActionDescription={copy.home.primaryActionUnavailable}
       />
 
       <section className="flex flex-col gap-3">

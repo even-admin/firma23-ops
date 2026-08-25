@@ -107,7 +107,7 @@ async function FinanceBody() {
                 <StatusPill status={row.opportunity.status} />
                 <Link
                   href={`/admin/finance/${row.opportunity.id}/settle`}
-                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 md:min-h-9"
+                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150"
                 >
                   {copy.finance.review}
                 </Link>
@@ -118,7 +118,7 @@ async function FinanceBody() {
             <RevenueRail model={row.rail} variant="dashboard" />
 
             <details className="group">
-              <summary className="label-micro text-faint hover:text-ink cursor-pointer list-none py-1">
+              <summary className="label-micro text-faint hover:text-ink flex min-h-11 cursor-pointer list-none items-center">
                 {copy.finance.ledger}
               </summary>
               <div className="pt-3">

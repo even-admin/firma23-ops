@@ -44,7 +44,7 @@ describe('LeaderboardRankRow', () => {
   it('shows the approved figure as the ranked amount, distinct from paid and projected', () => {
     render(
       <ul>
-        <LeaderboardRankRow row={row()} />
+        <LeaderboardRankRow row={row()} showProvenance />
       </ul>,
     );
     expect(screen.getByText(copy.leaderboard.approved)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('LeaderboardRankRow', () => {
   it('never renders projected earnings with the ledger money colour', () => {
     const { container } = render(
       <ul>
-        <LeaderboardRankRow row={row()} />
+        <LeaderboardRankRow row={row()} showProvenance />
       </ul>,
     );
     const projectedLabel = screen.getByText(copy.leaderboard.projected);
@@ -69,7 +69,7 @@ describe('LeaderboardRankRow', () => {
   it('renders zero-padded rank and links to the operator profile and provenance', () => {
     render(
       <ul>
-        <LeaderboardRankRow row={row({ rank: 3 })} />
+        <LeaderboardRankRow row={row({ rank: 3 })} showProvenance />
       </ul>,
     );
     expect(screen.getByText('03')).toBeInTheDocument();
@@ -86,10 +86,19 @@ describe('LeaderboardRankRow', () => {
   it('says so when there is no on-time rate to show, rather than inventing one', () => {
     render(
       <ul>
-        <LeaderboardRankRow row={row({ onTimeRateBp: null })} />
+        <LeaderboardRankRow row={row({ onTimeRateBp: null })} showProvenance />
       </ul>,
     );
     expect(screen.getByText(new RegExp(copy.network.noRate))).toBeInTheDocument();
+  });
+
+  it('withholds line-level provenance when the viewer is not allowed to inspect it', () => {
+    render(
+      <ul>
+        <LeaderboardRankRow row={row()} showProvenance={false} />
+      </ul>,
+    );
+    expect(screen.queryByRole('link', { name: copy.leaderboard.provenance })).toBeNull();
   });
 });
 

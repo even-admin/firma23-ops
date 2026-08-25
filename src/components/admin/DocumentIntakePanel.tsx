@@ -1,9 +1,13 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { ContractDraftSummary } from '@/components/admin/ContractDraftSummary';
-import { IntakeStepper, type IntakeStepKey, type IntakeStepStatus } from '@/components/admin/IntakeStepper';
+import {
+  IntakeStepper,
+  type IntakeStepKey,
+  type IntakeStepStatus,
+} from '@/components/admin/IntakeStepper';
 import { ManualContractForm } from '@/components/admin/ManualContractForm';
 import { SourceDocumentCard } from '@/components/admin/SourceDocumentCard';
 import { runIntakeAction } from '@/app/(network)/admin/intake-actions';
@@ -43,13 +47,28 @@ function stepStatuses(
   confirmed: boolean,
 ): Record<IntakeStepKey, IntakeStepStatus> {
   if (phase === 'idle') {
-    return { document: 'current', extraction: 'upcoming', review: 'upcoming', confirmation: 'upcoming' };
+    return {
+      document: 'current',
+      extraction: 'upcoming',
+      review: 'upcoming',
+      confirmation: 'upcoming',
+    };
   }
   if (phase === 'error' && errorKind === 'validation') {
-    return { document: 'current', extraction: 'upcoming', review: 'upcoming', confirmation: 'upcoming' };
+    return {
+      document: 'current',
+      extraction: 'upcoming',
+      review: 'upcoming',
+      confirmation: 'upcoming',
+    };
   }
   if (phase === 'selected' || phase === 'processing' || phase === 'error') {
-    return { document: 'complete', extraction: 'current', review: 'upcoming', confirmation: 'upcoming' };
+    return {
+      document: 'complete',
+      extraction: 'current',
+      review: 'upcoming',
+      confirmation: 'upcoming',
+    };
   }
   return {
     document: 'complete',
@@ -82,8 +101,15 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
   const [showManualForm, setShowManualForm] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const readyRef = useRef<HTMLElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const attemptKeyRef = useRef<string | null>(null);
   const statusId = useId();
+
+  useEffect(() => {
+    if (phase === 'ready') readyRef.current?.focus();
+    if (phase === 'error') errorRef.current?.focus();
+  }, [phase]);
 
   function selectFile(file: File): void {
     const validationError = validateFile(file);
@@ -116,10 +142,18 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
     attemptKeyRef.current ??=
       typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${fileName}`;
 
-    const run = await runIntake({
-      sourceDocumentFilename: fileName,
-      idempotencyKey: attemptKeyRef.current,
-    });
+    let run: IntakeRunView;
+    try {
+      run = await runIntake({
+        sourceDocumentFilename: fileName,
+        idempotencyKey: attemptKeyRef.current,
+      });
+    } catch {
+      setErrorKind('server');
+      setErrorMessage(i.processingError);
+      setPhase('error');
+      return;
+    }
 
     if (run.status === 'ready' && run.draft !== null) {
       setDraft(run.draft);
@@ -137,7 +171,15 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
 
   if (phase === 'ready' && draft !== null) {
     return (
-      <section className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
+      <section
+        ref={readyRef}
+        tabIndex={-1}
+        aria-label={i.readyAnnouncement}
+        className="border-line bg-surface focus:outline-focus flex flex-col gap-4 rounded-lg border p-4 focus:outline-2 focus:outline-offset-2 sm:p-6"
+      >
+        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {i.readyAnnouncement}
+        </p>
         <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-attention bg-attention/10 rounded-sm px-3 py-2 text-xs">
@@ -146,7 +188,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
           <button
             type="button"
             onClick={reset}
-            className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 shrink-0 items-center rounded-md border px-3 text-xs transition-colors duration-150 md:min-h-9"
+            className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 shrink-0 items-center rounded-md border px-3 text-xs transition-colors duration-150"
           >
             {i.changeFile}
           </button>
@@ -185,7 +227,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="border-ink-950 bg-ink-950 text-paper-000 ease-firma mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150 hover:bg-ink-900"
+              className="border-ink-950 bg-ink-950 text-paper-000 ease-firma hover:bg-ink-900 mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
             >
               {i.chooseFile}
             </button>
@@ -207,12 +249,21 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
               fileName={fileName ?? ''}
               fileNameLabel={i.selectedFile}
               kindLabel={null}
-              state={phase === 'error' ? 'error' : phase === 'processing' ? 'processing' : 'selected'}
+              state={
+                phase === 'error' ? 'error' : phase === 'processing' ? 'processing' : 'selected'
+              }
               statusLabel={phase === 'processing' ? i.processing : null}
             />
 
             {phase === 'error' ? (
-              <p className="text-attention text-xs">{errorMessage}</p>
+              <p
+                ref={errorRef}
+                tabIndex={-1}
+                role="alert"
+                className="text-attention focus:outline-focus text-xs focus:outline-2 focus:outline-offset-2"
+              >
+                {errorMessage}
+              </p>
             ) : null}
 
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -228,11 +279,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
                       : 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900',
                   )}
                 >
-                  {phase === 'processing'
-                    ? i.processing
-                    : phase === 'error'
-                      ? i.retry
-                      : i.process}
+                  {phase === 'processing' ? i.processing : phase === 'error' ? i.retry : i.process}
                 </button>
               )}
               <button
@@ -256,7 +303,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
         <button
           type="button"
           onClick={() => setShowManualForm(true)}
-          className="text-faint hover:text-ink underline decoration-dotted underline-offset-4"
+          className="text-faint hover:text-ink inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4"
         >
           {i.ctaManual}
         </button>{' '}

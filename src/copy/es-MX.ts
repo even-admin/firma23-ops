@@ -12,6 +12,10 @@ export const copy = {
     sliceBanner: 'Rebanada 1 · núcleo financiero',
     sliceNote:
       'Datos sintéticos. Sin Supabase, sin despliegue. Esta pantalla existe para revisar el contrato de dinero y el Riel de Ingresos.',
+    syntheticAuthority:
+      'Modo de demostración: estos datos son sintéticos y no representan contratos ni dinero operativo.',
+    configuredSyntheticAuthority:
+      'Sesión real, datos no canónicos: estas pantallas todavía usan registros sintéticos; ningún monto mostrado proviene del ledger de Supabase.',
   },
   money: {
     projected: 'Proyección',
@@ -91,6 +95,7 @@ export const copy = {
     actionQueue: 'Cola operativa',
     projectedAside: 'Proyección en curso',
     primaryAction: 'Subir evidencia',
+    primaryActionUnavailable: 'La carga de evidencia todavía no tiene una ruta autorizada.',
     assignments: 'Mis asignaciones',
     nextActions: 'Siguientes pasos',
     actionEvidence: 'Sube evidencia',
@@ -122,7 +127,8 @@ export const copy = {
     inviteExpiredTitle: 'La invitación expiró',
     inviteExpiredDetail: 'Tu invitación venció. Pide a un fundador que te envíe una nueva.',
     revokedTitle: 'Tu acceso fue revocado',
-    revokedDetail: 'Un fundador revocó tu membresía. Si crees que es un error, contacta a un fundador.',
+    revokedDetail:
+      'Un fundador revocó tu membresía. Si crees que es un error, contacta a un fundador.',
     invalidSessionTitle: 'Tu sesión ya no es válida',
     invalidSessionDetail: 'Necesitamos que inicies sesión de nuevo.',
     backendUnavailableTitle: 'El servicio no está disponible',
@@ -263,6 +269,8 @@ export const copy = {
       changeFile: 'Elegir otro documento',
       process: 'Procesar documento',
       processing: 'Analizando documento…',
+      processingError: 'No pudimos procesar el documento. Reintenta cuando el servicio responda.',
+      readyAnnouncement: 'El borrador está listo para revisión.',
       syntheticNotice:
         'Vista previa sintética: este entorno no analiza el contenido real del archivo ni llama a ningún proveedor de IA. Usa datos de referencia de SETY 2026 para mostrar cómo se vería el resultado.',
       draftTitle: 'Borrador extraído',
@@ -286,6 +294,9 @@ export const copy = {
         'La confirmación requiere un backend de Supabase configurado. Este entorno no tiene uno conectado todavía.',
       confirmed: 'Contrato confirmado.',
       discard: 'Descartar borrador',
+      confirmDiscard: 'Confirmar descarte',
+      cancelDiscard: 'Conservar borrador',
+      discardWarning: 'Confirma el descarte. Esta acción no crea ningún contrato.',
       discarded: 'Borrador descartado. No se creó ningún contrato.',
       retry: 'Reintentar',
       manualCta: 'Crear manualmente',

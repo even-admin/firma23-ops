@@ -19,7 +19,7 @@ export function AppShell({ role, groups, viewerSwitcher, children }: AppShellPro
       {/* The rail is a long tab stop. Keyboard users get past it in one key. */}
       <a
         href="#main-content"
-        className="border-line-strong bg-surface text-ink-strong sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2 focus:text-sm"
+        className="border-line-strong bg-surface text-ink-strong sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:flex focus:min-h-11 focus:items-center focus:rounded-md focus:border focus:px-3 focus:text-sm"
       >
         {copy.nav.skipToContent}
       </a>

@@ -7,9 +7,11 @@ import { compareMoney } from '@/lib/money';
 const rows = await syntheticLeaderboardRepository.list(PROTOTYPE_FOUNDER);
 
 describe('leaderboard ranking', () => {
-  it('ranks every member exactly once', () => {
-    expect(rows).toHaveLength(6);
-    expect(rows.map((row) => row.rank)).toEqual([1, 2, 3, 4, 5, 6]);
+  it('ranks every eligible member exactly once and excludes founders', () => {
+    expect(rows).toHaveLength(4);
+    expect(rows.map((row) => row.rank)).toEqual([1, 2, 3, 4]);
+    expect(rows.map((row) => row.slug)).not.toContain('luis-ramirez');
+    expect(rows.map((row) => row.slug)).not.toContain('diego-martinez-herrera');
   });
 
   it('orders by approved earnings, descending', () => {
@@ -24,16 +26,11 @@ describe('leaderboard ranking', () => {
   });
 
   it('does not rank by projected earnings', () => {
-    // Someone with a large projection and no approved money must not outrank
-    // someone with approved money.
-    const withApproved = rows.filter((row) => row.approvedEarnings.amount > 0);
-    const withoutApproved = rows.filter((row) => row.approvedEarnings.amount === 0);
-    const worstApprovedRank = Math.max(...withApproved.map((row) => row.rank));
-    const bestUnapprovedRank = Math.min(...withoutApproved.map((row) => row.rank));
-    expect(worstApprovedRank).toBeLessThan(bestUnapprovedRank);
-
-    // And at least one unranked member does carry a projection, so the case is real.
-    expect(withoutApproved.some((row) => row.projectedEarnings.amount > 0)).toBe(true);
+    const projectedOrder = [...rows]
+      .sort((a, b) => compareMoney(b.projectedEarnings, a.projectedEarnings))
+      .map((row) => row.memberId);
+    expect(rows.some((row) => row.projectedEarnings.amount > 0)).toBe(true);
+    expect(rows.map((row) => row.memberId)).not.toEqual(projectedOrder);
   });
 
   it('never lets paid exceed approved', () => {
@@ -58,6 +55,13 @@ describe('leaderboard ranking', () => {
   it('is readable by a member, not just a founder', async () => {
     const asMember = await syntheticLeaderboardRepository.list(PROTOTYPE_MEMBER);
     expect(asMember.map((row) => row.memberId)).toEqual(rows.map((row) => row.memberId));
+  });
+
+  it('keeps founders excluded for both viewer roles', async () => {
+    const asMember = await syntheticLeaderboardRepository.list(PROTOTYPE_MEMBER);
+    expect(
+      asMember.every((row) => !['luis-ramirez', 'diego-martinez-herrera'].includes(row.slug)),
+    ).toBe(true);
   });
 });
 
@@ -101,6 +105,15 @@ describe('leaderboard provenance', () => {
   it('returns null for an unknown member', async () => {
     expect(
       await syntheticLeaderboardRepository.getProvenance('nadie', PROTOTYPE_FOUNDER),
+    ).toBeNull();
+  });
+
+  it('allows a member to inspect only their own line-level provenance', async () => {
+    expect(
+      await syntheticLeaderboardRepository.getProvenance('sebastian-benitez', PROTOTYPE_MEMBER),
+    ).not.toBeNull();
+    expect(
+      await syntheticLeaderboardRepository.getProvenance('emiliano-pasos', PROTOTYPE_MEMBER),
     ).toBeNull();
   });
 });

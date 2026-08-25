@@ -23,7 +23,7 @@ export function SessionPanel({ role, action }: SessionPanelProps) {
       <p className="text-rail-ink text-sm font-medium">{ROLE_LABEL[role]}</p>
       <button
         type="submit"
-        className="border-rail-line-strong text-rail-muted hover:bg-rail-hover hover:text-rail-ink ease-firma min-h-9 rounded-md border px-3 text-xs font-medium transition-colors duration-150"
+        className="border-rail-line-strong text-rail-muted hover:bg-rail-hover hover:text-rail-ink ease-firma min-h-11 rounded-md border px-3 text-xs font-medium transition-colors duration-150"
       >
         {copy.auth.signOut}
       </button>

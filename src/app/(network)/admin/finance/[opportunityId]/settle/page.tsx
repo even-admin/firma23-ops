@@ -124,7 +124,7 @@ export default async function SettlePage({
           type="button"
           disabled
           aria-describedby="approval-blocked"
-          className="border-line text-faint w-full cursor-not-allowed rounded-md border px-4 py-3 text-sm font-medium sm:w-auto"
+          className="border-line text-faint min-h-11 w-full cursor-not-allowed rounded-md border px-4 py-3 text-sm font-medium sm:w-auto"
         >
           {copy.settle.approve}
         </button>

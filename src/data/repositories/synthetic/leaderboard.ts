@@ -17,21 +17,23 @@ export const syntheticLeaderboardRepository: LeaderboardRepository = {
   async list(_viewer: ViewerContext): Promise<LeaderboardRow[]> {
     const dataset = loadSyntheticDataset();
 
-    const unranked = [...dataset.members.values()].map((member) => {
-      const stats = statsFor(dataset, member.id);
-      return {
-        memberId: member.id,
-        slug: member.slug,
-        displayName: member.displayName,
-        initials: member.initials,
-        approvedEarnings: approvedEarnings(dataset, member.id),
-        paidEarnings: paidEarnings(dataset, member.id),
-        projectedEarnings: projectedEarnings(dataset, member.id),
-        closed: stats.closed,
-        delivered: stats.delivered,
-        onTimeRateBp: stats.onTimeRateBp,
-      };
-    });
+    const unranked = [...dataset.members.values()]
+      .filter((member) => member.role !== 'founder')
+      .map((member) => {
+        const stats = statsFor(dataset, member.id);
+        return {
+          memberId: member.id,
+          slug: member.slug,
+          displayName: member.displayName,
+          initials: member.initials,
+          approvedEarnings: approvedEarnings(dataset, member.id),
+          paidEarnings: paidEarnings(dataset, member.id),
+          projectedEarnings: projectedEarnings(dataset, member.id),
+          closed: stats.closed,
+          delivered: stats.delivered,
+          onTimeRateBp: stats.onTimeRateBp,
+        };
+      });
 
     // Ranked on approved earnings alone. Projections are carried for context and
     // deliberately excluded from the comparison.
@@ -45,10 +47,11 @@ export const syntheticLeaderboardRepository: LeaderboardRepository = {
     return unranked.map((row, index) => ({ rank: index + 1, ...row }));
   },
 
-  async getProvenance(slug: string, _viewer: ViewerContext): Promise<LeaderboardProvenance | null> {
+  async getProvenance(slug: string, viewer: ViewerContext): Promise<LeaderboardProvenance | null> {
     const dataset = loadSyntheticDataset();
     const member = [...dataset.members.values()].find((entry) => entry.slug === slug);
     if (member === undefined) return null;
+    if (viewer.role !== 'founder' && viewer.viewerId !== member.id) return null;
 
     // Only the currently active, unreversed approved original per
     // opportunity — a reversal's own lines and a reversed original's lines

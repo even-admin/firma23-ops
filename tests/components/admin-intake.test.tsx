@@ -20,11 +20,13 @@ if (draft === null) throw new Error('fixture must produce a ready draft');
 
 describe('ContractDraftSummary', () => {
   it('shows every extracted field with its confidence and evidence', () => {
-    render(<ContractDraftSummary draft={draft} />);
+    const { container } = render(<ContractDraftSummary draft={draft} />);
     for (const field of draft.fields) {
       expect(screen.getAllByText(field.value).length).toBeGreaterThan(0);
     }
     expect(screen.getAllByText(copy.admin.intake.evidence).length).toBeGreaterThan(0);
+    expect(container.querySelector('h2')).toHaveTextContent(copy.admin.intake.draftTitle);
+    expect(container.querySelectorAll('h4')).toHaveLength(0);
   });
 
   it('lists missing and ambiguous fields separately from extracted fields', () => {
@@ -71,6 +73,7 @@ describe('ConfirmContractControl', () => {
     await waitFor(() => {
       expect(screen.getByText(copy.admin.intake.confirmed)).toBeInTheDocument();
     });
+    expect(document.activeElement).toBe(screen.getByRole('status'));
     expect(confirmAction).toHaveBeenCalledWith({
       draftId: baseProps.draftId,
       sponsorName: baseProps.sponsorName,
@@ -109,17 +112,26 @@ describe('ConfirmContractControl', () => {
     expect(confirmAction).toHaveBeenCalledTimes(2);
   });
 
-  it('discards a draft without creating anything', async () => {
+  it('requires a second explicit activation before discarding a draft', async () => {
     const confirmAction = vi.fn();
     const discardAction = vi.fn().mockResolvedValue({ kind: 'discarded' });
     render(
-      <ConfirmContractControl {...baseProps} confirmAction={confirmAction} discardAction={discardAction} />,
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={confirmAction}
+        discardAction={discardAction}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+    expect(discardAction).not.toHaveBeenCalled();
+    expect(screen.getByText(copy.admin.intake.discardWarning)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmDiscard }));
     await waitFor(() => {
       expect(screen.getByText(copy.admin.intake.discarded)).toBeInTheDocument();
     });
     expect(confirmAction).not.toHaveBeenCalled();
+    expect(discardAction).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(screen.getByRole('status'));
   });
 
   it('disables confirmation until the manual form is ready, and never shows a discard control for it', () => {
@@ -134,7 +146,9 @@ describe('ConfirmContractControl', () => {
       />,
     );
     expect(screen.getByRole('button', { name: copy.admin.intake.confirm })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: copy.admin.intake.discard })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: copy.admin.intake.discard }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -157,7 +171,9 @@ describe('DocumentIntakePanel', () => {
     const file = new File(['contenido'], 'propuesta.pdf', { type: 'application/pdf' });
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByText(`${copy.admin.intake.selectedFile}: propuesta.pdf`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`${copy.admin.intake.selectedFile}: propuesta.pdf`),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.process }));
 
@@ -165,6 +181,10 @@ describe('DocumentIntakePanel', () => {
       expect(screen.getByText(copy.admin.intake.draftTitle)).toBeInTheDocument();
     });
     expect(screen.getByText(copy.admin.intake.syntheticNotice)).toBeInTheDocument();
+    expect(document.activeElement).toHaveAttribute(
+      'aria-label',
+      copy.admin.intake.readyAnnouncement,
+    );
   });
 
   it('rejects an unsupported file type before ever calling the intake action', () => {
@@ -180,6 +200,7 @@ describe('DocumentIntakePanel', () => {
     // Validation errors have no retry: the same file would fail again.
     expect(screen.queryByRole('button', { name: copy.admin.intake.retry })).not.toBeInTheDocument();
     expect(runIntake).not.toHaveBeenCalled();
+    expect(document.activeElement).toHaveTextContent(copy.admin.intake.fileTypeUnsupported);
   });
 
   it('surfaces a server-side error with a real retry that calls the action again', async () => {
@@ -222,8 +243,6 @@ describe('DocumentIntakePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.ctaManual }));
     expect(screen.getByText(copy.admin.intake.manualTitle)).toBeInTheDocument();
     // Nothing may be confirmed until both fields are filled.
-    expect(
-      screen.getByRole('button', { name: copy.admin.intake.confirm }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: copy.admin.intake.confirm })).toBeDisabled();
   });
 });

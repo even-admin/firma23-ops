@@ -208,3 +208,10 @@ None block V1. Until a later explicit decision:
 - Player Mode remains monochrome;
 - personal spend remains private;
 - founders are excluded from competitive ranking they adjudicate.
+
+V1 leaderboard provenance follows the existing financial authority boundary:
+founders may inspect every approved line; a member may inspect only their own
+line-level provenance. Members may still see eligible team rank and approved
+totals, but never another member's beneficiary, payout, approver, or settlement
+line detail. Until RLS-backed read repositories replace the synthetic adapters,
+configured sessions must carry a persistent non-canonical-data disclosure.

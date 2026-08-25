@@ -1,5 +1,6 @@
 import { copy } from '@/copy/es-MX';
-import { subMoney, sumMoney } from '@/lib/money';
+import type { ApprovedSettlement } from '@/lib/allocation';
+import { subMoney, sumMoney, type Money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
@@ -15,6 +16,15 @@ import type {
   RecordPayoutResult,
   SettlementPreview,
 } from '@/types/views';
+
+export function organizationRecipientApproved(rail: ApprovedSettlement): Money {
+  return sumMoney(
+    rail.segments
+      .filter((segment) => segment.recipientBehavior === 'org_recipient')
+      .map((segment) => segment.amount),
+    rail.base.currency,
+  );
+}
 
 export const syntheticFinanceRepository: FinanceRepository = {
   async getOverview(viewer: ViewerContext): Promise<FinanceOverview> {
@@ -48,10 +58,7 @@ export const syntheticFinanceRepository: FinanceRepository = {
       if (built.rail.kind === 'settlement') {
         approvedBases.push(built.rail.base);
         paidAmounts.push(built.rail.paid);
-        const house = built.rail.segments.find(
-          (segment) => segment.recipientBehavior === 'org_recipient',
-        );
-        if (house !== undefined) houseAmounts.push(house.amount);
+        houseAmounts.push(organizationRecipientApproved(built.rail));
       } else {
         // Projections are totalled separately and never folded into approved money.
         projectedBases.push(built.rail.base);

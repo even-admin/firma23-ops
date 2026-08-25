@@ -41,6 +41,20 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'admin', label: copy.nav.admin, href: '/admin', available: true, founderOnly: true },
 ];
 
+/** Mobile has no nested project branch, so Projects is an explicit destination. */
+export const MOBILE_NAV_ITEMS: readonly NavLeaf[] = [
+  ...NAV_ITEMS.slice(0, 2).map(leafFromNavItem),
+  {
+    key: 'projects',
+    icon: 'projects',
+    label: copy.nav.projects,
+    href: '/projects',
+    available: true,
+    founderOnly: false,
+  },
+  ...NAV_ITEMS.slice(2).map(leafFromNavItem),
+];
+
 export function isActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);

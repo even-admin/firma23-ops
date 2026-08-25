@@ -94,7 +94,7 @@ async function AdminBody() {
                 </span>
                 <Link
                   href={`/admin/finance/${row.opportunity.id}/settle`}
-                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 md:min-h-9"
+                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150"
                 >
                   {copy.finance.review}
                 </Link>

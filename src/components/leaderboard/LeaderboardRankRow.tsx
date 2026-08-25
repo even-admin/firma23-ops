@@ -7,6 +7,7 @@ import type { LeaderboardRow } from '@/types/views';
 
 interface LeaderboardRankRowProps {
   readonly row: LeaderboardRow;
+  readonly showProvenance: boolean;
 }
 
 /**
@@ -14,7 +15,7 @@ interface LeaderboardRankRowProps {
  * the primary row; paid and projected sit below a rule as context that never
  * enters the order.
  */
-export function LeaderboardRankRow({ row }: LeaderboardRankRowProps) {
+export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowProps) {
   return (
     <li className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -61,12 +62,14 @@ export function LeaderboardRankRow({ row }: LeaderboardRankRowProps) {
           <span className="label-micro text-faint">{copy.leaderboard.projected} </span>
           <Amount value={row.projectedEarnings} className="text-muted" />
         </span>
-        <Link
-          href={`/leaderboard/${row.slug}/provenance`}
-          className="text-faint hover:text-ink ml-auto inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4"
-        >
-          {copy.leaderboard.provenance}
-        </Link>
+        {showProvenance ? (
+          <Link
+            href={`/leaderboard/${row.slug}/provenance`}
+            className="text-faint hover:text-ink ml-auto inline-flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4"
+          >
+            {copy.leaderboard.provenance}
+          </Link>
+        ) : null}
       </div>
     </li>
   );
