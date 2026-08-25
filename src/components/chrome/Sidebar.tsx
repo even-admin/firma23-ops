@@ -11,12 +11,12 @@ import { containsActive, isActive, type NavGroup, type NavLeaf } from '@/lib/nav
 import type { ViewerRole } from '@/lib/viewer';
 
 const ROW =
-  'ease-firma group flex items-center rounded-[6px] pr-1.5 transition-colors duration-150';
+  'ease-firma group relative flex min-h-11 items-center rounded-[6px] pr-1.5 transition-colors duration-150';
 const LABEL =
-  'flex min-w-0 flex-1 items-center py-[7px] pr-1 text-[13px] tracking-wide';
+  'flex min-h-11 min-w-0 flex-1 items-center py-[7px] pr-1 text-[13px] tracking-wide';
 const REVEAL =
   'ease-firma opacity-0 transition-[opacity,transform] duration-200 group-hover/sidebar:translate-x-0 group-hover/sidebar:opacity-100 group-focus-within/sidebar:translate-x-0 group-focus-within/sidebar:opacity-100';
-const COLLAPSED_GLYPH_SLOT = 42;
+const COLLAPSED_GLYPH_SLOT = 50;
 const TREE_INDENT = 12;
 
 function enabledFor(item: NavLeaf, role: ViewerRole): boolean {
@@ -42,7 +42,7 @@ function guideLeftFor(level: number): number {
 
 function GlyphSlot({ children }: { readonly children: ReactNode }) {
   return (
-    <span className="flex w-[42px] shrink-0 items-center justify-center">{children}</span>
+    <span className="flex w-[50px] shrink-0 items-center justify-center">{children}</span>
   );
 }
 
@@ -107,7 +107,7 @@ function SidebarItem({ item, role, pathname, level = 0 }: SidebarItemProps) {
           <Link
             href={item.href}
             aria-current={active ? 'page' : undefined}
-            className={LABEL}
+            className={cn(LABEL, hasChildren && 'pr-12')}
             style={{ paddingLeft: indentFor(level) }}
           >
             {content}
@@ -124,7 +124,13 @@ function SidebarItem({ item, role, pathname, level = 0 }: SidebarItemProps) {
         )}
 
         {item.badge !== undefined ? (
-          <span className={cn('translate-x-1', REVEAL)}>
+          <span
+            className={cn(
+              'absolute translate-x-1',
+              hasChildren ? 'right-12' : 'right-1.5',
+              REVEAL,
+            )}
+          >
             <CountBadge value={item.badge} label={copy.nav.pendingApprovals} />
           </span>
         ) : null}
@@ -137,7 +143,7 @@ function SidebarItem({ item, role, pathname, level = 0 }: SidebarItemProps) {
             aria-controls={panelId}
             aria-label={`${open ? copy.nav.collapseGroup : copy.nav.expandGroup} ${item.label}`}
             className={cn(
-              'text-rail-faint hover:text-rail-ink ease-firma ml-1 flex size-6 shrink-0 translate-x-1 items-center justify-center rounded-[4px] opacity-0 transition-[color,opacity,transform] duration-150',
+              'text-rail-faint hover:text-rail-ink ease-firma absolute right-0 flex size-11 shrink-0 translate-x-1 items-center justify-center rounded-[4px] opacity-0 transition-[color,opacity,transform] duration-150',
               'group-hover/sidebar:translate-x-0 group-hover/sidebar:opacity-100 group-focus-within/sidebar:translate-x-0 group-focus-within/sidebar:opacity-100',
             )}
           >
@@ -272,7 +278,7 @@ export function Sidebar({ role, groups, viewerSwitcher, onOpenSearch }: SidebarP
   const pathname = usePathname();
 
   return (
-    <div className="on-rail border-rail-line bg-rail ease-firma mx-3 flex h-full flex-col overflow-hidden rounded-lg border p-3">
+    <div className="on-rail border-rail-line bg-rail ease-firma mx-3 flex h-full flex-col overflow-hidden rounded-lg border p-2">
       <OrgSwitcher role={role} viewerSwitcher={viewerSwitcher} />
 
       <nav

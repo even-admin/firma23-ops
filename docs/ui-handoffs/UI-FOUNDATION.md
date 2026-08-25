@@ -260,32 +260,31 @@ repository/data-layer" bug based on that methodology error; there is no such
 defect, nothing in `src/data/**` or the opportunity route needs attention, and
 no request is warranted for `UI-OPORTUNIDADES` or Integrator on this point.
 
-**Not covered — matrix cells I could not complete this session:**
+## Independent final browser-gate repair
 
-- The full 12-route × {375, 767, 768, 1280} × {founder, member} grid. Given
-  Foundation's actual edits are confined to shared chrome (sidebar, top bar,
-  command palette, skip link), and the contract itself states screenshots and
-  a lane's claims are advisory only — Integrator "must freshly rerun the
-  complete matrix" regardless — I verified the shell-level behaviors above at
-  representative routes rather than exhaustively sweeping all twelve routes
-  at all four widths for both roles. Not a substitute for Integrator's
-  mandatory full run; recorded here as a bounded, honest scope rather than a
-  claim of full coverage.
-- **Mobile viewport (375px) and the floating mobile route bar:** the
-  browser automation's `resize_window` tool reported success but did not
-  actually change the rendered viewport in this session (`window.innerWidth`
-  stayed ~1910px after requesting 375×812, retried twice). Per the guidance
-  not to loop on a non-responsive tool, I stopped after two attempts rather
-  than keep retrying. `MobileTabBar.tsx` and the `md:`-breakpoint classes in
-  `ChromeShell.tsx` were not edited by this work, so regression risk is low,
-  but I did not visually confirm the mobile layout, the floating route bar,
-  or its overlap-avoidance behavior in this session. **Recorded as
-  UNAVAILABLE, not substituted.**
-- **`prefers-reduced-motion: reduce` emulation:** no tool in this session's
-  loaded set could toggle this media feature in the live browser. Verified
-  instead by reading the actual source (see item 5 above) — this is
-  code-review verification, not a live browser observation, and is called out
-  as such rather than conflated with the Mode S browser pass.
+A later Chromium gate completed the previously unavailable matrix and found two
+real shell defects:
+
+1. Restoring a hidden sidebar could immediately trigger its transient hover
+   expansion because the pointer that clicked the TopBar control ended up over
+   the newly visible rail. The shell now suppresses pointer interaction only
+   until the user's next deliberate pointer move. Keyboard focus remains active,
+   the saved mode is `compact`, and hover behavior resumes on that movement.
+2. Several desktop chrome controls were smaller than the launch contract's 44px
+   minimum. Sidebar rows, tree controls, TopBar controls, command results and the
+   command close button now provide 44px targets. The compact rail keeps its
+   exact 92px width and center axis: its inner padding and 50px glyph slot move
+   together, while branch badges and chevrons overlay only the expanded
+   presentation and cannot collapse the primary destination link.
+
+After repair, the ignored browser harness passed all 96 Mode S cells: twelve
+fixture routes, founder and member roles, and exact 375x812, 767x900, 768x900
+and 1280x900 viewports. It also passed sidebar persistence and transient state,
+command focus trapping/repeated-shortcut opener restoration, skip-link focus,
+mobile clearance, projected-money class isolation, stable nonblank reduced-motion
+MeshDrift frames, dynamic browser/HTTP 404s, and zero unexpected console, page or
+network errors. The final integrated candidate must still rerun this matrix; lane
+evidence remains advisory by contract.
 
 ## Mode D (configured Development founder)
 
@@ -297,20 +296,24 @@ the contract (no real invite exists).
 
 ## Screenshots (advisory only)
 
-Under `.context/qa/UI-FOUNDATION/dc54699b9c9be84504af237562cca6c12b1626ef/`
-(git-ignored, local only):
-
-- `UI-FOUNDATION-modeS-founder-home-1910x990-compact-resting.jpg`
-- `UI-FOUNDATION-modeS-founder-home-1910x990-compact-hover-expanded.jpg`
-
-Widths reflect the real (unrequested) viewport the browser tool actually
-rendered at, not the contract's exact checkpoints — see the mobile-viewport
-limitation above. These are local, disposable aids only, not acceptance
-evidence.
+The final gate produced 26 advisory PNGs plus its JSON result under
+`.context/qa/UI-FOUNDATION/<candidate-sha>/` (git-ignored, local only), using
+route/role/exact-viewport filenames required by the launch contract.
 
 ## Shared / cross-ownership requests
 
-`none`. No frozen or Integrator-owned surface needed a change for this work.
+- `UI-OPORTUNIDADES`: the member-denied presentation for
+  `/opportunities/f0000000-0000-4000-8000-000000000001` has no `h1`. Resolve
+  it inside the route-owned presentation; do not turn every shared
+  `PermissionDenied` instance into an `h1` because list routes already provide
+  their own page heading.
+- `UI-ADMIN`: the member-denied presentation for
+  `/admin/finance/f0000000-0000-4000-8000-000000000001/settle` has the same
+  missing-`h1` issue and needs the analogous route-owned fix.
+
+These are pre-existing route composition findings, not Foundation regressions.
+They remain mandatory before the final integrated candidate can pass the complete
+heading contract.
 
 ## Confirmation
 

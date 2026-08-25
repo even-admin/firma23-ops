@@ -100,6 +100,12 @@ describe('ChromeShell sidebar persistence', () => {
     expect(storage.getItem(SIDEBAR_MODE_KEY)).toBe('compact');
     await waitFor(() => {
       expect(document.getElementById('firma23-sidebar')).not.toHaveAttribute('inert');
+      expect(document.getElementById('firma23-sidebar')).toHaveClass('pointer-events-none');
+    });
+
+    fireEvent.pointerMove(window);
+    await waitFor(() => {
+      expect(document.getElementById('firma23-sidebar')).not.toHaveClass('pointer-events-none');
     });
   });
 

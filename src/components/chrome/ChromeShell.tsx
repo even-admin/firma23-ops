@@ -87,10 +87,28 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
   );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchOpener, setSearchOpener] = useState<HTMLElement | null>(null);
+  const [suppressSidebarPointer, setSuppressSidebarPointer] = useState(false);
 
   const toggleSidebar = () => {
+    if (sidebarMode === 'hidden') setSuppressSidebarPointer(true);
     writeStoredSidebarMode(sidebarMode === 'hidden' ? 'compact' : 'hidden');
   };
+
+  useEffect(() => {
+    if (!suppressSidebarPointer) return;
+
+    // The control that restores a hidden rail sits where the rail will appear.
+    // Without this one-move guard, the unchanged pointer position immediately
+    // matches :hover and turns a requested compact restore into a 292px flash.
+    // Keyboard focus is unaffected; the first deliberate pointer move restores
+    // ordinary hover behavior.
+    const restorePointer = () => setSuppressSidebarPointer(false);
+    window.addEventListener('pointermove', restorePointer, { once: true });
+
+    return () => {
+      window.removeEventListener('pointermove', restorePointer);
+    };
+  }, [suppressSidebarPointer]);
 
   // Captured here, before `searchOpen` flips and the rest of the shell goes
   // `inert`: a browser blurs the focused element the instant it becomes
@@ -148,6 +166,7 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
           inert={sidebarMode === 'hidden'}
           className={cn(
             'group/sidebar bg-rail ease-firma sticky top-0 hidden h-dvh shrink-0 overflow-hidden py-3 transition-[width,opacity] duration-300 md:block',
+            suppressSidebarPointer && 'pointer-events-none',
             sidebarMode === 'compact'
               ? 'w-[92px] opacity-100 hover:w-[292px] focus-within:w-[292px]'
               : 'w-0 opacity-0',

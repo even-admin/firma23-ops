@@ -29,7 +29,7 @@ export function TopBar({ sidebarOpen, onToggleSidebar, onOpenSearch, breadcrumb 
           aria-expanded={sidebarOpen}
           aria-label={sidebarOpen ? copy.nav.hide : copy.nav.show}
           title={sidebarOpen ? copy.nav.hide : copy.nav.show}
-          className="text-faint hover:bg-raised hover:text-ink ease-firma hidden rounded-md border border-transparent p-1.5 transition-colors duration-150 md:block"
+          className="text-faint hover:bg-raised hover:text-ink ease-firma hidden size-11 items-center justify-center rounded-md border border-transparent transition-colors duration-150 md:flex"
         >
           <ChromeIcon
             name={sidebarOpen ? 'panel-left-close' : 'panel-left-open'}
@@ -60,7 +60,7 @@ export function TopBar({ sidebarOpen, onToggleSidebar, onOpenSearch, breadcrumb 
         type="button"
         onClick={onOpenSearch}
         aria-label={copy.search.open}
-        className="border-line text-faint hover:border-line-strong hover:bg-surface hover:text-muted ease-firma flex h-10 items-center gap-2 rounded-md border bg-bg px-2.5 transition-colors duration-150 sm:w-64"
+        className="border-line text-faint hover:border-line-strong hover:bg-surface hover:text-muted ease-firma flex h-11 items-center gap-2 rounded-md border bg-bg px-2.5 transition-colors duration-150 sm:w-64"
       >
         <ChromeIcon name="search" className="size-4 shrink-0" />
         <span className="hidden text-[13px] sm:inline">{copy.search.open}</span>

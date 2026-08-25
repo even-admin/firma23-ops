@@ -200,7 +200,7 @@ export function CommandPalette({ onClose, groups, role, opener }: CommandPalette
             type="button"
             onClick={onClose}
             aria-label={copy.search.close}
-            className="text-faint hover:bg-raised hover:text-ink ease-firma ml-3 rounded-md p-1 transition-colors duration-150"
+            className="text-faint hover:bg-raised hover:text-ink ease-firma ml-1 flex size-11 shrink-0 items-center justify-center rounded-md transition-colors duration-150"
           >
             <ChromeIcon name="x" className="size-[18px]" />
           </button>
@@ -221,7 +221,7 @@ export function CommandPalette({ onClose, groups, role, opener }: CommandPalette
                   onMouseEnter={() => setCursor(index)}
                   aria-current={index === cursor ? 'true' : undefined}
                   className={cn(
-                    'ease-firma flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-[7px] text-left transition-colors duration-150',
+                    'ease-firma flex min-h-11 w-full items-center gap-2.5 rounded-[6px] px-2.5 py-[7px] text-left transition-colors duration-150',
                     index === cursor ? 'bg-raised text-ink-strong' : 'text-muted',
                   )}
                 >
