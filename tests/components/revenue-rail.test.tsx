@@ -8,7 +8,11 @@ import { copy } from '@/copy/es-MX';
 import { PROTOTYPE_FOUNDER } from '@/data/prototype-viewers';
 import { syntheticSettlementRepository } from '@/data/repositories/synthetic/settlements';
 import type { OpportunityRailCard } from '@/data/repositories/settlements';
-import type { AllocationProjection, ApprovedSettlement } from '@/lib/allocation';
+import type {
+  AllocationProjection,
+  ApprovedSettlement,
+  CorrectionRequired,
+} from '@/lib/allocation';
 import { money } from '@/lib/money';
 
 let projected: AllocationProjection;
@@ -141,5 +145,26 @@ describe('RevenueRail, approved', () => {
     const { container } = render(<RevenueRail model={settled} variant="row" />);
     expect(container.querySelector('[data-rail-kind="settlement"]')).not.toBeNull();
     expect(container.querySelector('[data-variant="row"]')).not.toBeNull();
+  });
+});
+
+describe('RevenueRail, correction required', () => {
+  const correction: CorrectionRequired = {
+    kind: 'correction_required',
+    reversedSettlementId: 'settlement-original',
+    reversalSettlementId: 'settlement-reversal',
+    ruleVersionId: 'rule-1',
+    ruleVersion: 1,
+    reversedAt: '2026-08-25T00:00:00.000Z',
+  };
+
+  it('renders an attention state without projection, approval, or money', () => {
+    const { container } = render(<RevenueRail model={correction} />);
+    expect(screen.getByLabelText(copy.rail.correctionAria)).toBeInTheDocument();
+    expect(screen.getByText(copy.rail.correctionRequired)).toBeInTheDocument();
+    expect(screen.queryByText(copy.money.projected)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.money.approved)).not.toBeInTheDocument();
+    expect(container.querySelector('data.tnum')).toBeNull();
+    expect(container.querySelectorAll('[class*="money"]')).toHaveLength(0);
   });
 });

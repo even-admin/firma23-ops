@@ -31,6 +31,26 @@ const SEGMENT_LAYOUT: Record<RevenueRailVariant, string> = {
 };
 
 export function RevenueRail({ model, variant = 'row', className }: RevenueRailProps) {
+  if (model.kind === 'correction_required') {
+    return (
+      <section
+        className={cn('border-attention/50 flex flex-col gap-3 rounded-md border p-4', className)}
+        data-variant={variant}
+        data-rail-kind={model.kind}
+        aria-label={copy.rail.correctionAria}
+      >
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="label-micro text-ink-strong font-semibold">{copy.rail.label}</p>
+          <RailStateBadge state="correction_required" />
+          <span className="text-faint text-xs">
+            {copy.money.rulePrefix} v{model.ruleVersion}
+          </span>
+        </header>
+        <p className="text-attention text-sm">{copy.rail.correctionDetail}</p>
+      </section>
+    );
+  }
+
   const settled = model.kind === 'settlement';
   const showBase = variant === 'detail' || variant === 'approval' || variant === 'provenance';
 

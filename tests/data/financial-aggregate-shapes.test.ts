@@ -22,6 +22,43 @@ const MEMBER_LINE_ID = '40000000-0000-4000-8000-000000000003';
 const REISSUED_SETTLEMENT_ID = '20000000-0000-4000-8000-000000000100';
 const REISSUED_MEMBER_LINE_ID = '49100000-0000-4000-8000-000000000003';
 
+function assertPayoutFixturesValid(dataset: SyntheticDataset): void {
+  const payoutEvents = dataset.cashEvents.filter((event) => event.type === 'payout');
+  const eventsById = new Map(payoutEvents.map((event) => [event.id, event]));
+  const linesById = new Map(dataset.settlementLines.map((line) => [line.id, line]));
+  const settlementsById = new Map(
+    dataset.settlements.map((settlement) => [settlement.id, settlement]),
+  );
+
+  for (const event of payoutEvents) {
+    const allocations = dataset.settlementLinePayouts.filter(
+      (allocation) => allocation.payoutCashEventId === event.id,
+    );
+    const allocated = allocations.reduce(
+      (total, allocation) => total + allocation.amount.amount,
+      0,
+    );
+    if (allocations.length === 0 || allocated !== -event.amount.amount) {
+      throw new Error(`payout event ${event.id} does not reconcile`);
+    }
+  }
+  for (const allocation of dataset.settlementLinePayouts) {
+    const event = eventsById.get(allocation.payoutCashEventId);
+    const line = linesById.get(allocation.settlementLineId);
+    const settlement = line === undefined ? undefined : settlementsById.get(line.settlementId);
+    if (
+      event === undefined ||
+      line === undefined ||
+      settlement === undefined ||
+      event.opportunityId !== settlement.opportunityId ||
+      event.amount.currency !== allocation.amount.currency ||
+      line.amount.currency !== allocation.amount.currency
+    ) {
+      throw new Error(`payout allocation ${allocation.id} violates event/line authority`);
+    }
+  }
+}
+
 function withPaidMemberAndReversal({
   reissue,
   transfer = false,
@@ -130,7 +167,7 @@ function withPaidMemberAndReversal({
         })
       : [];
 
-  return {
+  const dataset: SyntheticDataset = {
     ...original,
     assignments: original.assignments.map((assignment) =>
       reissueMemberId !== PROTOTYPE_MEMBER.viewerId &&
@@ -153,6 +190,8 @@ function withPaidMemberAndReversal({
       ...transferAllocations,
     ],
   };
+  assertPayoutFixturesValid(dataset);
+  return dataset;
 }
 
 describe('financial aggregate shapes', () => {
@@ -235,7 +274,19 @@ describe('financial aggregate shapes', () => {
           idempotencyKey: 'partial-payout-shape-test',
         },
       ],
+      cashEvents: [
+        ...original.cashEvents,
+        {
+          id: '30000000-0000-4000-8000-000000000099',
+          opportunityId,
+          type: 'payout' as const,
+          label: 'Pago parcial de prueba',
+          amount: money(-50_000),
+          occurredAt: '2026-08-25',
+        },
+      ],
     };
+    assertPayoutFixturesValid(dataset);
 
     const home = buildPersonalHome(dataset, PROTOTYPE_MEMBER);
     const settled = home.assignments.filter((entry) => entry.opportunityId === opportunityId);
@@ -245,9 +296,12 @@ describe('financial aggregate shapes', () => {
       'Cierre',
       'Producción audiovisual',
     ]);
-    expect(settled.map((entry) => entry.money.amount.amount).sort((a, b) => a - b)).toEqual([
-      179_454, 179_454,
-    ]);
+    expect(settled.every((entry) => entry.money.kind === 'approved')).toBe(true);
+    expect(
+      settled
+        .map((entry) => (entry.money.kind === 'approved' ? entry.money.amount.amount : 0))
+        .sort((a, b) => a - b),
+    ).toEqual([179_454, 179_454]);
     expect(home.money.approved.amount).toBe(358_908);
     expect(home.money.paid.amount).toBe(229_454);
     expect(home.money.approvedUnpaid.amount).toBe(129_454);
@@ -255,16 +309,34 @@ describe('financial aggregate shapes', () => {
   });
 
   it('preserves paid cash and exposes recovery after an approved settlement reversal', () => {
+    const baseline = loadSyntheticDataset();
+    const baselineHome = buildPersonalHome(baseline, PROTOTYPE_MEMBER);
+    const baselineFinance = buildFinanceOverview(baseline, PROTOTYPE_FOUNDER);
+    const baselineRow = buildLeaderboardRows(baseline, PROTOTYPE_FOUNDER).find(
+      (row) => row.memberId === PROTOTYPE_MEMBER.viewerId,
+    );
     const dataset = withPaidMemberAndReversal({ reissue: false });
     const home = buildPersonalHome(dataset, PROTOTYPE_MEMBER);
     const finance = buildFinanceOverview(dataset, PROTOTYPE_FOUNDER);
+    const row = buildLeaderboardRows(dataset, PROTOTYPE_FOUNDER).find(
+      (entry) => entry.memberId === PROTOTYPE_MEMBER.viewerId,
+    );
     const reversedRow = finance.rows.find((row) => row.opportunity.id === SETTLED_OPPORTUNITY_ID);
 
     expect(home.money.approved.amount).toBe(0);
     expect(home.money.paid.amount).toBe(179_454);
     expect(home.money.approvedUnpaid.amount).toBe(0);
     expect(home.money.recovery.amount).toBe(179_454);
-    expect(reversedRow?.rail.kind).toBe('projection');
+    expect(reversedRow?.rail.kind).toBe('correction_required');
+    expect(
+      home.assignments.find((assignment) => assignment.opportunityId === SETTLED_OPPORTUNITY_ID)
+        ?.money.kind,
+    ).toBe('correction_required');
+    expect(home.money.projected).toEqual(baselineHome.money.projected);
+    expect(finance.totals.distributableProjected).toEqual(
+      baselineFinance.totals.distributableProjected,
+    );
+    expect(row?.projectedEarnings).toEqual(baselineRow?.projectedEarnings);
     expect(finance.totals.paidOut.amount).toBeGreaterThanOrEqual(628_089);
     expect(finance.totals.recovery.amount).toBe(628_089);
     expect(finance.totals.owed.amount).toBeGreaterThanOrEqual(0);
@@ -336,10 +408,14 @@ describe('financial aggregate shapes', () => {
     const crossOpportunity = withPaidMemberAndReversal({ reissue: false });
     const withUnpaidOtherOpportunity = {
       ...crossOpportunity,
+      cashEvents: crossOpportunity.cashEvents.filter(
+        (event) => event.id !== '30000000-0000-4000-8000-000000000034',
+      ),
       settlementLinePayouts: crossOpportunity.settlementLinePayouts.filter(
         (payout) => payout.id !== '50000000-0000-4000-8000-000000000011',
       ),
     };
+    assertPayoutFixturesValid(withUnpaidOtherOpportunity);
     const finance = buildFinanceOverview(withUnpaidOtherOpportunity, PROTOTYPE_FOUNDER);
     expect(finance.totals.recovery.amount).toBe(628_089);
     expect(finance.totals.owed.amount).toBe(625_000);

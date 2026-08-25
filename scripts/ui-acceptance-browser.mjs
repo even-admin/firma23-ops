@@ -147,6 +147,13 @@ async function inspectInteractiveState(scope, label) {
     );
     const focused = document.activeElement;
     const focusedRect = focused instanceof HTMLElement ? focused.getBoundingClientRect() : null;
+    const focusedHit =
+      focusedRect === null
+        ? null
+        : document.elementFromPoint(
+            Math.max(0, Math.min(window.innerWidth - 1, focusedRect.left + focusedRect.width / 2)),
+            Math.max(0, Math.min(window.innerHeight - 1, focusedRect.top + focusedRect.height / 2)),
+          );
     return {
       stateLabel,
       controls,
@@ -157,8 +164,22 @@ async function inspectInteractiveState(scope, label) {
           ? {
               tag: focused.tagName,
               text: focused.textContent?.trim().slice(0, 100) ?? '',
+              message:
+                focused.querySelector(':scope > p')?.textContent?.trim() ??
+                focused.textContent?.trim() ??
+                '',
               outcome: focused.dataset.adminOutcome ?? null,
+              role: focused.getAttribute('role'),
+              ariaLive: focused.getAttribute('aria-live'),
+              ariaAtomic: focused.getAttribute('aria-atomic'),
               visible: visible(focused),
+              inViewport:
+                focusedRect !== null &&
+                focusedRect.top >= 0 &&
+                focusedRect.left >= 0 &&
+                focusedRect.bottom <= window.innerHeight &&
+                focusedRect.right <= window.innerWidth,
+              unobscured: focusedHit !== null && focused.contains(focusedHit),
               rect: focusedRect,
             }
           : null,
@@ -506,6 +527,8 @@ async function matrix(browser) {
 }
 
 async function runInteractions(browser) {
+  const screenshotDir = path.join(receiptDir, 'screenshots');
+  await fs.mkdir(screenshotDir, { recursive: true });
   const context = await browser.newContext({ viewport: { width: 1280, height } });
   await context.addCookies([
     {
@@ -586,21 +609,101 @@ async function runInteractions(browser) {
     await sidebar.hover();
     await page.waitForTimeout(350);
     const hoverWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+    const hoverGeometry = await page.evaluate(() => {
+      const rail = document.querySelector('#firma23-sidebar');
+      const panel = rail?.firstElementChild;
+      const main = document.querySelector('#main-content');
+      const heading = main?.querySelector('h1');
+      if (
+        !(rail instanceof HTMLElement) ||
+        !(panel instanceof HTMLElement) ||
+        !(main instanceof HTMLElement) ||
+        !(heading instanceof HTMLElement)
+      ) {
+        return null;
+      }
+      const railRect = rail.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const mainRect = main.getBoundingClientRect();
+      const headingRect = heading.getBoundingClientRect();
+      const headingHit = document.elementFromPoint(
+        Math.max(0, Math.min(window.innerWidth - 1, headingRect.left + headingRect.width / 2)),
+        Math.max(0, Math.min(window.innerHeight - 1, headingRect.top + headingRect.height / 2)),
+      );
+      return {
+        rail: { left: railRect.left, right: railRect.right, width: railRect.width },
+        panel: { left: panelRect.left, right: panelRect.right },
+        main: { left: mainRect.left, right: mainRect.right, width: mainRect.width },
+        heading: {
+          left: headingRect.left,
+          right: headingRect.right,
+          top: headingRect.top,
+          bottom: headingRect.bottom,
+          visible:
+            headingRect.left >= 0 &&
+            headingRect.right <= window.innerWidth &&
+            headingRect.top >= 0 &&
+            headingRect.bottom <= window.innerHeight,
+          unobscured: headingHit !== null && heading.contains(headingHit),
+        },
+        panelBorderRightWidth: Number.parseFloat(getComputedStyle(panel).borderRightWidth),
+      };
+    });
     await page.mouse.move(width - 10, 400);
     await sidebar.locator('a[href="/projects"]').focus();
     await page.waitForTimeout(350);
     const focusWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+    const focusedControl = await page.evaluate(() => {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement)) return null;
+      const rect = active.getBoundingClientRect();
+      return {
+        href: active.getAttribute('href'),
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        visible:
+          rect.left >= 0 &&
+          rect.right <= window.innerWidth &&
+          rect.top >= 0 &&
+          rect.bottom <= window.innerHeight,
+      };
+    });
     const expandedOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
-    sidebarMeasurements.push({ width, compactWidth, hoverWidth, focusWidth, expandedOverflow });
+    if (width === 768) {
+      await page.screenshot({
+        path: path.join(screenshotDir, `sidebar-expanded-${width}x${height}.png`),
+        fullPage: true,
+      });
+    }
+    sidebarMeasurements.push({
+      width,
+      compactWidth,
+      hoverWidth,
+      focusWidth,
+      expandedOverflow,
+      hoverGeometry,
+      focusedControl,
+    });
   }
   const invalidSidebarMeasurement = sidebarMeasurements.find(
     (measurement) =>
       measurement.compactWidth !== 92 ||
       measurement.hoverWidth !== 292 ||
       measurement.focusWidth !== 292 ||
-      measurement.expandedOverflow > 0,
+      measurement.expandedOverflow > 0 ||
+      measurement.hoverGeometry === null ||
+      measurement.hoverGeometry.rail.right > measurement.hoverGeometry.main.left + 0.5 ||
+      measurement.hoverGeometry.panel.left < measurement.hoverGeometry.rail.left ||
+      measurement.hoverGeometry.panel.right > measurement.hoverGeometry.rail.right ||
+      measurement.hoverGeometry.panelBorderRightWidth < 1 ||
+      !measurement.hoverGeometry.heading.visible ||
+      !measurement.hoverGeometry.heading.unobscured ||
+      measurement.focusedControl?.href !== '/projects' ||
+      !measurement.focusedControl.visible,
   );
   const sidebar = page.locator('#firma23-sidebar');
   const toggle = page.getByRole('button', { name: 'Ocultar menú lateral' });
@@ -722,7 +825,7 @@ async function runInteractions(browser) {
   await reduced.close();
 }
 
-function assertAdminInspection(name, inspection, expectedOutcome = null) {
+function assertAdminInspection(name, inspection, expectedOutcome = null, expectedText = null) {
   const undersized = inspection.controls.filter(
     (control) => control.width < 44 || control.height < 44,
   );
@@ -734,18 +837,101 @@ function assertAdminInspection(name, inspection, expectedOutcome = null) {
   );
   assert(inspection.overflow <= 0, `${name} has horizontal overflow`, inspection.overflow);
   if (expectedOutcome !== null) {
+    const expectedError = expectedOutcome.endsWith('error');
     assert(
-      inspection.focused?.outcome === expectedOutcome && inspection.focused.visible,
+      inspection.focused?.outcome === expectedOutcome &&
+        inspection.focused.visible &&
+        inspection.focused.inViewport &&
+        inspection.focused.unobscured &&
+        inspection.focused.role === (expectedError ? 'alert' : 'status') &&
+        inspection.focused.ariaLive === (expectedError ? 'assertive' : 'polite') &&
+        inspection.focused.ariaAtomic === 'true' &&
+        (expectedText === null || inspection.focused.message === expectedText),
       `${name} did not focus ${expectedOutcome}`,
       inspection.focused,
     );
   }
 }
 
-async function proveAdminRetry(page, scenario, scenarioName, retryName, outcome, attemptAttribute) {
+async function assertAdminPending(page, scenario, name, kind, expectedText) {
+  await scenario.locator('[data-admin-pending="true"]').waitFor();
+  const pending = scenario.locator(`[data-admin-pending-status="${kind}"]`);
+  await pending.waitFor();
+  const pendingHandle = await pending.elementHandle();
+  assert(pendingHandle !== null, `${name} pending status did not mount`);
+  if (pendingHandle !== null) {
+    await page.waitForFunction((element) => {
+      const rect = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        Math.max(0, Math.min(window.innerWidth - 1, rect.left + rect.width / 2)),
+        Math.max(0, Math.min(window.innerHeight - 1, rect.top + rect.height / 2)),
+      );
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= window.innerHeight &&
+        rect.right <= window.innerWidth &&
+        hit !== null &&
+        element.contains(hit)
+      );
+    }, pendingHandle);
+  }
+  const state = await pending.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+      Math.max(0, Math.min(window.innerWidth - 1, rect.left + rect.width / 2)),
+      Math.max(0, Math.min(window.innerHeight - 1, rect.top + rect.height / 2)),
+    );
+    return {
+      text: element.textContent?.trim() ?? '',
+      role: element.getAttribute('role'),
+      ariaLive: element.getAttribute('aria-live'),
+      ariaAtomic: element.getAttribute('aria-atomic'),
+      visible: rect.width > 0 && rect.height > 0,
+      inViewport:
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= window.innerHeight &&
+        rect.right <= window.innerWidth,
+      unobscured: hit !== null && element.contains(hit),
+    };
+  });
+  const inspection = await inspectInteractiveState(scenario, `${name}-pending`);
+  assertAdminInspection(`${name}-pending`, inspection);
+  assert(
+    state.text === expectedText &&
+      state.role === 'status' &&
+      state.ariaLive === 'polite' &&
+      state.ariaAtomic === 'true' &&
+      state.visible &&
+      state.inViewport &&
+      state.unobscured,
+    `${name} pending state is not visible and announced`,
+    state,
+  );
+  await page.waitForTimeout(0);
+  return state;
+}
+
+async function proveAdminRetry(
+  page,
+  scenario,
+  scenarioName,
+  retryName,
+  outcome,
+  attemptAttribute,
+  pendingKind,
+  pendingText,
+) {
   const before = Number(await scenario.getAttribute(attemptAttribute));
   await scenario.getByRole('button', { name: retryName }).click();
-  await scenario.locator('[data-admin-pending="true"]').waitFor();
+  const pending = await assertAdminPending(
+    page,
+    scenario,
+    `${scenarioName}-retry`,
+    pendingKind,
+    pendingText,
+  );
   await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor({ state: 'hidden' });
   await page.waitForFunction(
     ({ selector, attribute, expected }) =>
@@ -764,7 +950,7 @@ async function proveAdminRetry(page, scenario, scenarioName, retryName, outcome,
     after,
     attemptAttribute,
   });
-  return { before, after };
+  return { before, after, pending };
 }
 
 async function runAdminAcceptance(browser) {
@@ -873,51 +1059,110 @@ async function runAdminAcceptance(browser) {
     assert(errorFocused, `admin intake error was not focused at ${width}`);
 
     const confirmExpected = {
-      'confirm-success': 'confirmed',
-      'confirm-unavailable': 'confirm-unavailable',
-      'confirm-error': 'confirm-error',
-      'confirm-rejected': 'confirm-error',
+      'confirm-success': { outcome: 'confirmed', text: 'Contrato confirmado.' },
+      'confirm-unavailable': {
+        outcome: 'confirm-unavailable',
+        text: 'Confirmación no disponible.',
+      },
+      'confirm-error': { outcome: 'confirm-error', text: 'Error de confirmación.' },
+      'confirm-rejected': {
+        outcome: 'confirm-error',
+        text: 'No pudimos confirmar el contrato. El borrador sigue disponible.',
+      },
     };
-    for (const [scenarioName, outcome] of Object.entries(confirmExpected)) {
+    for (const [scenarioName, expected] of Object.entries(confirmExpected)) {
       const scenario = page.locator(`[data-admin-scenario="${scenarioName}"]`);
       await scenario.getByRole('button', { name: 'Confirmar contrato existente' }).click();
-      await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      const pending = await assertAdminPending(
+        page,
+        scenario,
+        `${scenarioName}-${width}`,
+        'confirm',
+        'Confirmando contrato…',
+      );
+      interactions.push({ name: 'admin-confirm-pending', width, scenarioName, pending });
+      await scenario.locator(`[data-admin-outcome="${expected.outcome}"]`).waitFor();
       inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
-      assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
-      if (outcome === 'confirm-error') {
+      assertAdminInspection(
+        `${scenarioName}-${width}`,
+        inspection,
+        expected.outcome,
+        expected.text,
+      );
+      if (expected.outcome === 'confirm-error') {
         const retry = await proveAdminRetry(
           page,
           scenario,
           scenarioName,
           'Reintentar',
-          outcome,
+          expected.outcome,
           'data-confirm-attempts',
+          'confirm',
+          'Confirmando contrato…',
+        );
+        inspection = await inspectInteractiveState(scenario, `${scenarioName}-retry-${width}`);
+        assertAdminInspection(
+          `${scenarioName}-retry-${width}`,
+          inspection,
+          expected.outcome,
+          expected.text,
         );
         interactions.push({ name: 'admin-confirm-retry', width, scenarioName, ...retry });
       }
     }
 
     const discardExpected = {
-      'discard-success': 'discarded',
-      'discard-unavailable': 'discard-unavailable',
-      'discard-error': 'discard-error',
-      'discard-rejected': 'discard-error',
+      'discard-success': {
+        outcome: 'discarded',
+        text: 'Borrador descartado. No se creó ningún contrato.',
+      },
+      'discard-unavailable': {
+        outcome: 'discard-unavailable',
+        text: 'Descarte no disponible.',
+      },
+      'discard-error': { outcome: 'discard-error', text: 'Error de descarte.' },
+      'discard-rejected': {
+        outcome: 'discard-error',
+        text: 'No pudimos descartar el borrador. Consérvalo o reintenta.',
+      },
     };
-    for (const [scenarioName, outcome] of Object.entries(discardExpected)) {
+    for (const [scenarioName, expected] of Object.entries(discardExpected)) {
       const scenario = page.locator(`[data-admin-scenario="${scenarioName}"]`);
       await scenario.getByRole('button', { name: 'Descartar borrador' }).click();
       await scenario.getByRole('button', { name: 'Confirmar descarte' }).click();
-      await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      const pending = await assertAdminPending(
+        page,
+        scenario,
+        `${scenarioName}-${width}`,
+        'discard',
+        'Descartando borrador…',
+      );
+      interactions.push({ name: 'admin-discard-pending', width, scenarioName, pending });
+      await scenario.locator(`[data-admin-outcome="${expected.outcome}"]`).waitFor();
       inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
-      assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
-      if (outcome !== 'discarded') {
+      assertAdminInspection(
+        `${scenarioName}-${width}`,
+        inspection,
+        expected.outcome,
+        expected.text,
+      );
+      if (expected.outcome !== 'discarded') {
         const retry = await proveAdminRetry(
           page,
           scenario,
           scenarioName,
           'Reintentar descarte',
-          outcome,
+          expected.outcome,
           'data-discard-attempts',
+          'discard',
+          'Descartando borrador…',
+        );
+        inspection = await inspectInteractiveState(scenario, `${scenarioName}-retry-${width}`);
+        assertAdminInspection(
+          `${scenarioName}-retry-${width}`,
+          inspection,
+          expected.outcome,
+          expected.text,
         );
         interactions.push({ name: 'admin-discard-retry', width, scenarioName, ...retry });
       }
@@ -973,6 +1218,7 @@ async function browser404(browser) {
       status: response?.status(),
       visible,
     });
+    await page.waitForTimeout(50);
     const expectedConsoleErrors = health.events.filter(
       (event) =>
         event.type === 'console.error' &&
@@ -1023,6 +1269,7 @@ async function browser404(browser) {
     'member-other provenance must not expose line detail',
     other?.status(),
   );
+  await memberPage.waitForTimeout(50);
   const expectedMemberConsoleErrors = memberHealth.events.filter(
     (event) =>
       event.type === 'console.error' &&

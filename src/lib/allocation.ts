@@ -105,12 +105,27 @@ export interface ApprovedSettlement {
 }
 
 /**
- * The only type a money-bearing component ever receives.
+ * An approved original was reversed and no pending replacement exists yet.
+ * This state intentionally carries no money or segments: a correction gap is
+ * neither a new projection nor an approved allocation.
+ */
+export interface CorrectionRequired {
+  readonly kind: 'correction_required';
+  readonly reversedSettlementId: string;
+  readonly reversalSettlementId: string;
+  readonly ruleVersionId: string;
+  readonly ruleVersion: number;
+  readonly reversedAt: string;
+}
+
+/**
+ * The complete rail-state contract consumed by allocation surfaces.
  *
  * Discriminating on `kind` is what makes "projected shown as approved" a type
- * error rather than a code review question.
+ * error rather than a code review question. `correction_required` deliberately
+ * carries no money at all.
  */
-export type RailModel = AllocationProjection | ApprovedSettlement;
+export type RailModel = AllocationProjection | ApprovedSettlement | CorrectionRequired;
 
 export function resolveDistributableBase(
   policy: BasePolicy,

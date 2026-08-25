@@ -41,7 +41,8 @@ export interface MemberMoney {
 /** Per-row money keeps the same firewall the rail uses. */
 export type AssignmentMoney =
   | { readonly kind: 'projected'; readonly amount: Money }
-  | { readonly kind: 'approved'; readonly amount: Money; readonly payoutStatus: PayoutStatus };
+  | { readonly kind: 'approved'; readonly amount: Money; readonly payoutStatus: PayoutStatus }
+  | { readonly kind: 'correction_required' };
 
 export interface HomeAssignment {
   readonly opportunityId: string;

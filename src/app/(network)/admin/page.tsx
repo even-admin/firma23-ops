@@ -32,7 +32,7 @@ async function AdminBody() {
     syntheticProjectRepository.list(viewer),
   ]);
 
-  const attention = overview.rows.filter((row) => row.rail.kind === 'projection');
+  const attention = overview.rows.filter((row) => row.rail.kind !== 'settlement');
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">

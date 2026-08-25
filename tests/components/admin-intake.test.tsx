@@ -74,6 +74,7 @@ describe('ConfirmContractControl', () => {
       expect(screen.getByText(copy.admin.intake.confirmed)).toBeInTheDocument();
     });
     expect(document.activeElement).toBe(screen.getByRole('status'));
+    expect(screen.getByRole('status')).toHaveAttribute('aria-atomic', 'true');
     expect(confirmAction).toHaveBeenCalledWith({
       draftId: baseProps.draftId,
       sponsorName: baseProps.sponsorName,
@@ -94,6 +95,25 @@ describe('ConfirmContractControl', () => {
     });
     expect(screen.queryByText(copy.admin.intake.confirmed)).not.toBeInTheDocument();
     expect(document.activeElement).toHaveAttribute('data-admin-outcome', 'confirm-unavailable');
+  });
+
+  it('announces confirmation progress while the action is pending', async () => {
+    let resolveAction: ((result: { kind: 'unavailable'; reason: string }) => void) | undefined;
+    const confirmAction = vi.fn(
+      () =>
+        new Promise<{ kind: 'unavailable'; reason: string }>((resolve) => {
+          resolveAction = resolve;
+        }),
+    );
+    render(<ConfirmContractControl {...baseProps} confirmAction={confirmAction} />);
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmMatched }));
+    await waitFor(() => expect(screen.getByText(copy.admin.intake.confirmPending)).toBeVisible());
+    const pending = screen.getByRole('status');
+    expect(pending).toHaveAttribute('aria-live', 'polite');
+    expect(pending.closest('section')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: copy.admin.intake.confirmMatched })).toBeDisabled();
+    resolveAction?.({ kind: 'unavailable', reason: 'No disponible.' });
+    await waitFor(() => expect(screen.getByText('No disponible.')).toBeInTheDocument());
   });
 
   it('surfaces a real error with a retry that calls the action again', async () => {
@@ -146,6 +166,31 @@ describe('ConfirmContractControl', () => {
     expect(confirmAction).not.toHaveBeenCalled();
     expect(discardAction).toHaveBeenCalledTimes(1);
     expect(document.activeElement).toBe(screen.getByRole('status'));
+    expect(screen.getByRole('status')).toHaveAttribute('aria-atomic', 'true');
+  });
+
+  it('announces discard progress while the action is pending', async () => {
+    let resolveAction: ((result: { kind: 'unavailable'; reason: string }) => void) | undefined;
+    const discardAction = vi.fn(
+      () =>
+        new Promise<{ kind: 'unavailable'; reason: string }>((resolve) => {
+          resolveAction = resolve;
+        }),
+    );
+    render(
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={vi.fn()}
+        discardAction={discardAction}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmDiscard }));
+    await waitFor(() => expect(screen.getByText(copy.admin.intake.discardPending)).toBeVisible());
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByRole('button', { name: copy.admin.intake.confirmMatched })).toBeDisabled();
+    resolveAction?.({ kind: 'unavailable', reason: 'No disponible.' });
+    await waitFor(() => expect(screen.getByText('No disponible.')).toBeInTheDocument());
   });
 
   it.each([

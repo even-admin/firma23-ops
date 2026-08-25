@@ -56,6 +56,9 @@ decorative color washes, grain or generic AI artwork.
 - Settlement reversals never erase cash that was historically paid. When paid
   exceeds the currently approved amount, the difference is an explicit recovery
   amount, not a negative payable balance or hidden payout.
+- A reversed settlement without a real pending replacement is
+  `correction_required`, not a fresh projection. That state carries no projected
+  amount or allocation segments and contributes zero projected earnings.
 - Owed and recovery are reconciled per settlement line before aggregation. A
   reversed recipient's recovery may never cancel an active line's obligation;
   only a signed `-old/+new` payout allocation transfer resolves both sides.
@@ -184,6 +187,8 @@ leakage, and clean SSR/CSP behavior. The visual lane cannot land a dependency.
 - Exact widths: 375, 767, 768 and 1280 pixels.
 - No horizontal overflow; shell/content boundaries align.
 - Active route state, sidebar persistence and mobile active-label behavior work.
+  At 768px the expanded desktop rail must remain geometrically separate from
+  main content, keep its focused control visible and preserve its panel border.
 - Founder and member presentations remain distinct; real Development Auth is a
   separate mode and may be marked unavailable honestly.
 - Loading, empty, error, denied, unavailable and stale states are truthful where
@@ -191,6 +196,9 @@ leakage, and clean SSR/CSP behavior. The visual lane cannot land a dependency.
 - Projected, approved and paid money remain visually and structurally distinct.
 - Dynamic invalid routes return HTTP 404, not only a not-found presentation.
 - Console contains zero application errors and unexpected network failures.
+- Async Admin operations expose a visible polite pending status. Every retry is
+  accepted only after the complete outcome focus, live-region, target-size and
+  non-occlusion inspection runs again.
 - Production `/dev/states` returns 404 and `/favicon.ico` returns 200.
 - Lane screenshots are advisory. Only the final integrated exact SHA may pass
   browser acceptance.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import Link from 'next/link';
 
@@ -63,18 +63,28 @@ export function ConfirmContractControl({
   const [discarded, setDiscarded] = useState(false);
   const [discardArmed, setDiscardArmed] = useState(false);
   const [discardResult, setDiscardResult] = useState<DiscardContractDraftResult | null>(null);
+  const [pendingKind, setPendingKind] = useState<'confirm' | 'discard' | null>(null);
   const [isPending, startTransition] = useTransition();
   const outcomeRef = useRef<HTMLElement>(null);
+  const pendingStatusRef = useRef<HTMLParagraphElement>(null);
   const discardTriggerRef = useRef<HTMLButtonElement>(null);
+  const statusId = useId();
 
   useEffect(() => {
     if (discarded || result !== null || discardResult !== null) outcomeRef.current?.focus();
   }, [discarded, discardResult, result]);
 
+  useEffect(() => {
+    if (isPending && pendingKind !== null) {
+      pendingStatusRef.current?.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [isPending, pendingKind]);
+
   function confirm(): void {
     setDiscardArmed(false);
     setDiscardResult(null);
     setResult(null);
+    setPendingKind('confirm');
     startTransition(async () => {
       let outcome: ConfirmContractDraftResult;
       try {
@@ -83,6 +93,7 @@ export function ConfirmContractControl({
         outcome = { kind: 'error', message: i.confirmRejected };
       }
       setResult(outcome);
+      setPendingKind(null);
       if (outcome.kind === 'confirmed') onConfirmed?.();
     });
   }
@@ -90,6 +101,7 @@ export function ConfirmContractControl({
   function executeDiscard(): void {
     if (draftId === null) return;
     setDiscardResult(null);
+    setPendingKind('discard');
     startTransition(async () => {
       let outcome: DiscardContractDraftResult;
       try {
@@ -99,6 +111,7 @@ export function ConfirmContractControl({
       }
       setDiscardArmed(false);
       setDiscardResult(outcome);
+      setPendingKind(null);
       if (outcome.kind === 'discarded') setDiscarded(true);
     });
   }
@@ -125,6 +138,7 @@ export function ConfirmContractControl({
         tabIndex={-1}
         role="status"
         aria-live="polite"
+        aria-atomic="true"
         data-admin-outcome="discarded"
         className="border-line bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
       >
@@ -140,6 +154,7 @@ export function ConfirmContractControl({
         tabIndex={-1}
         role="status"
         aria-live="polite"
+        aria-atomic="true"
         data-admin-outcome="confirmed"
         className="border-money/40 bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
       >
@@ -177,6 +192,7 @@ export function ConfirmContractControl({
   return (
     <section
       data-admin-pending={isPending ? 'true' : 'false'}
+      aria-busy={isPending}
       className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4"
     >
       <div className="flex flex-wrap gap-2">
@@ -184,7 +200,7 @@ export function ConfirmContractControl({
           type="button"
           onClick={confirm}
           disabled={isPending || !readyToConfirm}
-          aria-describedby="intake-confirm-status"
+          aria-describedby={statusId}
           className={cn(
             'ease-firma flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150 sm:w-auto',
             isPending || !readyToConfirm
@@ -216,8 +232,20 @@ export function ConfirmContractControl({
           </button>
         ) : null}
       </div>
-      {outcomeMessage === null ? (
-        <p id="intake-confirm-status" className="text-muted text-xs">
+      {isPending && pendingKind !== null ? (
+        <p
+          ref={pendingStatusRef}
+          id={statusId}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-admin-pending-status={pendingKind}
+          className="text-ink text-xs"
+        >
+          {pendingKind === 'confirm' ? i.confirmPending : i.discardPending}
+        </p>
+      ) : outcomeMessage === null ? (
+        <p id={statusId} className="text-muted text-xs">
           {discardArmed ? i.discardWarning : i.confirmHint}
         </p>
       ) : (
@@ -225,7 +253,7 @@ export function ConfirmContractControl({
           ref={(node) => {
             outcomeRef.current = node;
           }}
-          id="intake-confirm-status"
+          id={statusId}
           tabIndex={-1}
           role={outcomeKind?.endsWith('error') ? 'alert' : 'status'}
           aria-live={outcomeKind?.endsWith('error') ? 'assertive' : 'polite'}

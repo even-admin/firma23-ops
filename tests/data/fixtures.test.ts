@@ -159,7 +159,8 @@ describe('settlement repository', () => {
   it('resolves the approved rail with the confirmed 30/20/50 lines', async () => {
     const cards = await syntheticSettlementRepository.listOpportunityRails(PROTOTYPE_FOUNDER);
     const settled = cards.find((card) => card.rail.kind === 'settlement');
-    expect(settled?.rail.segments.map((segment) => segment.amount.amount)).toEqual([
+    if (settled?.rail.kind !== 'settlement') throw new Error('expected an approved settlement');
+    expect(settled.rail.segments.map((segment) => segment.amount.amount)).toEqual([
       269_181, 179_454, 448_635,
     ]);
   });
@@ -215,7 +216,8 @@ describe('project agnosticism', () => {
     const cards = await syntheticSettlementRepository.listOpportunityRails(PROTOTYPE_FOUNDER);
     const retainer = cards.find((card) => card.opportunity.projectSlug === 'ai-ops-retainer');
     // 25/25/50 rather than SETY's 30/20/50.
-    expect(retainer?.rail.segments.map((segment) => segment.amount.amount)).toEqual([
+    if (retainer?.rail.kind !== 'settlement') throw new Error('expected an approved settlement');
+    expect(retainer.rail.segments.map((segment) => segment.amount.amount)).toEqual([
       625_000, 625_000, 1_250_000,
     ]);
   });
@@ -311,9 +313,7 @@ describe('document-first contract intake fixtures', () => {
         expect(dataset.serviceVersions.has(serviceId)).toBe(true);
       }
       if (draft.matchedAllocationRuleVersionId !== null) {
-        expect(dataset.allocationRuleVersions.has(draft.matchedAllocationRuleVersionId)).toBe(
-          true,
-        );
+        expect(dataset.allocationRuleVersions.has(draft.matchedAllocationRuleVersionId)).toBe(true);
       }
     }
   });

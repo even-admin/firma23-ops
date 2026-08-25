@@ -58,12 +58,14 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
           throw new DataError(`Rail participant ${line.lineId} has no settlement line`);
         }
         payoutAllocatedFor(dataset, settlementLine);
-      } else {
+      } else if (built.rail.kind === 'projection') {
         const participant = built.rail.segments
           .flatMap((segment) => segment.participants)
           .find((entry) => entry.key === assignment.id);
         const amount = participant?.amount ?? zeroMoney();
         money = { kind: 'projected', amount };
+      } else {
+        money = { kind: 'correction_required' };
       }
 
       assignments.push({

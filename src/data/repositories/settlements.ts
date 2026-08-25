@@ -18,7 +18,7 @@ import type {
 
 export interface OpportunityRailCard {
   readonly opportunity: OpportunitySummary;
-  /** Projection or approved settlement. Never both, never ambiguous. */
+  /** Projection, approved settlement, or a correction gap. Never ambiguous. */
   readonly rail: RailModel;
   readonly distributableBase: DistributableBase;
   readonly cashReceived: Money;

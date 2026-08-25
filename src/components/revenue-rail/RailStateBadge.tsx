@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 import { copy } from '@/copy/es-MX';
 
-export type RailState = 'projected' | 'approved' | 'paid';
+export type RailState = 'projected' | 'approved' | 'paid' | 'correction_required';
 
 interface RailStateBadgeProps {
   readonly state: RailState;
@@ -13,12 +13,14 @@ const STATE_STYLES: Record<RailState, string> = {
   projected: 'border-dashed border-line-strong text-muted',
   approved: 'border-money/50 text-money',
   paid: 'border-money bg-money text-bg',
+  correction_required: 'border-attention text-attention',
 };
 
 const STATE_LABELS: Record<RailState, string> = {
   projected: copy.money.projected,
   approved: copy.money.approved,
   paid: copy.money.paid,
+  correction_required: copy.rail.correctionRequired,
 };
 
 export function RailStateBadge({ state, className }: RailStateBadgeProps) {

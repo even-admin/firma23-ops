@@ -136,7 +136,7 @@ export const syntheticMemberRepository: MemberRepository = {
             active: ACTIVE_STATUSES.includes(opportunity.status),
             money: { kind: 'approved', amount: line.amount, payoutStatus: line.payoutStatus },
           });
-        } else {
+        } else if (built.rail.kind === 'projection') {
           const participant = built.rail.segments
             .flatMap((segment) => segment.participants)
             .find((entry) => entry.key === assignment.id);
@@ -152,6 +152,19 @@ export const syntheticMemberRepository: MemberRepository = {
             status: opportunity.status,
             active: ACTIVE_STATUSES.includes(opportunity.status),
             money: { kind: 'projected', amount: participant.amount },
+          });
+        } else {
+          recentWork.push({
+            opportunityId: opportunity.id,
+            code: built.summary.code,
+            beneficiaryName: built.summary.beneficiaryName,
+            beneficiaryLocation: built.summary.beneficiaryLocation,
+            projectName: built.summary.projectName,
+            serviceName: built.summary.serviceName,
+            roleLabel: assignment.roleLabel,
+            status: opportunity.status,
+            active: ACTIVE_STATUSES.includes(opportunity.status),
+            money: { kind: 'correction_required' },
           });
         }
       }

@@ -5,6 +5,31 @@
 > false-green-capable browser evidence. No SHA named in the earlier sections of
 > this file is accepted for merge or deployment.
 
+## Third adversarial repair
+
+The review of `9b81ecbf56c7592db1e37c14767e79ac19f39f17` found two product gaps
+and four remaining false-green paths. This repair closes them without touching
+remote infrastructure:
+
+- a reversed settlement with no real pending replacement now resolves to a
+  moneyless `correction_required` rail and assignment state; Home, Finance and
+  leaderboard projected totals exclude it;
+- payout test mutations now include and reconcile their payout cash events, so
+  partial-payment and cross-opportunity isolation evidence is schema-shaped;
+- confirmation, discard and retry expose a visible polite pending status with
+  `aria-busy`, and every retry reruns the full conditional-state inspection with
+  exact outcome text, role, live-region semantics, focus, viewport, occlusion
+  and target-size assertions;
+- the desktop rail acceptance records expanded geometry at 768px and 1280px,
+  proves separation from main content and visible focused content, and preserves
+  a dedicated 768px expanded-state screenshot;
+- browser 404 and member-other provenance checks keep runtime monitors attached
+  through a final event-loop drain before classifying their events.
+
+As with every earlier pass, acceptance receipts become authoritative only after
+this repair is committed and the complete gate runs against that exact clean
+SHA.
+
 ## Final re-review repair
 
 The re-review of `d3cbe33fb516346ea0626a443a54d2dd8135a01b` found three remaining

@@ -36,6 +36,10 @@ export const copy = {
     label: 'Riel de Ingresos',
     projectionAria: 'Riel de ingresos proyectado, no aprobado',
     settlementAria: 'Riel de ingresos liquidado y aprobado',
+    correctionAria: 'Riel de ingresos pendiente de corrección, sin proyección vigente',
+    correctionRequired: 'Corrección requerida',
+    correctionDetail:
+      'La liquidación fue revertida. Crea un borrador de reemplazo antes de proyectar.',
     incompleteAssignment: 'Asignación incompleta',
   },
   states: {
@@ -301,8 +305,10 @@ export const copy = {
       discardWarning: 'Confirma el descarte. Esta acción no crea ningún contrato.',
       discarded: 'Borrador descartado. No se creó ningún contrato.',
       confirmRejected: 'No pudimos confirmar el contrato. El borrador sigue disponible.',
+      confirmPending: 'Confirmando contrato…',
       discardUnavailable: 'No se puede descartar en este entorno. El borrador sigue disponible.',
       discardError: 'No pudimos descartar el borrador. Consérvalo o reintenta.',
+      discardPending: 'Descartando borrador…',
       retryDiscard: 'Reintentar descarte',
       retry: 'Reintentar',
       manualCta: 'Crear manualmente',

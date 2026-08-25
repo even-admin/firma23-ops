@@ -15,6 +15,7 @@ interface AssignmentRowProps {
  */
 export function AssignmentRow({ assignment }: AssignmentRowProps) {
   const projected = assignment.money.kind === 'projected';
+  const correctionRequired = assignment.money.kind === 'correction_required';
 
   return (
     <li className="border-line bg-surface ease-firma hover:border-line-strong grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 rounded-md border p-4 transition-colors duration-150 sm:grid-cols-[1fr_auto_auto]">
@@ -29,13 +30,19 @@ export function AssignmentRow({ assignment }: AssignmentRowProps) {
 
       <div
         className="row-span-2 flex flex-col items-end gap-1 sm:row-span-1"
-        data-money-state={projected ? 'projected' : 'approved'}
+        data-money-state={
+          correctionRequired ? 'correction_required' : projected ? 'projected' : 'approved'
+        }
       >
-        <Amount
-          value={assignment.money.amount}
-          className={projected ? 'text-muted text-sm' : 'text-ink text-sm'}
-        />
-        {assignment.money.kind === 'projected' ? (
+        {correctionRequired ? null : (
+          <Amount
+            value={assignment.money.amount}
+            className={projected ? 'text-muted text-sm' : 'text-ink text-sm'}
+          />
+        )}
+        {correctionRequired ? (
+          <RailStateBadge state="correction_required" />
+        ) : assignment.money.kind === 'projected' ? (
           <RailStateBadge state="projected" />
         ) : (
           <RailStateBadge state={assignment.money.payoutStatus === 'paid' ? 'paid' : 'approved'} />
