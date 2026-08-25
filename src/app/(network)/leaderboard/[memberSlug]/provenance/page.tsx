@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Amount } from '@/components/money/Amount';
-import { RailStateBadge } from '@/components/revenue-rail/RailStateBadge';
+import { ProvenanceEntryRow } from '@/components/leaderboard/ProvenanceEntryRow';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
@@ -53,27 +52,7 @@ export default async function ProvenancePage({
       ) : (
         <ul className="flex flex-col gap-2">
           {provenance.entries.map((entry) => (
-            <li
-              key={entry.settlementId + entry.roleLabel}
-              className="border-line bg-surface flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border p-4"
-            >
-              <span className="min-w-0 flex-1">
-                <Link
-                  href={`/opportunities/${entry.opportunityId}`}
-                  className="text-ink hover:text-ink-strong flex min-h-11 items-center truncate text-sm underline-offset-4 hover:underline md:min-h-0"
-                >
-                  {entry.beneficiaryName}
-                </Link>
-                <span className="text-faint block truncate text-xs">
-                  {entry.opportunityCode} · {entry.projectName} · {entry.roleLabel}
-                </span>
-                <span className="text-faint block truncate text-xs">
-                  {copy.money.approvedBy} {entry.approvedByName} · {entry.approvedAt.slice(0, 10)}
-                </span>
-              </span>
-              <Amount value={entry.amount} className="text-ink text-sm" />
-              <RailStateBadge state={entry.payoutStatus === 'paid' ? 'paid' : 'approved'} />
-            </li>
+            <ProvenanceEntryRow key={entry.settlementId + entry.roleLabel} entry={entry} />
           ))}
         </ul>
       )}
