@@ -5,6 +5,7 @@ import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
 import { SkillChips } from '@/components/operator/SkillChips';
 import { StatGrid } from '@/components/operator/StatGrid';
 import { copy } from '@/copy/es-MX';
+import { cn } from '@/lib/cn';
 import type { OperatorCardView } from '@/types/views';
 
 interface OperatorCardProps {
@@ -29,35 +30,57 @@ export function OperatorCard({
   headingLevel = 'h2',
 }: OperatorCardProps) {
   const Heading = headingLevel;
+  const isHero = headingLevel === 'h1';
 
   return (
     <article className="border-line bg-surface ease-firma hover:border-line-strong flex h-full min-w-0 flex-col gap-4 rounded-lg border p-4 transition-colors duration-150 sm:p-5">
       <header className="flex flex-wrap items-start gap-3">
         <span
           aria-hidden="true"
-          className="bg-ink-950 text-paper-000 label-micro flex size-11 shrink-0 items-center justify-center rounded-full font-medium"
+          className={cn(
+            'border-line-strong text-ink label-micro flex shrink-0 items-center justify-center rounded-full border font-medium',
+            isHero ? 'size-14 text-sm' : 'size-11',
+          )}
         >
           {operator.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <Heading className="text-ink-strong truncate text-lg font-medium tracking-[-0.02em]">
-            {linkToProfile ? (
-              <Link
-                href={`/network/${operator.slug}`}
-                className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
-              >
-                {operator.displayName}
-              </Link>
-            ) : (
-              operator.displayName
-            )}
-          </Heading>
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <Heading
+              className={cn(
+                'text-ink-strong truncate font-medium tracking-[-0.02em]',
+                isHero ? 'text-2xl sm:text-3xl' : 'text-lg',
+              )}
+            >
+              {linkToProfile ? (
+                <Link
+                  href={`/network/${operator.slug}`}
+                  className="hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline md:min-h-0"
+                >
+                  {operator.displayName}
+                </Link>
+              ) : (
+                operator.displayName
+              )}
+            </Heading>
+            {isHero ? (
+              <span className="text-faint truncate font-mono text-xs">@{operator.slug}</span>
+            ) : null}
+          </div>
           <p className="text-faint text-xs">
             {operator.role === 'founder' ? copy.viewer.founder : copy.viewer.member} ·{' '}
             {copy.network.joined} {operator.joinedAt}
           </p>
         </div>
-        <AvailabilityBadge availability={operator.availability} />
+        <div className="flex flex-col items-end gap-1.5">
+          <AvailabilityBadge availability={operator.availability} />
+          {operator.activeWorkCount > 0 ? (
+            <span className="label-micro text-faint">
+              <span className="tnum text-muted">{operator.activeWorkCount}</span>{' '}
+              {copy.home.activeWork}
+            </span>
+          ) : null}
+        </div>
       </header>
 
       <p className="text-muted text-sm">{operator.bio}</p>

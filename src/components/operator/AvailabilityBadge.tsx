@@ -16,10 +16,11 @@ export function AvailabilityBadge({ availability }: AvailabilityBadgeProps) {
   return (
     <span
       className={cn(
-        'label-micro inline-flex items-center rounded-sm border px-2 py-0.5 font-medium',
+        'label-micro inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-medium',
         TONES[availability],
       )}
     >
+      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-current" />
       {copy.network.availability[availability]}
     </span>
   );
