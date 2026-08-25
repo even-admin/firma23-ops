@@ -1,6 +1,6 @@
 import { copy } from '@/copy/es-MX';
 import type { ApprovedSettlement } from '@/lib/allocation';
-import { reconcileApprovedAndPaid, sumMoney, type Money } from '@/lib/money';
+import { sumMoney, type Money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
@@ -13,6 +13,7 @@ import {
   organizationApprovedForOpportunity,
   paidForOpportunity,
   poolWeightViews,
+  settlementLineBalances,
 } from '@/data/repositories/synthetic/shared';
 import type {
   FinanceOverview,
@@ -67,16 +68,19 @@ export function buildFinanceOverview(
 
     const approvedBase = approvedBaseForOpportunity(dataset, opportunity.id);
     const paid = paidForOpportunity(dataset, opportunity.id);
-    const reconciliation = reconcileApprovedAndPaid(approvedBase, paid);
+    const balances = settlementLineBalances(dataset).filter(
+      (balance) => balance.opportunityId === opportunity.id,
+    );
     if (approvedBase.amount !== 0) {
       approvedBases.push(approvedBase);
       paidAmounts.push(paid);
       houseAmounts.push(organizationApprovedForOpportunity(dataset, opportunity.id));
-      owedAmounts.push(reconciliation.owed);
-      recoveryAmounts.push(reconciliation.recovery);
+      owedAmounts.push(...balances.map((balance) => balance.owed));
+      recoveryAmounts.push(...balances.map((balance) => balance.recovery));
     } else if (paid.amount !== 0) {
       paidAmounts.push(paid);
-      recoveryAmounts.push(reconciliation.recovery);
+      owedAmounts.push(...balances.map((balance) => balance.owed));
+      recoveryAmounts.push(...balances.map((balance) => balance.recovery));
     }
     if (built.rail.kind === 'projection') {
       // Projections are totalled separately and never folded into approved money.

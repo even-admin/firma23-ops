@@ -9,8 +9,9 @@ import {
   paidEarnings,
   payoutAllocatedFor,
   projectedEarnings,
+  settlementLineBalances,
 } from '@/data/repositories/synthetic/shared';
-import { reconcileApprovedAndPaid, zeroMoney } from '@/lib/money';
+import { sumMoney, zeroMoney } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { isFounder, type ViewerContext } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
@@ -82,7 +83,9 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
 
   const approved = approvedEarnings(dataset, member.id);
   const paid = paidEarnings(dataset, member.id);
-  const reconciliation = reconcileApprovedAndPaid(approved, paid);
+  const balances = settlementLineBalances(dataset).filter(
+    (balance) => balance.line.memberId === member.id,
+  );
 
   const nextActions: NextAction[] = [];
   for (const assignment of assignments) {
@@ -120,8 +123,8 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
     money: {
       approved,
       paid,
-      approvedUnpaid: reconciliation.owed,
-      recovery: reconciliation.recovery,
+      approvedUnpaid: sumMoney(balances.map((balance) => balance.owed)),
+      recovery: sumMoney(balances.map((balance) => balance.recovery)),
       projected: projectedEarnings(dataset, member.id),
     },
     activeWorkCount: assignments.filter((assignment) => assignment.active).length,

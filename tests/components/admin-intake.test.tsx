@@ -201,7 +201,7 @@ describe('ConfirmContractControl', () => {
     expect(screen.getByRole('button', { name: copy.admin.intake.discard })).toBeInTheDocument();
   });
 
-  it('cancels an armed discard without calling the action', () => {
+  it('cancels an armed discard, restores its trigger, and does not call the action', async () => {
     const discardAction = vi.fn();
     render(
       <ConfirmContractControl
@@ -210,10 +210,12 @@ describe('ConfirmContractControl', () => {
         discardAction={discardAction}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+    const discardTrigger = screen.getByRole('button', { name: copy.admin.intake.discard });
+    fireEvent.click(discardTrigger);
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.cancelDiscard }));
     expect(discardAction).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: copy.admin.intake.discard })).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(discardTrigger));
   });
 
   it('disables confirmation until the manual form is ready, and never shows a discard control for it', () => {

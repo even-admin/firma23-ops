@@ -65,6 +65,7 @@ export function ConfirmContractControl({
   const [discardResult, setDiscardResult] = useState<DiscardContractDraftResult | null>(null);
   const [isPending, startTransition] = useTransition();
   const outcomeRef = useRef<HTMLElement>(null);
+  const discardTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (discarded || result !== null || discardResult !== null) outcomeRef.current?.focus();
@@ -73,6 +74,7 @@ export function ConfirmContractControl({
   function confirm(): void {
     setDiscardArmed(false);
     setDiscardResult(null);
+    setResult(null);
     startTransition(async () => {
       let outcome: ConfirmContractDraftResult;
       try {
@@ -87,6 +89,7 @@ export function ConfirmContractControl({
 
   function executeDiscard(): void {
     if (draftId === null) return;
+    setDiscardResult(null);
     startTransition(async () => {
       let outcome: DiscardContractDraftResult;
       try {
@@ -108,6 +111,11 @@ export function ConfirmContractControl({
       return;
     }
     executeDiscard();
+  }
+
+  function cancelDiscard(): void {
+    setDiscardArmed(false);
+    requestAnimationFrame(() => discardTriggerRef.current?.focus());
   }
 
   if (discarded) {
@@ -167,7 +175,10 @@ export function ConfirmContractControl({
             : null;
 
   return (
-    <section className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4">
+    <section
+      data-admin-pending={isPending ? 'true' : 'false'}
+      className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4"
+    >
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -185,6 +196,7 @@ export function ConfirmContractControl({
         </button>
         {draftId === null ? null : (
           <button
+            ref={discardTriggerRef}
             type="button"
             onClick={discard}
             disabled={isPending}
@@ -196,7 +208,7 @@ export function ConfirmContractControl({
         {discardArmed ? (
           <button
             type="button"
-            onClick={() => setDiscardArmed(false)}
+            onClick={cancelDiscard}
             disabled={isPending}
             className="text-muted hover:text-ink ease-firma flex min-h-11 items-center px-2 text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150"
           >
@@ -228,6 +240,7 @@ export function ConfirmContractControl({
         <button
           type="button"
           onClick={confirm}
+          disabled={isPending}
           className="text-attention hover:text-ink-strong ease-firma flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150"
         >
           {i.retry}

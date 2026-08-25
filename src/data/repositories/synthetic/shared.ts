@@ -6,7 +6,14 @@
  * derivations here means no repository re-implements either one slightly wrong.
  */
 
-import { BASIS_POINTS_TOTAL, sumMoney, type Money } from '@/lib/money';
+import {
+  BASIS_POINTS_TOTAL,
+  compareMoney,
+  reconcileApprovedAndPaid,
+  sumMoney,
+  zeroMoney,
+  type Money,
+} from '@/lib/money';
 import { deriveMemberStats } from '@/lib/stats';
 import { DataError } from '@/lib/result';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
@@ -109,6 +116,61 @@ function activeApprovedOriginalSettlementIds(dataset: SyntheticDataset): Set<str
   );
 }
 
+export interface SettlementLineBalance {
+  readonly line: SettlementLine;
+  readonly opportunityId: string;
+  readonly active: boolean;
+  /** Current signed allocation of historical payout cash to this line. */
+  readonly paid: Money;
+  /** Remaining obligation on this active line only. */
+  readonly owed: Money;
+  /** Allocation stranded on this reversed line only. */
+  readonly recovery: Money;
+}
+
+/**
+ * Reconciles each approved original line independently before any aggregation.
+ * This prevents paid cash stranded on one reversed recipient from cancelling an
+ * unpaid active obligation belonging to another line, role or opportunity.
+ */
+export function settlementLineBalances(dataset: SyntheticDataset): SettlementLineBalance[] {
+  const approvedOriginals = dataset.settlements.filter(
+    (settlement) => settlement.status === 'approved' && settlement.kind === 'original',
+  );
+  const originalById = new Map(approvedOriginals.map((settlement) => [settlement.id, settlement]));
+  const activeIds = activeApprovedOriginalSettlementIds(dataset);
+
+  return dataset.settlementLines.flatMap((line) => {
+    const settlement = originalById.get(line.settlementId);
+    if (settlement === undefined) return [];
+
+    const paid = payoutAllocatedFor(dataset, line);
+    if (
+      compareMoney(paid, zeroMoney(line.amount.currency)) < 0 ||
+      compareMoney(paid, line.amount) > 0
+    ) {
+      throw new DataError(
+        `Settlement line ${line.id} payout allocations total ${paid.amount} but must fall within 0..${line.amount.amount}`,
+      );
+    }
+    const active = activeIds.has(settlement.id);
+    const reconciliation = reconcileApprovedAndPaid(
+      active ? line.amount : zeroMoney(line.amount.currency),
+      paid,
+    );
+    return [
+      {
+        line,
+        opportunityId: settlement.opportunityId,
+        active,
+        paid,
+        owed: reconciliation.owed,
+        recovery: reconciliation.recovery,
+      },
+    ];
+  });
+}
+
 /**
  * Settlement lines suitable for individual, payout-status-bearing display
  * (leaderboard provenance): only lines of the currently active, unreversed
@@ -128,14 +190,11 @@ export function activeApprovedLinesFor(
 }
 
 export function paidEarnings(dataset: SyntheticDataset, memberId: string): Money {
-  // Reversal lines never carry a payout (payoutAllocatedFor would throw),
-  // and a reversal doesn't undo money already disbursed against the
-  // original it corrects — so "paid" sums every approved *original* line's
-  // allocated total regardless of whether that original was later reversed.
-  const originalLines = approvedLinesFor(dataset, memberId).filter(
-    (line) => settlementFor(dataset, line).kind === 'original',
+  return sumMoney(
+    settlementLineBalances(dataset)
+      .filter((balance) => balance.line.memberId === memberId)
+      .map((balance) => balance.paid),
   );
-  return sumMoney(originalLines.map((line) => payoutAllocatedFor(dataset, line)));
 }
 
 /** Signed current approval for one opportunity, including exact reversals. */
@@ -155,20 +214,10 @@ export function approvedBaseForOpportunity(
 
 /** Append-only cash allocated against approved original lines for one opportunity. */
 export function paidForOpportunity(dataset: SyntheticDataset, opportunityId: string): Money {
-  const approvedOriginalIds = new Set(
-    dataset.settlements
-      .filter(
-        (settlement) =>
-          settlement.opportunityId === opportunityId &&
-          settlement.status === 'approved' &&
-          settlement.kind === 'original',
-      )
-      .map((settlement) => settlement.id),
-  );
   return sumMoney(
-    dataset.settlementLines
-      .filter((line) => approvedOriginalIds.has(line.settlementId))
-      .map((line) => payoutAllocatedFor(dataset, line)),
+    settlementLineBalances(dataset)
+      .filter((balance) => balance.opportunityId === opportunityId)
+      .map((balance) => balance.paid),
   );
 }
 

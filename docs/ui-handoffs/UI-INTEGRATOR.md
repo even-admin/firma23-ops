@@ -5,6 +5,27 @@
 > false-green-capable browser evidence. No SHA named in the earlier sections of
 > this file is accepted for merge or deployment.
 
+## Final re-review repair
+
+The re-review of `d3cbe33fb516346ea0626a443a54d2dd8135a01b` found three remaining
+gaps. This follow-up makes the underlying contracts explicit:
+
+- payout reconciliation now happens independently on every approved original
+  settlement line; active lines contribute owed amounts and reversed lines
+  contribute recovery amounts before either is aggregated;
+- schema-shaped tests cover reversal, reissue before transfer, explicit
+  `-old/+new` transfer, changed recipient, cross-opportunity separation and
+  partial payment across Home, Finance, leaderboard and provenance;
+- canceling an armed discard restores focus to the surviving discard trigger;
+- browser runtime events are asserted only after DOM inspection, screenshot and
+  an event-loop drain, then reset for the next matrix cell;
+- Admin manual, processing and armed-discard controls are inspected at all four
+  widths, retries prove a new pending attempt, and sidebar expansion is exercised
+  at both 768px and 1280px.
+
+As before, exact-SHA receipts are generated only after this tracked repair is
+committed and the worktree is clean.
+
 ## Second adversarial repair
 
 The review of `532f5a4512e19c792fc7a476f2a658ba8eba7ee8` identified five remaining

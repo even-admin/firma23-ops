@@ -56,6 +56,9 @@ decorative color washes, grain or generic AI artwork.
 - Settlement reversals never erase cash that was historically paid. When paid
   exceeds the currently approved amount, the difference is an explicit recovery
   amount, not a negative payable balance or hidden payout.
+- Owed and recovery are reconciled per settlement line before aggregation. A
+  reversed recipient's recovery may never cancel an active line's obligation;
+  only a signed `-old/+new` payout allocation transfer resolves both sides.
 - Historical charts remain unavailable until a frozen model contains at least
   two complete comparable periods.
 - Components consume repository-backed view models and never import `src/data/**`.

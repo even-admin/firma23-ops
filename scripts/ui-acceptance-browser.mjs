@@ -127,12 +127,7 @@ async function inspectInteractiveState(scope, label) {
     const controls = [
       ...root.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]'),
     ]
-      .filter(
-        (element) =>
-          visible(element) &&
-          !element.hasAttribute('disabled') &&
-          element.getAttribute('tabindex') !== '-1',
-      )
+      .filter((element) => visible(element) && element.getAttribute('tabindex') !== '-1')
       .map((element) => {
         const rect = element.getBoundingClientRect();
         return {
@@ -141,6 +136,8 @@ async function inspectInteractiveState(scope, label) {
             element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 80) ?? '',
           width: rect.width,
           height: rect.height,
+          disabled:
+            element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true',
         };
       });
     const headings = [...root.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible);
@@ -169,7 +166,7 @@ async function inspectInteractiveState(scope, label) {
   }, label);
 }
 
-async function inspectPage(page, role, routeName, routePath, width, response, runtimeEvents) {
+async function inspectPage(page, role, routeName, routePath, width, response) {
   const expectedDenied = role === 'member' && deniedForMember.has(routeName);
   const result = await page.evaluate(
     ({ expectedDenied, routeName, width }) => {
@@ -384,7 +381,6 @@ async function inspectPage(page, role, routeName, routePath, width, response, ru
   }
   assert(result.mobileClearance, `${prefix} mobile tab bar lacks reserved clearance`);
   assert(result.shellCorrect, `${prefix} shell breakpoint mismatch`);
-  assert(runtimeEvents.length === 0, `${prefix} browser runtime/network errors`, runtimeEvents);
   assert(
     result.founderNamesOnLeaderboard.length === 0,
     `${prefix} founders appear in ranking`,
@@ -458,7 +454,6 @@ async function inspectPage(page, role, routeName, routePath, width, response, ru
     width,
     expectedDenied,
     status: response?.status(),
-    runtimeEvents,
     ...result,
   };
 }
@@ -478,9 +473,7 @@ async function matrix(browser) {
         await page.setViewportSize({ width, height });
         health.reset();
         const response = await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'networkidle' });
-        const cell = await inspectPage(page, role, routeName, routePath, width, response, [
-          ...health.events,
-        ]);
+        const cell = await inspectPage(page, role, routeName, routePath, width, response);
         const activeElementBeforeScreenshot = await page.evaluate(() => {
           if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
           return {
@@ -489,7 +482,6 @@ async function matrix(browser) {
           };
         });
         await page.waitForTimeout(100);
-        cells.push({ ...cell, activeElementBeforeScreenshot });
         await page.screenshot({
           path: path.join(
             screenshotDir,
@@ -497,6 +489,15 @@ async function matrix(browser) {
           ),
           fullPage: true,
         });
+        await page.waitForTimeout(50);
+        const runtimeEvents = [...health.events];
+        assert(
+          runtimeEvents.length === 0,
+          `${role}:${routeName}:${width} browser runtime/network errors`,
+          runtimeEvents,
+        );
+        cells.push({ ...cell, runtimeEvents, activeElementBeforeScreenshot });
+        health.reset();
       }
     }
     health.detach();
@@ -575,20 +576,33 @@ async function runInteractions(browser) {
     restored,
   });
 
-  await page.evaluate(() => localStorage.removeItem('firma23.sidebar-mode'));
-  await page.reload({ waitUntil: 'networkidle' });
-  const sidebar = page.locator('#firma23-sidebar');
-  const compactWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
-  await sidebar.hover();
-  await page.waitForTimeout(350);
-  const hoverWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
-  await page.mouse.move(1000, 400);
-  await sidebar.locator('a[href="/projects"]').focus();
-  await page.waitForTimeout(350);
-  const focusWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
-  const expandedOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - window.innerWidth,
+  const sidebarMeasurements = [];
+  for (const width of [768, 1280]) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => localStorage.removeItem('firma23.sidebar-mode'));
+    await page.goto(`${baseUrl}/projects`, { waitUntil: 'networkidle' });
+    const sidebar = page.locator('#firma23-sidebar');
+    const compactWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+    await sidebar.hover();
+    await page.waitForTimeout(350);
+    const hoverWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+    await page.mouse.move(width - 10, 400);
+    await sidebar.locator('a[href="/projects"]').focus();
+    await page.waitForTimeout(350);
+    const focusWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+    const expandedOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    sidebarMeasurements.push({ width, compactWidth, hoverWidth, focusWidth, expandedOverflow });
+  }
+  const invalidSidebarMeasurement = sidebarMeasurements.find(
+    (measurement) =>
+      measurement.compactWidth !== 92 ||
+      measurement.hoverWidth !== 292 ||
+      measurement.focusWidth !== 292 ||
+      measurement.expandedOverflow > 0,
   );
+  const sidebar = page.locator('#firma23-sidebar');
   const toggle = page.getByRole('button', { name: 'Ocultar menú lateral' });
   await toggle.click();
   await page.reload({ waitUntil: 'networkidle' });
@@ -601,20 +615,14 @@ async function runInteractions(browser) {
     .getByRole('button', { name: 'Mostrar menú lateral' })
     .isVisible();
   assert(
-    compactWidth === 92 &&
-      hoverWidth === 292 &&
-      focusWidth === 292 &&
-      expandedOverflow <= 0 &&
+    invalidSidebarMeasurement === undefined &&
       persistedHidden &&
       hiddenWidth === 0 &&
       hiddenInert &&
       restoreToggleVisible,
     'sidebar state contract failed',
     {
-      compactWidth,
-      hoverWidth,
-      focusWidth,
-      expandedOverflow,
+      sidebarMeasurements,
       persistedHidden,
       hiddenWidth,
       hiddenInert,
@@ -623,10 +631,7 @@ async function runInteractions(browser) {
   );
   interactions.push({
     name: 'sidebar',
-    compactWidth,
-    hoverWidth,
-    focusWidth,
-    expandedOverflow,
+    sidebarMeasurements,
     persistedHidden,
     hiddenWidth,
     hiddenInert,
@@ -653,6 +658,7 @@ async function runInteractions(browser) {
     '767/768 reciprocal record-table switch failed',
     { table767, list767, table768, list768 },
   );
+  await page.waitForTimeout(50);
   assert(health.events.length === 0, 'interaction browser runtime/network errors', health.events);
   interactions.push({ name: 'table-breakpoint', table767, list767, table768, list768 });
 
@@ -701,6 +707,7 @@ async function runInteractions(browser) {
   const blankFrame = await blankCanvas.screenshot();
   const nonblank = !firstFrame.equals(blankFrame);
   await blankCanvas.evaluate((element) => element.remove());
+  await reducedPage.waitForTimeout(50);
   assert(
     frozen &&
       canvasRect?.width > 0 &&
@@ -735,6 +742,31 @@ function assertAdminInspection(name, inspection, expectedOutcome = null) {
   }
 }
 
+async function proveAdminRetry(page, scenario, scenarioName, retryName, outcome, attemptAttribute) {
+  const before = Number(await scenario.getAttribute(attemptAttribute));
+  await scenario.getByRole('button', { name: retryName }).click();
+  await scenario.locator('[data-admin-pending="true"]').waitFor();
+  await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor({ state: 'hidden' });
+  await page.waitForFunction(
+    ({ selector, attribute, expected }) =>
+      Number(document.querySelector(selector)?.getAttribute(attribute)) === expected,
+    {
+      selector: `[data-admin-scenario="${scenarioName}"]`,
+      attribute: attemptAttribute,
+      expected: before + 1,
+    },
+  );
+  await scenario.locator('[data-admin-pending="false"]').waitFor();
+  await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+  const after = Number(await scenario.getAttribute(attemptAttribute));
+  assert(after === before + 1, `${scenarioName} retry did not create a new attempt`, {
+    before,
+    after,
+    attemptAttribute,
+  });
+  return { before, after };
+}
+
 async function runAdminAcceptance(browser) {
   const screenshotDir = path.join(receiptDir, 'screenshots', 'admin-states');
   await fs.mkdir(screenshotDir, { recursive: true });
@@ -766,6 +798,8 @@ async function runAdminAcceptance(browser) {
     const sponsor = ready.getByRole('textbox', { name: 'Patrocinador' });
     await sponsor.waitFor();
     const manualFocused = await sponsor.evaluate((element) => document.activeElement === element);
+    let inspection = await inspectInteractiveState(ready, `admin-manual-${width}`);
+    assertAdminInspection(`admin-manual-${width}`, inspection);
     await ready.getByRole('button', { name: 'Cancelar' }).click();
     await page.waitForFunction(
       (element) => element !== null && document.activeElement === element,
@@ -784,12 +818,14 @@ async function runAdminAcceptance(browser) {
       mimeType: 'application/pdf',
       buffer: Buffer.from('x'),
     });
-    let inspection = await inspectInteractiveState(ready, `admin-selected-${width}`);
+    inspection = await inspectInteractiveState(ready, `admin-selected-${width}`);
     assertAdminInspection(`admin-selected-${width}`, inspection);
     await ready.getByRole('button', { name: 'Procesar documento' }).click();
     const processingButton = ready.getByRole('button', { name: 'Analizando documento…' });
     const processingVisible = await processingButton.isVisible();
     const processingDisabled = await processingButton.isDisabled();
+    inspection = await inspectInteractiveState(ready, `admin-processing-${width}`);
+    assertAdminInspection(`admin-processing-${width}`, inspection);
     assert(processingVisible && processingDisabled, `admin processing state failed at ${width}`, {
       processingVisible,
       processingDisabled,
@@ -802,8 +838,15 @@ async function runAdminAcceptance(browser) {
     await ready.locator('[data-admin-outcome="confirm-unavailable"]').waitFor();
     inspection = await inspectInteractiveState(ready, `admin-confirm-unavailable-${width}`);
     assertAdminInspection(`admin-confirm-unavailable-${width}`, inspection, 'confirm-unavailable');
-    await ready.getByRole('button', { name: 'Descartar borrador' }).click();
+    const discardTrigger = ready.getByRole('button', { name: 'Descartar borrador' });
+    await discardTrigger.click();
+    inspection = await inspectInteractiveState(ready, `admin-discard-armed-${width}`);
+    assertAdminInspection(`admin-discard-armed-${width}`, inspection);
     await ready.getByRole('button', { name: 'Conservar borrador' }).click();
+    await page.waitForFunction(
+      (element) => element !== null && document.activeElement === element,
+      await discardTrigger.elementHandle(),
+    );
     assert(
       (await ready
         .getByText('Confirma el descarte. Esta acción no crea ningún contrato.')
@@ -842,8 +885,15 @@ async function runAdminAcceptance(browser) {
       inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
       assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
       if (outcome === 'confirm-error') {
-        await scenario.getByRole('button', { name: 'Reintentar' }).click();
-        await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+        const retry = await proveAdminRetry(
+          page,
+          scenario,
+          scenarioName,
+          'Reintentar',
+          outcome,
+          'data-confirm-attempts',
+        );
+        interactions.push({ name: 'admin-confirm-retry', width, scenarioName, ...retry });
       }
     }
 
@@ -861,20 +911,28 @@ async function runAdminAcceptance(browser) {
       inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
       assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
       if (outcome !== 'discarded') {
-        await scenario.getByRole('button', { name: 'Reintentar descarte' }).click();
-        await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+        const retry = await proveAdminRetry(
+          page,
+          scenario,
+          scenarioName,
+          'Reintentar descarte',
+          outcome,
+          'data-discard-attempts',
+        );
+        interactions.push({ name: 'admin-discard-retry', width, scenarioName, ...retry });
       }
     }
 
+    await page.screenshot({
+      path: path.join(screenshotDir, `admin-conditional-${width}x${height}.png`),
+      fullPage: true,
+    });
+    await page.waitForTimeout(50);
     assert(
       health.events.length === 0,
       `admin state runtime/network errors at ${width}`,
       health.events,
     );
-    await page.screenshot({
-      path: path.join(screenshotDir, `admin-conditional-${width}x${height}.png`),
-      fullPage: true,
-    });
     interactions.push({
       name: 'admin-conditional-states',
       width,

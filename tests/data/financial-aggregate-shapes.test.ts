@@ -5,6 +5,10 @@ import {
   organizationRecipientApproved,
 } from '@/data/repositories/synthetic/finance';
 import { buildPersonalHome } from '@/data/repositories/synthetic/home';
+import {
+  buildLeaderboardProvenance,
+  buildLeaderboardRows,
+} from '@/data/repositories/synthetic/leaderboard';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { PROTOTYPE_FOUNDER, PROTOTYPE_MEMBER } from '@/data/prototype-viewers';
 import { basisPoints, money, negateMoney } from '@/lib/money';
@@ -15,8 +19,18 @@ import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 const SETTLED_OPPORTUNITY_ID = 'f0000000-0000-4000-8000-000000000002';
 const ORIGINAL_SETTLEMENT_ID = '20000000-0000-4000-8000-000000000002';
 const MEMBER_LINE_ID = '40000000-0000-4000-8000-000000000003';
+const REISSUED_SETTLEMENT_ID = '20000000-0000-4000-8000-000000000100';
+const REISSUED_MEMBER_LINE_ID = '49100000-0000-4000-8000-000000000003';
 
-function withPaidMemberAndReversal(reissue: boolean): SyntheticDataset {
+function withPaidMemberAndReversal({
+  reissue,
+  transfer = false,
+  reissueMemberId = PROTOTYPE_MEMBER.viewerId,
+}: {
+  readonly reissue: boolean;
+  readonly transfer?: boolean;
+  readonly reissueMemberId?: string;
+}): SyntheticDataset {
   const original = loadSyntheticDataset();
   const originalSettlement = original.settlements.find(
     (settlement) => settlement.id === ORIGINAL_SETTLEMENT_ID,
@@ -62,7 +76,7 @@ function withPaidMemberAndReversal(reissue: boolean): SyntheticDataset {
   const reissuedSettlement: Settlement | null = reissue
     ? {
         ...originalSettlement,
-        id: '20000000-0000-4000-8000-000000000100',
+        id: REISSUED_SETTLEMENT_ID,
         approvedAt: '2026-08-22T00:00:00.000Z',
       }
     : null;
@@ -73,11 +87,59 @@ function withPaidMemberAndReversal(reissue: boolean): SyntheticDataset {
           ...line,
           id: `49100000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
           settlementId: reissuedSettlement.id,
+          ...(line.id === MEMBER_LINE_ID
+            ? {
+                memberId: reissueMemberId,
+                recipientLabel:
+                  original.members.get(reissueMemberId)?.displayName ?? line.recipientLabel,
+              }
+            : {}),
           sequence: index + 1,
         }));
+  const originalLineIds = new Set(originalLines.map((line) => line.id));
+  const paidAllocations = [
+    ...original.settlementLinePayouts.filter((payout) =>
+      originalLineIds.has(payout.settlementLineId),
+    ),
+    memberPayout,
+  ];
+  const transferAllocations: SettlementLinePayout[] =
+    transfer && reissuedSettlement !== null
+      ? paidAllocations.flatMap((payout, index) => {
+          const originalIndex = originalLines.findIndex(
+            (line) => line.id === payout.settlementLineId,
+          );
+          const replacement = reissuedLines[originalIndex];
+          if (replacement === undefined) throw new Error('missing replacement line');
+          return [
+            {
+              ...payout,
+              id: `51000000-0000-4000-8000-${String(index * 2 + 1).padStart(12, '0')}`,
+              amount: negateMoney(payout.amount),
+              createdAt: '2026-08-23T00:00:00.000Z',
+              idempotencyKey: `reversal-transfer-old-${index}`,
+            },
+            {
+              ...payout,
+              id: `51000000-0000-4000-8000-${String(index * 2 + 2).padStart(12, '0')}`,
+              settlementLineId: replacement.id,
+              createdAt: '2026-08-23T00:00:00.000Z',
+              idempotencyKey: `reversal-transfer-new-${index}`,
+            },
+          ];
+        })
+      : [];
 
   return {
     ...original,
+    assignments: original.assignments.map((assignment) =>
+      reissueMemberId !== PROTOTYPE_MEMBER.viewerId &&
+      assignment.opportunityId === SETTLED_OPPORTUNITY_ID &&
+      assignment.memberId === PROTOTYPE_MEMBER.viewerId &&
+      assignment.roleLabel === 'Producción audiovisual'
+        ? { ...assignment, memberId: reissueMemberId }
+        : assignment,
+    ),
     cashEvents: [...original.cashEvents, payoutEvent],
     settlements: [
       ...original.settlements,
@@ -85,7 +147,11 @@ function withPaidMemberAndReversal(reissue: boolean): SyntheticDataset {
       ...(reissuedSettlement === null ? [] : [reissuedSettlement]),
     ],
     settlementLines: [...original.settlementLines, ...reversalLines, ...reissuedLines],
-    settlementLinePayouts: [...original.settlementLinePayouts, memberPayout],
+    settlementLinePayouts: [
+      ...original.settlementLinePayouts,
+      memberPayout,
+      ...transferAllocations,
+    ],
   };
 }
 
@@ -189,7 +255,7 @@ describe('financial aggregate shapes', () => {
   });
 
   it('preserves paid cash and exposes recovery after an approved settlement reversal', () => {
-    const dataset = withPaidMemberAndReversal(false);
+    const dataset = withPaidMemberAndReversal({ reissue: false });
     const home = buildPersonalHome(dataset, PROTOTYPE_MEMBER);
     const finance = buildFinanceOverview(dataset, PROTOTYPE_FOUNDER);
     const reversedRow = finance.rows.find((row) => row.opportunity.id === SETTLED_OPPORTUNITY_ID);
@@ -204,17 +270,78 @@ describe('financial aggregate shapes', () => {
     expect(finance.totals.owed.amount).toBeGreaterThanOrEqual(0);
   });
 
-  it('keeps historical paid cash while a corrected reissue restores current approval', () => {
-    const dataset = withPaidMemberAndReversal(true);
+  it('keeps recovery and a replacement obligation visible simultaneously before transfer', () => {
+    const dataset = withPaidMemberAndReversal({ reissue: true });
     const home = buildPersonalHome(dataset, PROTOTYPE_MEMBER);
     const finance = buildFinanceOverview(dataset, PROTOTYPE_FOUNDER);
     const reissuedRow = finance.rows.find((row) => row.opportunity.id === SETTLED_OPPORTUNITY_ID);
+    const provenance = buildLeaderboardProvenance(dataset, 'sebastian-benitez', PROTOTYPE_MEMBER);
 
     expect(home.money.approved.amount).toBe(179_454);
     expect(home.money.paid.amount).toBe(179_454);
+    expect(home.money.approvedUnpaid.amount).toBe(179_454);
+    expect(home.money.recovery.amount).toBe(179_454);
+    expect(reissuedRow?.rail.kind).toBe('settlement');
+    expect(finance.totals.paidOut.amount).toBe(3_128_089);
+    expect(finance.totals.recovery.amount).toBe(628_089);
+    expect(finance.totals.owed.amount).toBe(897_270);
+    expect(
+      provenance?.entries.find((entry) => entry.settlementId === REISSUED_SETTLEMENT_ID),
+    ).toMatchObject({ payoutStatus: 'unpaid' });
+  });
+
+  it('moves allocation with an explicit old-to-new transfer without changing paid cash', () => {
+    const before = withPaidMemberAndReversal({ reissue: true });
+    const after = withPaidMemberAndReversal({ reissue: true, transfer: true });
+    const beforeFinance = buildFinanceOverview(before, PROTOTYPE_FOUNDER);
+    const afterFinance = buildFinanceOverview(after, PROTOTYPE_FOUNDER);
+    const home = buildPersonalHome(after, PROTOTYPE_MEMBER);
+    const rows = buildLeaderboardRows(after, PROTOTYPE_FOUNDER);
+    const provenance = buildLeaderboardProvenance(after, 'sebastian-benitez', PROTOTYPE_MEMBER);
+
+    expect(afterFinance.totals.paidOut).toEqual(beforeFinance.totals.paidOut);
+    expect(afterFinance.totals.recovery.amount).toBe(0);
+    expect(afterFinance.totals.owed.amount).toBe(269_181);
     expect(home.money.approvedUnpaid.amount).toBe(0);
     expect(home.money.recovery.amount).toBe(0);
-    expect(reissuedRow?.rail.kind).toBe('settlement');
-    expect(finance.totals.recovery.amount).toBe(0);
+    expect(
+      rows.find((row) => row.memberId === PROTOTYPE_MEMBER.viewerId)?.paidEarnings?.amount,
+    ).toBe(179_454);
+    expect(
+      provenance?.entries.find((entry) => entry.settlementId === REISSUED_SETTLEMENT_ID),
+    ).toMatchObject({ payoutStatus: 'paid' });
+  });
+
+  it('does not offset a changed recipient or a different opportunity', () => {
+    const replacementMemberId = 'b0000000-0000-4000-8000-000000000006';
+    const dataset = withPaidMemberAndReversal({
+      reissue: true,
+      reissueMemberId: replacementMemberId,
+    });
+    const originalMemberHome = buildPersonalHome(dataset, PROTOTYPE_MEMBER);
+    const rows = buildLeaderboardRows(dataset, PROTOTYPE_FOUNDER);
+    const originalRow = rows.find((row) => row.memberId === PROTOTYPE_MEMBER.viewerId);
+    const replacementRow = rows.find((row) => row.memberId === replacementMemberId);
+
+    expect(originalMemberHome.money.approved.amount).toBe(0);
+    expect(originalMemberHome.money.recovery.amount).toBe(179_454);
+    expect(originalRow?.paidEarnings?.amount).toBe(179_454);
+    expect(replacementRow?.approvedEarnings.amount).toBeGreaterThan(
+      replacementRow?.paidEarnings?.amount ?? 0,
+    );
+    expect(
+      dataset.settlementLines.find((line) => line.id === REISSUED_MEMBER_LINE_ID)?.memberId,
+    ).toBe(replacementMemberId);
+
+    const crossOpportunity = withPaidMemberAndReversal({ reissue: false });
+    const withUnpaidOtherOpportunity = {
+      ...crossOpportunity,
+      settlementLinePayouts: crossOpportunity.settlementLinePayouts.filter(
+        (payout) => payout.id !== '50000000-0000-4000-8000-000000000011',
+      ),
+    };
+    const finance = buildFinanceOverview(withUnpaidOtherOpportunity, PROTOTYPE_FOUNDER);
+    expect(finance.totals.recovery.amount).toBe(628_089);
+    expect(finance.totals.owed.amount).toBe(625_000);
   });
 });

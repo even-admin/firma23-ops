@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { ConfirmContractControl } from '@/components/admin/ConfirmContractControl';
 import { DocumentIntakePanel } from '@/components/admin/DocumentIntakePanel';
 import type {
@@ -63,6 +65,45 @@ const discardOutcomes: readonly {
   },
 ];
 
+const settleAttempt = () => new Promise((resolve) => setTimeout(resolve, 100));
+
+function AcceptanceControl({
+  scenarioKey,
+  confirmAction,
+  discardAction,
+}: {
+  readonly scenarioKey: string;
+  readonly confirmAction: () => Promise<ConfirmContractDraftResult>;
+  readonly discardAction: () => Promise<DiscardContractDraftResult>;
+}) {
+  const [confirmAttempts, setConfirmAttempts] = useState(0);
+  const [discardAttempts, setDiscardAttempts] = useState(0);
+
+  return (
+    <section
+      className="flex flex-col gap-3"
+      data-admin-scenario={scenarioKey}
+      data-confirm-attempts={confirmAttempts}
+      data-discard-attempts={discardAttempts}
+    >
+      <h3 className="text-ink text-sm font-medium">{scenarioKey}</h3>
+      <ConfirmContractControl
+        {...BASE_PROPS}
+        confirmAction={async () => {
+          setConfirmAttempts((attempts) => attempts + 1);
+          await settleAttempt();
+          return confirmAction();
+        }}
+        discardAction={async () => {
+          setDiscardAttempts((attempts) => attempts + 1);
+          await settleAttempt();
+          return discardAction();
+        }}
+      />
+    </section>
+  );
+}
+
 /** Development-only deterministic branches consumed by the exact-SHA browser gate. */
 export function AdminAcceptanceStates({ readyRun }: AdminAcceptanceStatesProps) {
   const errorRun: IntakeRunView = {
@@ -91,33 +132,21 @@ export function AdminAcceptanceStates({ readyRun }: AdminAcceptanceStatesProps) 
       </section>
 
       {confirmOutcomes.map((scenario) => (
-        <section
+        <AcceptanceControl
           key={scenario.key}
-          className="flex flex-col gap-3"
-          data-admin-scenario={scenario.key}
-        >
-          <h3 className="text-ink text-sm font-medium">{scenario.key}</h3>
-          <ConfirmContractControl
-            {...BASE_PROPS}
-            confirmAction={scenario.action}
-            discardAction={async () => ({ kind: 'unavailable', reason: 'No usado.' })}
-          />
-        </section>
+          scenarioKey={scenario.key}
+          confirmAction={scenario.action}
+          discardAction={async () => ({ kind: 'unavailable', reason: 'No usado.' })}
+        />
       ))}
 
       {discardOutcomes.map((scenario) => (
-        <section
+        <AcceptanceControl
           key={scenario.key}
-          className="flex flex-col gap-3"
-          data-admin-scenario={scenario.key}
-        >
-          <h3 className="text-ink text-sm font-medium">{scenario.key}</h3>
-          <ConfirmContractControl
-            {...BASE_PROPS}
-            confirmAction={async () => ({ kind: 'unavailable', reason: 'No usado.' })}
-            discardAction={scenario.action}
-          />
-        </section>
+          scenarioKey={scenario.key}
+          confirmAction={async () => ({ kind: 'unavailable', reason: 'No usado.' })}
+          discardAction={scenario.action}
+        />
       ))}
     </div>
   );
