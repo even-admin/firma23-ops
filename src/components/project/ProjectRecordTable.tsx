@@ -17,7 +17,10 @@ interface ProjectRecordTableProps {
 export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
   return (
     <>
-      <table className="hidden w-full table-fixed border-collapse md:table">
+      <table
+        className="hidden w-full table-fixed border-collapse md:table"
+        data-record-view="table"
+      >
         <caption className="sr-only">{copy.projects.title}</caption>
         <thead>
           <tr className="border-line border-b text-left">
@@ -70,9 +73,7 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
                   {copy.projects.statusLabels[project.status]}
                 </span>
               </td>
-              <td className="text-ink tnum px-3 py-3 text-right text-sm">
-                {project.serviceCount}
-              </td>
+              <td className="text-ink tnum px-3 py-3 text-right text-sm">{project.serviceCount}</td>
               <td className="text-ink tnum px-3 py-3 text-right text-sm">
                 {project.opportunityCount}
               </td>
@@ -89,7 +90,7 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
         </tbody>
       </table>
 
-      <ul className="flex flex-col gap-4 md:hidden">
+      <ul className="flex flex-col gap-4 md:hidden" data-record-view="list">
         {projects.map((project) => (
           <li
             key={project.id}

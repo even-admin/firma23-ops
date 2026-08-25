@@ -5,6 +5,7 @@ import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
 import { SkillChips } from '@/components/operator/SkillChips';
 import { StatGrid } from '@/components/operator/StatGrid';
 import { copy } from '@/copy/es-MX';
+import { formatDate } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import type { OperatorCardView } from '@/types/views';
 
@@ -69,7 +70,7 @@ export function OperatorCard({
           </div>
           <p className="text-faint text-xs">
             {operator.role === 'founder' ? copy.viewer.founder : copy.viewer.member} ·{' '}
-            {copy.network.joined} {operator.joinedAt}
+            {copy.network.joined} {formatDate(operator.joinedAt)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">

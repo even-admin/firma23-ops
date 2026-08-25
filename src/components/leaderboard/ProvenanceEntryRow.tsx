@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Amount } from '@/components/money/Amount';
 import { RailStateBadge } from '@/components/revenue-rail/RailStateBadge';
 import { copy } from '@/copy/es-MX';
+import { formatDate } from '@/lib/date';
 import type { ProvenanceEntry } from '@/types/views';
 
 interface ProvenanceEntryRowProps {
@@ -27,7 +28,7 @@ export function ProvenanceEntryRow({ entry }: ProvenanceEntryRowProps) {
           {entry.opportunityCode} · {entry.projectName} · {entry.roleLabel}
         </span>
         <span className="text-faint block truncate text-xs">
-          {copy.money.approvedBy} {entry.approvedByName} · {entry.approvedAt.slice(0, 10)}
+          {copy.money.approvedBy} {entry.approvedByName} · {formatDate(entry.approvedAt)}
         </span>
       </span>
       <Amount value={entry.amount} className="text-ink text-sm" />

@@ -17,6 +17,7 @@ describe('personal home, founder viewer', () => {
     expect(founderHome.money.approved.amount).toBe(0);
     expect(founderHome.money.paid.amount).toBe(0);
     expect(founderHome.money.approvedUnpaid.amount).toBe(0);
+    expect(founderHome.money.recovery.amount).toBe(0);
   });
 
   it('reports projected money separately and never as earned', () => {
@@ -43,6 +44,7 @@ describe('personal home, member viewer', () => {
     expect(memberHome.money.approved.amount).toBe(179_454);
     expect(memberHome.money.paid.amount).toBe(0);
     expect(memberHome.money.approvedUnpaid.amount).toBe(179_454);
+    expect(memberHome.money.recovery.amount).toBe(0);
   });
 
   it('keeps projected money out of approved money entirely', () => {

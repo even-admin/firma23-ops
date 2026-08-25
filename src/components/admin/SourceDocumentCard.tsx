@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { formatDate } from '@/lib/date';
 
 export type SourceDocumentCardState = 'selected' | 'processing' | 'ready' | 'error';
 
@@ -42,7 +43,13 @@ export function SourceDocumentCard({
         aria-hidden="true"
         className="border-line-strong text-faint flex size-9 shrink-0 items-center justify-center rounded-sm border"
       >
-        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg
+          viewBox="0 0 24 24"
+          className="size-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
           <path d="M7 3h7l3 3v15H7z" strokeLinejoin="round" />
           <path d="M14 3v3h3" strokeLinejoin="round" />
         </svg>
@@ -53,7 +60,9 @@ export function SourceDocumentCard({
         </span>
         {kindLabel === null && extractedAt === null ? null : (
           <span className="text-faint block truncate text-xs">
-            {[kindLabel, extractedAt].filter((part) => part !== null).join(' · ')}
+            {[kindLabel, extractedAt === null ? null : formatDate(extractedAt)]
+              .filter((part) => part !== null)
+              .join(' · ')}
           </span>
         )}
       </span>

@@ -43,38 +43,49 @@ async function FinanceBody() {
       */}
       <section className="border-line bg-surface rounded-lg border">
         <dl className="flex flex-wrap gap-x-10 gap-y-4 p-4 sm:p-6">
-          <div>
+          <div data-money-state="cash-received">
             <dt className="label-micro text-faint">{copy.finance.cashReceived}</dt>
             <dd className="text-ink-strong mt-1 text-2xl font-medium">
               <Amount value={overview.totals.cashReceived} />
             </dd>
           </div>
-          <div>
+          <div data-money-state="approved">
             <dt className="label-micro text-faint">{copy.finance.approvedBase}</dt>
             <dd className="text-money mt-1 text-2xl font-medium">
               <Amount value={overview.totals.distributableApproved} />
             </dd>
           </div>
-          <div>
+          <div data-money-state="paid">
             <dt className="label-micro text-faint">{copy.finance.paidOut}</dt>
             <dd className="text-ink mt-1 text-2xl font-medium">
               <Amount value={overview.totals.paidOut} />
             </dd>
           </div>
-          <div>
+          <div data-money-state="payable">
             <dt className="label-micro text-faint">{copy.finance.owed}</dt>
             <dd className="text-ink mt-1 text-2xl font-medium">
               <Amount value={overview.totals.owed} />
             </dd>
           </div>
-          <div>
+          {overview.totals.recovery.amount === 0 ? null : (
+            <div data-money-state="recovery">
+              <dt className="label-micro text-attention">{copy.finance.recovery}</dt>
+              <dd className="text-ink mt-1 text-2xl font-medium">
+                <Amount value={overview.totals.recovery} />
+              </dd>
+            </div>
+          )}
+          <div data-money-state="approved-house">
             <dt className="label-micro text-faint">{copy.finance.house}</dt>
             <dd className="text-ink mt-1 text-2xl font-medium">
               <Amount value={overview.totals.houseApproved} />
             </dd>
           </div>
         </dl>
-        <div className="border-line flex flex-wrap items-baseline gap-x-3 border-t px-4 py-3 sm:px-6">
+        <div
+          className="border-line flex flex-wrap items-baseline gap-x-3 border-t px-4 py-3 sm:px-6"
+          data-money-state="projected"
+        >
           <span className="label-micro text-faint">{copy.finance.projectedBase}</span>
           <span className="text-muted text-base font-medium">
             <Amount value={overview.totals.distributableProjected} />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { ConfirmContractControl } from '@/components/admin/ConfirmContractControl';
 import { copy } from '@/copy/es-MX';
@@ -27,6 +27,11 @@ export function ManualContractForm({ onCancel }: ManualContractFormProps) {
   const [programName, setProgramName] = useState('');
   const sponsorId = useId();
   const programId = useId();
+  const sponsorRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    sponsorRef.current?.focus();
+  }, []);
 
   const readyToConfirm = sponsorName.trim().length > 0 && programName.trim().length > 0;
 
@@ -50,8 +55,11 @@ export function ManualContractForm({ onCancel }: ManualContractFormProps) {
         <label htmlFor={sponsorId} className="flex flex-col gap-1">
           <span className="label-micro text-faint">{i.manualSponsorLabel}</span>
           <input
+            ref={sponsorRef}
             id={sponsorId}
+            name="sponsorName"
             type="text"
+            autoComplete="organization"
             value={sponsorName}
             onChange={(event) => setSponsorName(event.target.value)}
             className="border-line-strong bg-surface text-ink focus-visible:outline-focus min-h-11 rounded-md border px-3 text-sm"
@@ -61,7 +69,9 @@ export function ManualContractForm({ onCancel }: ManualContractFormProps) {
           <span className="label-micro text-faint">{i.manualProgramLabel}</span>
           <input
             id={programId}
+            name="programName"
             type="text"
+            autoComplete="off"
             value={programName}
             onChange={(event) => setProgramName(event.target.value)}
             className="border-line-strong bg-surface text-ink focus-visible:outline-focus min-h-11 rounded-md border px-3 text-sm"

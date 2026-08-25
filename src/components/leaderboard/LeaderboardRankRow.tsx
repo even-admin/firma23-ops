@@ -17,7 +17,10 @@ interface LeaderboardRankRowProps {
  */
 export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowProps) {
   return (
-    <li className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4">
+    <li
+      className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4"
+      data-leaderboard-member={row.slug}
+    >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="label-micro text-faint tnum w-6 shrink-0">
           {String(row.rank).padStart(2, '0')}
@@ -43,7 +46,7 @@ export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowPr
         </span>
 
         {/* The ranked figure. */}
-        <span className="text-right">
+        <span className="text-right" data-money-state="approved">
           <span className="label-micro text-faint block">{copy.leaderboard.approved}</span>
           <Amount value={row.approvedEarnings} className="text-money text-base font-medium" />
         </span>
@@ -54,14 +57,18 @@ export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowPr
         It is context, never a score.
       */}
       <div className="border-line flex flex-wrap items-baseline gap-x-6 gap-y-1 border-t pt-2">
-        <span className="text-xs">
-          <span className="label-micro text-faint">{copy.leaderboard.paid} </span>
-          <Amount value={row.paidEarnings} className="text-ink" />
-        </span>
-        <span className="text-xs">
-          <span className="label-micro text-faint">{copy.leaderboard.projected} </span>
-          <Amount value={row.projectedEarnings} className="text-muted" />
-        </span>
+        {row.paidEarnings === undefined ? null : (
+          <span className="text-xs" data-money-state="paid">
+            <span className="label-micro text-faint">{copy.leaderboard.paid} </span>
+            <Amount value={row.paidEarnings} className="text-ink" />
+          </span>
+        )}
+        {row.projectedEarnings === undefined ? null : (
+          <span className="text-xs" data-money-state="projected">
+            <span className="label-micro text-faint">{copy.leaderboard.projected} </span>
+            <Amount value={row.projectedEarnings} className="text-muted" />
+          </span>
+        )}
         {showProvenance ? (
           <Link
             href={`/leaderboard/${row.slug}/provenance`}

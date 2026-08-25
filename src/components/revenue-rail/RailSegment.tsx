@@ -35,6 +35,8 @@ export function RailSegment({ segment, settled }: RailSegmentProps) {
         settled ? 'bg-surface' : 'bg-raised/45',
       )}
       style={{ flexGrow: segment.weightBp, flexBasis: 0 }}
+      data-share-key={segment.key}
+      data-money-state={settled ? 'approved' : 'projected'}
       aria-label={`${segment.label}, ${formatBasisPoints(segment.weightBp)} ${
         settled ? copy.money.approved : copy.money.projected
       }`}

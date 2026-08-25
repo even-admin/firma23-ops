@@ -5,6 +5,34 @@
 > false-green-capable browser evidence. No SHA named in the earlier sections of
 > this file is accepted for merge or deployment.
 
+## Second adversarial repair
+
+The review of `532f5a4512e19c792fc7a476f2a658ba8eba7ee8` identified five remaining
+release blockers. This repair closes them as follows:
+
+- member leaderboard rows omit teammates' paid and projected values at the
+  repository boundary; only approved earnings remain a team comparison;
+- Home and Finance derive historical paid cash from append-only payout
+  allocations even after reversal, while approved, owed and recovery totals are
+  reconciled separately;
+- Admin confirmation and discard controls catch typed and thrown failures,
+  preserve the draft on failure, announce every outcome and focus it;
+- browser acceptance treats console errors, page errors, failed requests and
+  unexpected HTTP responses as failures, and directly asserts permissions,
+  money semantics, conditional Admin states, exact responsive switches and
+  reduced-motion output;
+- production acceptance proves the listening process belongs to the launched
+  process tree and records command, cwd, BUILD_ID hashes and teardown evidence.
+
+Synthetic tests model paid-original to reversal and reversal-to-reissue flows
+without inventing commercial identities or amounts. The development-only state
+gallery supplies deterministic Admin success, unavailable, typed-error and
+rejected-promise cases; production continues to return 404 for `/dev/states`.
+
+Exact-SHA acceptance receipts remain ignored runtime evidence produced by
+`scripts/ui-acceptance.sh` after the repair commit is clean. They are not copied
+into this tracked handoff because doing so would change the SHA they attest to.
+
 ## Adversarial repair contract
 
 The repair closes the reviewed product boundaries without changing Supabase or
@@ -48,19 +76,19 @@ All three values matched exactly, so integration proceeded per instructions.
 
 Every lane commit was cherry-picked individually (no squashing) with `git cherry-pick`, one at a time, in this exact sequence. Every pick applied cleanly — zero conflicts, zero missing objects.
 
-| Order | Lane | Source commit | Resulting commit |
-| --- | --- | --- | --- |
-| 1 | UI-INICIO | `6dfb1277e91e734d0629875c4ba409f6b2d30f00` | `2bb586c` |
-| 1 | UI-INICIO | `d73a162c33c16eff35fe57497a21ec8e93d13cdc` | `54d507e` |
-| 2 | UI-RED | `f3b7148b771e37f1b594f0ec171daa46c8826187` | `795fd02` |
-| 2 | UI-RED | `69dd8958a29da8e985c40c4d6d71ee4910ed52e3` | `09d62ae` |
-| 3 | UI-RANKING | `934724bf804cd5d5ca243685f43f185320dfc9ba` | `d12c808` |
-| 3 | UI-RANKING | `35ac8cd3ff1b9121a9f024a7e707da7a3716cbd9` | `c7f2730` |
-| 4 | UI-OPORTUNIDADES | `89ee8dd349904065ab79033206beae7d302bfd0c` | `ec76238` |
-| 5 | UI-ADMIN | `36a73529d6aa7bde3fbd255690eedc6b8d69654b` | `f665620` |
-| 5 | UI-ADMIN | `44dd6c9574ef90d483d659f61be0acadf8bd5b5f` | `a8ccd42` |
-| 6 | UI-PROYECTOS | `4b6b717923a4a699a6c3cf57e323c531d1cfdfb4` | `f8c7e30` |
-| 6 | UI-PROYECTOS (repair) | `210ec75c412777a3ca6b7efc2204c58629957026` | `832dadd` |
+| Order | Lane                  | Source commit                              | Resulting commit |
+| ----- | --------------------- | ------------------------------------------ | ---------------- |
+| 1     | UI-INICIO             | `6dfb1277e91e734d0629875c4ba409f6b2d30f00` | `2bb586c`        |
+| 1     | UI-INICIO             | `d73a162c33c16eff35fe57497a21ec8e93d13cdc` | `54d507e`        |
+| 2     | UI-RED                | `f3b7148b771e37f1b594f0ec171daa46c8826187` | `795fd02`        |
+| 2     | UI-RED                | `69dd8958a29da8e985c40c4d6d71ee4910ed52e3` | `09d62ae`        |
+| 3     | UI-RANKING            | `934724bf804cd5d5ca243685f43f185320dfc9ba` | `d12c808`        |
+| 3     | UI-RANKING            | `35ac8cd3ff1b9121a9f024a7e707da7a3716cbd9` | `c7f2730`        |
+| 4     | UI-OPORTUNIDADES      | `89ee8dd349904065ab79033206beae7d302bfd0c` | `ec76238`        |
+| 5     | UI-ADMIN              | `36a73529d6aa7bde3fbd255690eedc6b8d69654b` | `f665620`        |
+| 5     | UI-ADMIN              | `44dd6c9574ef90d483d659f61be0acadf8bd5b5f` | `a8ccd42`        |
+| 6     | UI-PROYECTOS          | `4b6b717923a4a699a6c3cf57e323c531d1cfdfb4` | `f8c7e30`        |
+| 6     | UI-PROYECTOS (repair) | `210ec75c412777a3ca6b7efc2204c58629957026` | `832dadd`        |
 
 Full unit-test suite passed after all six lanes were in place, before any Integrator correction (`npx vitest run` over the nine new/changed lane test files: 9 files, 49 tests passed).
 
@@ -103,7 +131,7 @@ No product language was rewritten; both moves are byte-for-byte the same Spanish
 
 ### D — Red h1 scale vs. sibling detail routes (`262db24`)
 
-Every other page-subject `<h1>` on a detail/profile route (`ProjectHeader.tsx`, the opportunity-detail page, the leaderboard-provenance page) renders at `text-3xl sm:text-4xl`. Red's member-profile hero (`OperatorCard` with `headingLevel="h1"`, per `docs/ui-handoffs/UI-RED.md` item 1) shipped one step smaller, at `text-2xl sm:text-3xl` — UI-RED's own handoff explains this was sized relative to the *directory-card* `h2` (`text-lg`), not against sibling detail pages. That is a visible inconsistency with the tracked Player-mode hierarchy: a member's own profile page reads smaller than every other page-subject heading in the app. Normalized `isHero` to `text-3xl sm:text-4xl` to match; the dense `h2` directory-card scale (`text-lg`) is unchanged. `tests/components/red-operator-identity.test.tsx` makes no assertion on the literal class, so it required no further change beyond C's key rename.
+Every other page-subject `<h1>` on a detail/profile route (`ProjectHeader.tsx`, the opportunity-detail page, the leaderboard-provenance page) renders at `text-3xl sm:text-4xl`. Red's member-profile hero (`OperatorCard` with `headingLevel="h1"`, per `docs/ui-handoffs/UI-RED.md` item 1) shipped one step smaller, at `text-2xl sm:text-3xl` — UI-RED's own handoff explains this was sized relative to the _directory-card_ `h2` (`text-lg`), not against sibling detail pages. That is a visible inconsistency with the tracked Player-mode hierarchy: a member's own profile page reads smaller than every other page-subject heading in the app. Normalized `isHero` to `text-3xl sm:text-4xl` to match; the dense `h2` directory-card scale (`text-lg`) is unchanged. `tests/components/red-operator-identity.test.tsx` makes no assertion on the literal class, so it required no further change beyond C's key rename.
 
 ### E — Scope discipline
 
@@ -146,17 +174,20 @@ This is the commit that results from adding this handoff file on top of `b834030
 **Preflight:** `git rev-parse HEAD` → `59de8a50001c235b75f0d1862990c4d8a31196f9`; `git status --porcelain=v1` → empty, confirmed immediately before lint and again immediately before the build.
 
 **Lint / typecheck / unit tests:**
+
 - `npm run lint` — clean.
 - `npm run typecheck` (`tsc --noEmit`) — clean.
 - `npx vitest run` (project devDependency, no fetch) — **26 test files, 349 tests, all passed**.
 
 **Build:**
+
 - `rm -rf .next && npm run build` — compiled successfully; same 15 routes (9 dynamic, 6 static), zero build errors.
 - `BUILD_ID`: `Pw6HtJVUMQlEYso1n9z4g` (distinct from pass 1's `XYtfivkaPYvvbZP5naKD7`, confirming this was a genuinely fresh build, not a reused artifact).
 
 **`scripts/db-verify.sh`:** Homebrew `postgresql@17` (`initdb`/`pg_ctl`/`psql`) still on `PATH`. Result: **153 passed, 0 failed**, identical scenario coverage to pass 1 (schema/RPC contracts are untouched by this integration). Harness's own `trap cleanup` tore down its disposable Postgres instance and temp dir; confirmed afterward — no `postgres`/`pg_ctl` process, no leftover `/tmp/firma23-db-verify.*` directory.
 
 **Mode P (fresh production server):**
+
 - Preflight: worktree clean at `59de8a5`, `$CONDUCTOR_PORT` (55190) confirmed free via `lsof` before start.
 - `npm run start -- --port 55190` launched as a fresh process (npm PID 25130, `next-server` child PID 25163), start time `2026-08-25T19:00:31Z`.
 - `GET /dev/states` → **HTTP 404**.
@@ -164,6 +195,7 @@ This is the commit that results from adding this handoff file on top of `b834030
 - Stopped the exact launched process (`kill 25130`); confirmed no `next-server` process remained and the port was free.
 
 **Mode S (synthetic presentation) — full matrix, rerun:**
+
 - Server: fresh `next dev --port 55190`, `NEXT_PUBLIC_SUPABASE_URL=""` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=""` explicitly set empty in the process environment. npm PID 26840, `next-server` child PID 26867, start time `2026-08-25T19:00:53Z`. Port confirmed free before start and after stop.
 - Browser automation: `chromium.launch({ executablePath: <chrome-headless-shell-1228>, headless: true })` via the verified module path above.
 - **Founder — 12 routes × 4 widths (375/767/768/1280) = 48 cells:** HTTP 200 for all 48; measured `window.innerWidth` matched the requested width for all 48; zero horizontal overflow; exactly one `<h1>` on all 48; zero console errors; zero `text-money`/`border-money`/`bg-money` classes found inside any `[data-rail-kind="projection"]` subtree; no money-bearing route rendered zero `<data class="tnum">` (`Amount`) elements.
@@ -173,6 +205,7 @@ This is the commit that results from adding this handoff file on top of `b834030
 **Dynamic 404 matrix (Mode S founder, 1280, `curl` with founder cookie):** `/projects/nope`, `/opportunities/00000000-0000-4000-8000-000000000000`, `/network/nope`, `/leaderboard/nope/provenance` all → true HTTP **404**.
 
 **Interaction and visual assertions**, rerun with the verified tooling (Mode S founder, 1280 unless noted):
+
 - 767/768 table↔list switch on `/projects`: table `display:none` + list visible at 767; table visible + list `display:none` at 768.
 - Skip link: first `Tab` focuses `<a href="#main-content">` ("Saltar al contenido"); `Enter` moves focus to `#main-content`.
 - Command palette: `Cmd/Ctrl+K` from the "Buscar" opener opens `role="dialog"`; 15 `Tab` presses stay trapped inside; `Escape` closes it and restores focus to the exact opener.

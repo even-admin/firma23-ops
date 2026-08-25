@@ -21,17 +21,82 @@ mkdir -p "$RECEIPT_DIR/commands"
 
 timestamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
+port_pids() {
+  lsof -nP -tiTCP:"$CONDUCTOR_PORT" -sTCP:LISTEN 2>/dev/null | sort -u || true
+}
+
 port_pid() {
-  lsof -nP -tiTCP:"$CONDUCTOR_PORT" -sTCP:LISTEN 2>/dev/null | head -1 || true
+  local pids
+  pids="$(port_pids)"
+  [[ "$(printf '%s\n' "$pids" | sed '/^$/d' | wc -l | tr -d ' ')" = '1' ]] || return 1
+  printf '%s\n' "$pids"
+}
+
+process_cwd() {
+  lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1
+}
+
+is_descendant_of() {
+  local child="$1"
+  local ancestor="$2"
+  while [[ "$child" =~ ^[0-9]+$ ]] && [[ "$child" -gt 1 ]]; do
+    [[ "$child" = "$ancestor" ]] && return 0
+    child="$(ps -o ppid= -p "$child" 2>/dev/null | tr -d ' ')"
+  done
+  return 1
+}
+
+assert_server_identity() {
+  local mode="$1"
+  local npm_pid="$2"
+  local expected_server_pid="$3"
+  local expected_command="$4"
+  local actual_listener command cwd
+  kill -0 "$npm_pid" 2>/dev/null
+  kill -0 "$expected_server_pid" 2>/dev/null
+  actual_listener="$(port_pid)"
+  [[ "$actual_listener" = "$expected_server_pid" ]]
+  is_descendant_of "$expected_server_pid" "$npm_pid"
+  command="$(ps -o command= -p "$expected_server_pid")"
+  [[ "$command" == *"$expected_command"* ]]
+  cwd="$(process_cwd "$expected_server_pid")"
+  [[ "$cwd" = "$ROOT" ]]
+  printf '%s mode=%s npm_pid=%s server_pid=%s cwd=%q command=%q\n' \
+    "$(timestamp)" "$mode" "$npm_pid" "$expected_server_pid" "$cwd" "$command" \
+    >> "$RECEIPT_DIR/server-identity.log"
+}
+
+build_id_hash() {
+  shasum -a 256 .next/BUILD_ID | awk '{print $1}'
+}
+
+wait_until_gone() {
+  local pid="$1"
+  [[ -z "$pid" ]] && return 0
+  for _ in $(seq 1 50); do
+    if ! kill -0 "$pid" 2>/dev/null; then return 0; fi
+    sleep 0.1
+  done
+  printf 'PID %s did not stop\n' "$pid" >&2
+  return 1
 }
 
 stop_launched() {
   local npm_pid="$1"
   local server_pid="$2"
+  if [[ -z "$server_pid" ]] && [[ -n "$npm_pid" ]]; then
+    local candidate
+    candidate="$(port_pid 2>/dev/null || true)"
+    if [[ -n "$candidate" ]] && is_descendant_of "$candidate" "$npm_pid"; then
+      server_pid="$candidate"
+    fi
+  fi
   [[ -n "$server_pid" ]] && kill "$server_pid" 2>/dev/null || true
   [[ -n "$npm_pid" ]] && kill "$npm_pid" 2>/dev/null || true
   [[ -n "$server_pid" ]] && wait "$server_pid" 2>/dev/null || true
   [[ -n "$npm_pid" ]] && wait "$npm_pid" 2>/dev/null || true
+  wait_until_gone "$server_pid"
+  wait_until_gone "$npm_pid"
 }
 
 cleanup() {
@@ -75,10 +140,10 @@ wait_for_server() {
 }
 
 assert_port_free() {
-  local pid
-  pid="$(port_pid)"
-  if [[ -n "$pid" ]]; then
-    printf 'Port %s is occupied by PID %s; refusing to kill an unknown process.\n' "$CONDUCTOR_PORT" "$pid" >&2
+  local pids
+  pids="$(port_pids)"
+  if [[ -n "$pids" ]]; then
+    printf 'Port %s is occupied by PID(s) %s; refusing to kill an unknown process.\n' "$CONDUCTOR_PORT" "$pids" >&2
     return 1
   fi
 }
@@ -107,6 +172,8 @@ printf 'free\n' > "$RECEIPT_DIR/port-before.txt"
 if [[ -f /private/tmp/modeP-server-3.log ]]; then
   cp /private/tmp/modeP-server-3.log "$RECEIPT_DIR/prior-discarded-mode-p.log"
   printf '%s\n' 'Historical discarded run copied verbatim. It overlapped an incomplete build and is not acceptance evidence.' > "$RECEIPT_DIR/prior-discarded-mode-p.note.txt"
+  printf '%s\n' 'candidate_sha=unknown' 'environment=unknown' 'started_at=unknown' 'npm_pid=unknown' 'server_pid=unknown' > "$RECEIPT_DIR/prior-discarded-mode-p.meta"
+  shasum -a 256 "$RECEIPT_DIR/prior-discarded-mode-p.log" > "$RECEIPT_DIR/prior-discarded-mode-p.sha256"
 fi
 
 record_command diff-check git diff --check
@@ -119,6 +186,7 @@ record_command build env UI_PREBUILD_NEXT="$RECEIPT_DIR/prebuild-next" bash -lc 
 
 test -f .next/BUILD_ID
 cp .next/BUILD_ID "$RECEIPT_DIR/build-id.txt"
+build_id_hash > "$RECEIPT_DIR/build-id-before-mode-p.sha256"
 git rev-parse HEAD > "$RECEIPT_DIR/head-after-build.txt"
 git status --porcelain=v1 > "$RECEIPT_DIR/status-after-build.txt"
 test "$CANDIDATE_SHA" = "$(cat "$RECEIPT_DIR/head-after-build.txt")"
@@ -137,22 +205,32 @@ MODE_P_LOG="$RECEIPT_DIR/mode-p-server.log"
 } > "$RECEIPT_DIR/mode-p.meta"
 npm run start -- --hostname 127.0.0.1 --port "$CONDUCTOR_PORT" >"$MODE_P_LOG" 2>&1 &
 MODE_P_PID=$!
-printf '%s\n' "$MODE_P_PID" >> "$RECEIPT_DIR/mode-p.meta"
+printf 'npm_pid=%s\n' "$MODE_P_PID" >> "$RECEIPT_DIR/mode-p.meta"
 wait_for_server "http://127.0.0.1:$CONDUCTOR_PORT/favicon.ico" "$MODE_P_LOG"
 MODE_P_SERVER_PID="$(port_pid)"
-printf 'npm_pid=%s\nserver_pid=%s\nready_at=%s\n' "$MODE_P_PID" "$MODE_P_SERVER_PID" "$(timestamp)" >> "$RECEIPT_DIR/mode-p.meta"
+assert_server_identity mode-p "$MODE_P_PID" "$MODE_P_SERVER_PID" 'next-server'
+build_id_hash > "$RECEIPT_DIR/build-id-mode-p-ready.sha256"
+cmp "$RECEIPT_DIR/build-id-before-mode-p.sha256" "$RECEIPT_DIR/build-id-mode-p-ready.sha256"
+printf 'server_pid=%s\nready_at=%s\n' "$MODE_P_SERVER_PID" "$(timestamp)" >> "$RECEIPT_DIR/mode-p.meta"
 
+assert_server_identity mode-p "$MODE_P_PID" "$MODE_P_SERVER_PID" 'next-server'
 curl --silent --show-error --dump-header "$RECEIPT_DIR/mode-p-dev-states.headers" --output "$RECEIPT_DIR/mode-p-dev-states.body" "http://127.0.0.1:$CONDUCTOR_PORT/dev/states"
+assert_server_identity mode-p "$MODE_P_PID" "$MODE_P_SERVER_PID" 'next-server'
 curl --silent --show-error --dump-header "$RECEIPT_DIR/mode-p-favicon.headers" --output "$RECEIPT_DIR/mode-p-favicon.body" "http://127.0.0.1:$CONDUCTOR_PORT/favicon.ico"
 grep -Eq '^HTTP/[^ ]+ 404' "$RECEIPT_DIR/mode-p-dev-states.headers"
 grep -Eq '^HTTP/[^ ]+ 200' "$RECEIPT_DIR/mode-p-favicon.headers"
 grep -Eiq '^content-type: image/x-icon' "$RECEIPT_DIR/mode-p-favicon.headers"
+assert_server_identity mode-p "$MODE_P_PID" "$MODE_P_SERVER_PID" 'next-server'
+build_id_hash > "$RECEIPT_DIR/build-id-mode-p-before-stop.sha256"
+cmp "$RECEIPT_DIR/build-id-before-mode-p.sha256" "$RECEIPT_DIR/build-id-mode-p-before-stop.sha256"
 
 stop_launched "$MODE_P_PID" "$MODE_P_SERVER_PID"
 MODE_P_PID=""
 MODE_P_SERVER_PID=""
 sleep 1
 assert_port_free
+build_id_hash > "$RECEIPT_DIR/build-id-mode-p-after-stop.sha256"
+cmp "$RECEIPT_DIR/build-id-before-mode-p.sha256" "$RECEIPT_DIR/build-id-mode-p-after-stop.sha256"
 printf 'stopped_at=%s\nport_after=free\n' "$(timestamp)" >> "$RECEIPT_DIR/mode-p.meta"
 
 # Mode S uses an explicitly synthetic environment and a fresh dev process.
@@ -167,10 +245,12 @@ NEXT_PUBLIC_SUPABASE_URL="" NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="" \
 MODE_S_PID=$!
 wait_for_server "http://127.0.0.1:$CONDUCTOR_PORT/login" "$MODE_S_LOG"
 MODE_S_SERVER_PID="$(port_pid)"
+assert_server_identity mode-s "$MODE_S_PID" "$MODE_S_SERVER_PID" 'next-server'
 printf 'npm_pid=%s\nserver_pid=%s\nready_at=%s\n' "$MODE_S_PID" "$MODE_S_SERVER_PID" "$(timestamp)" >> "$RECEIPT_DIR/mode-s.meta"
 
 test -f "$PLAYWRIGHT_MODULE_PATH/index.mjs"
 test -x "$CHROMIUM_EXECUTABLE"
+assert_server_identity mode-s "$MODE_S_PID" "$MODE_S_SERVER_PID" 'next-server'
 record_command mode-s-browser env \
   UI_BASE_URL="http://127.0.0.1:$CONDUCTOR_PORT" \
   UI_CANDIDATE_SHA="$CANDIDATE_SHA" \
@@ -187,11 +267,14 @@ for route in \
   /network/nope \
   /leaderboard/nope/provenance
 do
+  assert_server_identity mode-s "$MODE_S_PID" "$MODE_S_SERVER_PID" 'next-server'
   slug="$(printf '%s' "$route" | tr '/:' '__')"
   code="$(curl --silent --show-error --output "$RECEIPT_DIR/http-404-${slug}.body" --dump-header "$RECEIPT_DIR/http-404-${slug}.headers" --write-out '%{http_code}' --cookie 'f23_prototype_viewer=founder' "http://127.0.0.1:$CONDUCTOR_PORT$route")"
   printf '%s %s\n' "$code" "$route" >> "$RECEIPT_DIR/http-404-summary.txt"
   test "$code" = '404'
 done
+
+assert_server_identity mode-s "$MODE_S_PID" "$MODE_S_SERVER_PID" 'next-server'
 
 stop_launched "$MODE_S_PID" "$MODE_S_SERVER_PID"
 MODE_S_PID=""

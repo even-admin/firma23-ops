@@ -50,6 +50,12 @@ decorative color washes, grain or generic AI artwork.
 - Ledger green is reserved for confirmed money and primary completion.
 - Amber means attention. Red means destructive or failed.
 - Ranking uses approved earnings only and retains provenance.
+- Members may compare team rank and approved totals, but another member's paid
+  and projected figures remain private. Omitted fields stay omitted rather than
+  rendering as zero.
+- Settlement reversals never erase cash that was historically paid. When paid
+  exceeds the currently approved amount, the difference is an explicit recovery
+  amount, not a negative payable balance or hidden payout.
 - Historical charts remain unavailable until a frozen model contains at least
   two complete comparable periods.
 - Components consume repository-backed view models and never import `src/data/**`.
@@ -94,7 +100,8 @@ from the existing view model.
 Prioritize the document packet, truthful intake stepper, extracted fields and
 evidence, review issues and the existing finance snapshot. Manual creation stays
 the fallback to document-first intake. Completion follows real processing state,
-never decorative animation.
+never decorative animation. Confirmation and discard outcomes must catch both
+typed failures and rejected actions, announce the result and move focus to it.
 
 ### Finanzas and settlement
 
@@ -212,6 +219,7 @@ None block V1. Until a later explicit decision:
 V1 leaderboard provenance follows the existing financial authority boundary:
 founders may inspect every approved line; a member may inspect only their own
 line-level provenance. Members may still see eligible team rank and approved
-totals, but never another member's beneficiary, payout, approver, or settlement
-line detail. Until RLS-backed read repositories replace the synthetic adapters,
-configured sessions must carry a persistent non-canonical-data disclosure.
+totals, but never another member's paid total, projected total, beneficiary,
+payout, approver, or settlement line detail. Until RLS-backed read repositories
+replace the synthetic adapters, configured sessions must carry a persistent
+non-canonical-data disclosure.

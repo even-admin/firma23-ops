@@ -70,7 +70,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                 <span className="label-micro text-faint">{field.label}</span>
                 <ConfidenceBadge confidence={field.confidence} />
               </div>
-              <p className="text-ink text-sm">{field.value}</p>
+              <p className="text-ink text-sm [overflow-wrap:anywhere] break-words">{field.value}</p>
               {field.evidence.length === 0 ? null : (
                 <details>
                   <summary className="text-muted hover:text-ink flex min-h-11 cursor-pointer items-center text-xs underline decoration-dotted underline-offset-4">
@@ -80,7 +80,7 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                     {field.evidence.map((evidence) => (
                       <li
                         key={`${evidence.locationLabel}-${evidence.quote}`}
-                        className="text-faint text-xs"
+                        className="text-faint text-xs [overflow-wrap:anywhere] break-words"
                       >
                         <span className="text-muted">{evidence.locationLabel}:</span> “
                         {evidence.quote}”
@@ -133,7 +133,9 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                   <span className="text-ink text-sm font-medium">{milestone.name}</span>
                   <span className="text-faint text-xs">{milestone.serviceName}</span>
                 </div>
-                <p className="text-faint text-xs">{milestone.description}</p>
+                <p className="text-faint text-xs [overflow-wrap:anywhere] break-words">
+                  {milestone.description}
+                </p>
               </li>
             ))}
           </ol>
@@ -156,7 +158,9 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                   </span>
                   <ConfidenceBadge confidence={assignment.confidence} />
                 </div>
-                <p className="text-faint text-xs">{assignment.rationale}</p>
+                <p className="text-faint text-xs [overflow-wrap:anywhere] break-words">
+                  {assignment.rationale}
+                </p>
               </li>
             ))}
           </ul>
@@ -195,7 +199,9 @@ export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummar
                   </span>
                   <span className="text-ink text-sm font-medium">{issue.fieldLabel}</span>
                 </div>
-                <p className="text-muted text-xs">{issue.detail}</p>
+                <p className="text-muted text-xs [overflow-wrap:anywhere] break-words">
+                  {issue.detail}
+                </p>
               </li>
             ))}
           </ul>

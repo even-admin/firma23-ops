@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { formatDate } from '@/lib/date';
 
 import { Amount } from '@/components/money/Amount';
 import { CashLedger } from '@/components/finance/CashLedger';
@@ -53,7 +54,8 @@ export default async function OpportunityDetailPage({
           <StatusPill status={detail.summary.status} />
         </div>
         <p className="text-faint text-sm">
-          {detail.summary.code} · {detail.summary.beneficiaryLocation} · {detail.summary.openedAt}
+          {detail.summary.code} · {detail.summary.beneficiaryLocation} ·{' '}
+          {formatDate(detail.summary.openedAt)}
         </p>
       </header>
 

@@ -122,6 +122,21 @@ export function compareMoney(a: Money, b: Money): number {
 }
 
 /**
+ * Separates an ordinary outstanding obligation from cash that must be
+ * recovered or reallocated after an approval reversal. Neither side can be
+ * negative, and historical paid cash is never erased to make the equation fit.
+ */
+export function reconcileApprovedAndPaid(
+  approved: Money,
+  paid: Money,
+): { readonly owed: Money; readonly recovery: Money } {
+  if (compareMoney(approved, paid) >= 0) {
+    return { owed: subMoney(approved, paid), recovery: zeroMoney(approved.currency) };
+  }
+  return { owed: zeroMoney(approved.currency), recovery: subMoney(paid, approved) };
+}
+
+/**
  * Informational share of an amount, truncated toward zero.
  *
  * This is for displaying a single share in isolation. It does not guarantee that

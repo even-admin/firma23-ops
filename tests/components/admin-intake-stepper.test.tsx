@@ -34,6 +34,11 @@ describe('IntakeStepper', () => {
     expect(screen.getByText('Revisión').closest('span')).toHaveAttribute('aria-current', 'step');
     expect(screen.getByText('Documento').closest('span')).not.toHaveAttribute('aria-current');
     expect(screen.getByText('Confirmación').closest('span')).not.toHaveAttribute('aria-current');
+    expect(screen.getByText('Documento').closest('span')).toHaveTextContent('Documento — completo');
+    expect(screen.getByText('Revisión').closest('span')).toHaveTextContent('Revisión — actual');
+    expect(screen.getByText('Confirmación').closest('span')).toHaveTextContent(
+      'Confirmación — pendiente',
+    );
   });
 });
 
@@ -61,7 +66,9 @@ describe('DocumentIntakePanel intake stepper', () => {
     render(<DocumentIntakePanel runIntake={stubRunIntake()} />);
     const input = document.querySelector('input[type="file"]');
     if (input === null) throw new Error('expected a file input');
-    fireEvent.change(input, { target: { files: [new File(['x'], 'imagen.png', { type: 'image/png' })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'imagen.png', { type: 'image/png' })] },
+    });
 
     expect(screen.getByText('Documento').closest('span')).toHaveAttribute('aria-current', 'step');
   });
@@ -90,7 +97,9 @@ describe('DocumentIntakePanel intake stepper', () => {
     fireEvent.change(input, {
       target: { files: [new File(['x'], 'propuesta.pdf', { type: 'application/pdf' })] },
     });
-    expect(screen.getByText(`${copy.admin.intake.selectedFile}: propuesta.pdf`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`${copy.admin.intake.selectedFile}: propuesta.pdf`),
+    ).toBeInTheDocument();
   });
 });
 
@@ -110,7 +119,11 @@ describe('ConfirmContractControl notifies confirmation only on a real confirmed 
       .fn()
       .mockResolvedValue({ kind: 'confirmed', projectId: 'p1', projectSlug: 'sety-2026' });
     render(
-      <ConfirmContractControl {...baseProps} confirmAction={confirmAction} onConfirmed={onConfirmed} />,
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={confirmAction}
+        onConfirmed={onConfirmed}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmMatched }));
     await waitFor(() => {
@@ -125,7 +138,11 @@ describe('ConfirmContractControl notifies confirmation only on a real confirmed 
       .fn()
       .mockResolvedValue({ kind: 'unavailable', reason: copy.admin.intake.confirmBlockedReason });
     render(
-      <ConfirmContractControl {...baseProps} confirmAction={confirmAction} onConfirmed={onConfirmed} />,
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={confirmAction}
+        onConfirmed={onConfirmed}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmMatched }));
     await waitFor(() => {

@@ -93,6 +93,7 @@ describe('ConfirmContractControl', () => {
       expect(screen.getByText(copy.admin.intake.confirmBlockedReason)).toBeInTheDocument();
     });
     expect(screen.queryByText(copy.admin.intake.confirmed)).not.toBeInTheDocument();
+    expect(document.activeElement).toHaveAttribute('data-admin-outcome', 'confirm-unavailable');
   });
 
   it('surfaces a real error with a retry that calls the action again', async () => {
@@ -105,11 +106,24 @@ describe('ConfirmContractControl', () => {
     await waitFor(() => {
       expect(screen.getByText('conflicto de red')).toBeInTheDocument();
     });
+    expect(document.activeElement).toHaveAttribute('data-admin-outcome', 'confirm-error');
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.retry }));
     await waitFor(() => {
       expect(screen.getByText(copy.admin.intake.confirmed)).toBeInTheDocument();
     });
     expect(confirmAction).toHaveBeenCalledTimes(2);
+  });
+
+  it('maps a rejected confirmation promise to a focused error and retains retry', async () => {
+    const confirmAction = vi.fn().mockRejectedValue(new Error('network down'));
+    render(<ConfirmContractControl {...baseProps} confirmAction={confirmAction} />);
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmMatched }));
+    await waitFor(() => {
+      expect(screen.getByText(copy.admin.intake.confirmRejected)).toBeInTheDocument();
+    });
+    expect(document.activeElement).toHaveAttribute('data-admin-outcome', 'confirm-error');
+    expect(screen.getByRole('button', { name: copy.admin.intake.retry })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: copy.admin.intake.discard })).toBeInTheDocument();
   });
 
   it('requires a second explicit activation before discarding a draft', async () => {
@@ -132,6 +146,74 @@ describe('ConfirmContractControl', () => {
     expect(confirmAction).not.toHaveBeenCalled();
     expect(discardAction).toHaveBeenCalledTimes(1);
     expect(document.activeElement).toBe(screen.getByRole('status'));
+  });
+
+  it.each([
+    ['unavailable', { kind: 'unavailable', reason: copy.admin.intake.discardUnavailable } as const],
+    ['error', { kind: 'error', message: 'falló el descarte' } as const],
+  ])(
+    'focuses and disarms a typed discard %s result while retaining the draft',
+    async (_, outcome) => {
+      const discardAction = vi.fn().mockResolvedValue(outcome);
+      render(
+        <ConfirmContractControl
+          {...baseProps}
+          confirmAction={vi.fn()}
+          discardAction={discardAction}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+      fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmDiscard }));
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: copy.admin.intake.retryDiscard }),
+        ).toBeInTheDocument();
+      });
+      expect(document.activeElement).toHaveAttribute(
+        'data-admin-outcome',
+        outcome.kind === 'error' ? 'discard-error' : 'discard-unavailable',
+      );
+      expect(screen.queryByText(copy.admin.intake.discardWarning)).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: copy.admin.intake.confirmMatched }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.retryDiscard }));
+      await waitFor(() => expect(discardAction).toHaveBeenCalledTimes(2));
+    },
+  );
+
+  it('maps a rejected discard promise to a focused error and disarms the action', async () => {
+    const discardAction = vi.fn().mockRejectedValue(new Error('network down'));
+    render(
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={vi.fn()}
+        discardAction={discardAction}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.confirmDiscard }));
+    await waitFor(() => {
+      expect(screen.getByText(copy.admin.intake.discardError)).toBeInTheDocument();
+    });
+    expect(document.activeElement).toHaveAttribute('data-admin-outcome', 'discard-error');
+    expect(screen.getByRole('button', { name: copy.admin.intake.discard })).toBeInTheDocument();
+  });
+
+  it('cancels an armed discard without calling the action', () => {
+    const discardAction = vi.fn();
+    render(
+      <ConfirmContractControl
+        {...baseProps}
+        confirmAction={vi.fn()}
+        discardAction={discardAction}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.discard }));
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.cancelDiscard }));
+    expect(discardAction).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: copy.admin.intake.discard })).toBeInTheDocument();
   });
 
   it('disables confirmation until the manual form is ready, and never shows a discard control for it', () => {
@@ -238,11 +320,18 @@ describe('DocumentIntakePanel', () => {
     expect(runIntake).toHaveBeenCalledTimes(2);
   });
 
-  it('opens the manual contract editor as a fallback, never the primary action', () => {
+  it('opens the manual editor with focus and restores the exact opener on cancel', async () => {
     render(<DocumentIntakePanel runIntake={stubRunIntake(run)} />);
-    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.ctaManual }));
+    const opener = screen.getByRole('button', { name: copy.admin.intake.ctaManual });
+    fireEvent.click(opener);
     expect(screen.getByText(copy.admin.intake.manualTitle)).toBeInTheDocument();
     // Nothing may be confirmed until both fields are filled.
     expect(screen.getByRole('button', { name: copy.admin.intake.confirm })).toBeDisabled();
+    const sponsor = screen.getByRole('textbox', { name: copy.admin.intake.manualSponsorLabel });
+    expect(document.activeElement).toBe(sponsor);
+    expect(sponsor).toHaveAttribute('name', 'sponsorName');
+    expect(sponsor).toHaveAttribute('autocomplete', 'organization');
+    fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.manualCancel }));
+    await waitFor(() => expect(document.activeElement).toBe(opener));
   });
 });

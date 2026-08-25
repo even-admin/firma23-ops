@@ -22,6 +22,7 @@ const memberMoney: MemberMoney = {
   approved: money(179_454),
   paid: money(50_000),
   approvedUnpaid: money(129_454),
+  recovery: money(0),
   projected: money(403_772),
 };
 

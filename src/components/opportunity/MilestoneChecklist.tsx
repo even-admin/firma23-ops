@@ -1,4 +1,5 @@
 import { copy } from '@/copy/es-MX';
+import { formatDate } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import type { MilestoneStatus } from '@/types/domain';
 import type { MilestoneView } from '@/types/views';
@@ -76,12 +77,12 @@ export function MilestoneChecklist({ milestones }: MilestoneChecklistProps) {
             <div className="text-faint flex flex-wrap gap-x-4 text-xs">
               {milestone.dueAt === null ? null : (
                 <span>
-                  {copy.detail.dueAt} {milestone.dueAt}
+                  {copy.detail.dueAt} {formatDate(milestone.dueAt)}
                 </span>
               )}
               {milestone.completedAt === null ? null : (
                 <span>
-                  {copy.detail.completedAt} {milestone.completedAt}
+                  {copy.detail.completedAt} {formatDate(milestone.completedAt)}
                 </span>
               )}
             </div>

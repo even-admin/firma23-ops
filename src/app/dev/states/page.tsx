@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { AdminAcceptanceStates } from '@/app/dev/states/AdminAcceptanceStates';
 
 import { AssignmentList } from '@/components/opportunity/AssignmentList';
 import { StatusPill } from '@/components/opportunity/StatusPill';
@@ -15,6 +16,7 @@ import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { PROTOTYPE_FOUNDER } from '@/data/prototype-viewers';
 import { syntheticSettlementRepository } from '@/data/repositories/synthetic/settlements';
+import { syntheticIntakeRepository } from '@/data/repositories/synthetic/intake';
 import { basisPoints, money } from '@/lib/money';
 import type { Availability, MilestoneStatus, OpportunityStatus } from '@/types/domain';
 import type { MemberStats, SkillView } from '@/types/views';
@@ -31,6 +33,10 @@ export default async function StateGalleryPage() {
   if (process.env.NODE_ENV === 'production') notFound();
 
   const cards = await syntheticSettlementRepository.listOpportunityRails(PROTOTYPE_FOUNDER);
+  const intakeRun = await syntheticIntakeRepository.runIntake(
+    { sourceDocumentFilename: 'acceptance.pdf', idempotencyKey: 'dev-state-gallery' },
+    PROTOTYPE_FOUNDER,
+  );
   const projected = cards.find((card) => card.rail.kind === 'projection');
   const settled = cards.find((card) => card.rail.kind === 'settlement');
 
@@ -169,6 +175,10 @@ export default async function StateGalleryPage() {
           <ErrorState detail="La consulta falló." />
           <PermissionDenied detail="Selector de prototipo. No otorga permisos." />
         </div>
+      </Section>
+
+      <Section title="Estados interactivos de intake">
+        <AdminAcceptanceStates readyRun={intakeRun} />
       </Section>
 
       <Section title="Pesos de asignación, completos e incompletos">

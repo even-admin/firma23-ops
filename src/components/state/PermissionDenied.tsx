@@ -6,7 +6,10 @@ interface PermissionDeniedProps {
 
 export function PermissionDenied({ detail }: PermissionDeniedProps) {
   return (
-    <div className="border-ink-850 bg-ink-950 flex min-h-48 flex-col items-start justify-end gap-1 rounded-lg border p-6 sm:p-8">
+    <div
+      data-permission-denied
+      className="border-ink-850 bg-ink-950 flex min-h-48 flex-col items-start justify-end gap-1 rounded-lg border p-6 sm:p-8"
+    >
       <span aria-hidden="true" className="label-micro text-steel-500 mb-auto">
         403 / privado
       </span>

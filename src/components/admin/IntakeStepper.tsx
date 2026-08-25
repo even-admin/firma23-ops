@@ -20,7 +20,10 @@ const STEP_LABELS: Record<IntakeStepKey, string> = copy.admin.intake.stepper;
  */
 export function IntakeStepper({ statuses }: IntakeStepperProps) {
   return (
-    <ol aria-label={copy.admin.intake.stepper.ariaLabel} className="flex flex-wrap items-center gap-2">
+    <ol
+      aria-label={copy.admin.intake.stepper.ariaLabel}
+      className="flex flex-wrap items-center gap-2"
+    >
       {STEP_ORDER.map((key, index) => {
         const status = statuses[key];
         return (
@@ -38,6 +41,7 @@ export function IntakeStepper({ statuses }: IntakeStepperProps) {
                 {index + 1}.
               </span>
               {STEP_LABELS[key]}
+              <span className="sr-only"> — {copy.admin.intake.stepStatus[status]}</span>
             </span>
             {index < STEP_ORDER.length - 1 ? (
               <span aria-hidden="true" className="text-faint">

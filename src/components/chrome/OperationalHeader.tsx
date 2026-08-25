@@ -56,7 +56,10 @@ export function OperationalHeader({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <section className="border-line bg-bg flex min-h-52 flex-col justify-between rounded-md border p-4 sm:p-5">
+        <section
+          className="border-line bg-bg flex min-h-52 flex-col justify-between rounded-md border p-4 sm:p-5"
+          data-money-state="approved"
+        >
           <div>
             <p className="label-micro text-faint">{copy.home.approved}</p>
             <p className="text-money mt-2 text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
@@ -85,6 +88,14 @@ export function OperationalHeader({
                   <Amount value={money.approvedUnpaid} />
                 </dd>
               </div>
+              {money.recovery.amount === 0 ? null : (
+                <div className="col-span-2" data-money-state="recovery">
+                  <dt className="label-micro text-attention">{copy.finance.recovery}</dt>
+                  <dd className="text-ink-strong mt-1 text-base font-medium">
+                    <Amount value={money.recovery} />
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         </section>
@@ -121,7 +132,7 @@ export function OperationalHeader({
 
       <section className="border-line bg-bg mt-3 flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Projected money lives in its own child, never beside approved money. */}
-        <div>
+        <div data-money-state="projected">
           <p className="label-micro text-faint">{copy.home.projectedAside}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
             <span className="text-muted text-base font-medium">

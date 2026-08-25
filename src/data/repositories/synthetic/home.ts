@@ -4,8 +4,13 @@ import type { AssignmentMoney, HomeAssignment, NextAction, PersonalHome } from '
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import { payoutAllocatedFor } from '@/data/repositories/synthetic/shared';
-import { subMoney, sumMoney, zeroMoney, type Money } from '@/lib/money';
+import {
+  approvedEarnings,
+  paidEarnings,
+  payoutAllocatedFor,
+  projectedEarnings,
+} from '@/data/repositories/synthetic/shared';
+import { reconcileApprovedAndPaid, zeroMoney } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { isFounder, type ViewerContext } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
@@ -24,9 +29,6 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
   }
 
   const assignments: HomeAssignment[] = [];
-  const approvedAmounts: Money[] = [];
-  const paidAmounts: Money[] = [];
-  const projectedAmounts: Money[] = [];
 
   for (const opportunity of dataset.opportunities) {
     const mine = dataset.assignments.filter(
@@ -50,19 +52,17 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
           );
         }
         money = { kind: 'approved', amount: line.amount, payoutStatus: line.payoutStatus };
-        approvedAmounts.push(line.amount);
         const settlementLine = dataset.settlementLines.find((entry) => entry.id === line.lineId);
         if (settlementLine === undefined) {
           throw new DataError(`Rail participant ${line.lineId} has no settlement line`);
         }
-        paidAmounts.push(payoutAllocatedFor(dataset, settlementLine));
+        payoutAllocatedFor(dataset, settlementLine);
       } else {
         const participant = built.rail.segments
           .flatMap((segment) => segment.participants)
           .find((entry) => entry.key === assignment.id);
         const amount = participant?.amount ?? zeroMoney();
         money = { kind: 'projected', amount };
-        projectedAmounts.push(amount);
       }
 
       assignments.push({
@@ -80,8 +80,9 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
     }
   }
 
-  const approved = sumMoney(approvedAmounts);
-  const paid = sumMoney(paidAmounts);
+  const approved = approvedEarnings(dataset, member.id);
+  const paid = paidEarnings(dataset, member.id);
+  const reconciliation = reconcileApprovedAndPaid(approved, paid);
 
   const nextActions: NextAction[] = [];
   for (const assignment of assignments) {
@@ -119,8 +120,9 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
     money: {
       approved,
       paid,
-      approvedUnpaid: subMoney(approved, paid),
-      projected: sumMoney(projectedAmounts),
+      approvedUnpaid: reconciliation.owed,
+      recovery: reconciliation.recovery,
+      projected: projectedEarnings(dataset, member.id),
     },
     activeWorkCount: assignments.filter((assignment) => assignment.active).length,
     assignments,

@@ -101,6 +101,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
   const [showManualForm, setShowManualForm] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const manualOpenerRef = useRef<HTMLButtonElement | null>(null);
   const readyRef = useRef<HTMLElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const attemptKeyRef = useRef<string | null>(null);
@@ -136,6 +137,11 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
     if (inputRef.current !== null) inputRef.current.value = '';
   }
 
+  function closeManualForm(): void {
+    setShowManualForm(false);
+    requestAnimationFrame(() => manualOpenerRef.current?.focus());
+  }
+
   async function process(): Promise<void> {
     if (fileName === null) return;
     setPhase('processing');
@@ -163,10 +169,6 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
     setErrorKind('server');
     setErrorMessage(run.errorMessage ?? i.fileTypeUnsupported);
     setPhase('error');
-  }
-
-  if (showManualForm) {
-    return <ManualContractForm onCancel={() => setShowManualForm(false)} />;
   }
 
   if (phase === 'ready' && draft !== null) {
@@ -199,116 +201,128 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
   }
 
   return (
-    <section className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
-      <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
-      <h2 className="text-ink-strong text-lg font-medium">{i.ctaUpload}</h2>
-
-      <div
-        onDragOver={(event) => {
-          event.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setIsDragging(false);
-          const file = event.dataTransfer.files[0];
-          if (file !== undefined) selectFile(file);
-        }}
-        className={cn(
-          'flex min-h-36 flex-col items-center justify-center gap-3 rounded-md border border-dashed p-6 text-center transition-colors duration-150',
-          isDragging ? 'border-ink-950 bg-raised' : 'border-line-strong',
-        )}
+    <>
+      {showManualForm ? <ManualContractForm onCancel={closeManualForm} /> : null}
+      <section
+        hidden={showManualForm}
+        aria-hidden={showManualForm || undefined}
+        className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6"
       >
-        {phase === 'idle' ? (
-          <>
-            <p className="text-ink text-sm font-medium">{i.dropTitle}</p>
-            <p className="text-faint max-w-sm text-xs">{i.dropHint}</p>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="border-ink-950 bg-ink-950 text-paper-000 ease-firma hover:bg-ink-900 mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
-            >
-              {i.chooseFile}
-            </button>
-            <input
-              ref={inputRef}
-              type="file"
-              tabIndex={-1}
-              aria-hidden="true"
-              className="sr-only"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file !== undefined) selectFile(file);
-              }}
-            />
-          </>
-        ) : (
-          <div className="flex w-full flex-col items-center gap-3">
-            <SourceDocumentCard
-              fileName={fileName ?? ''}
-              fileNameLabel={i.selectedFile}
-              kindLabel={null}
-              state={
-                phase === 'error' ? 'error' : phase === 'processing' ? 'processing' : 'selected'
-              }
-              statusLabel={phase === 'processing' ? i.processing : null}
-            />
+        <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
+        <h2 className="text-ink-strong text-lg font-medium">{i.ctaUpload}</h2>
 
-            {phase === 'error' ? (
-              <p
-                ref={errorRef}
-                tabIndex={-1}
-                role="alert"
-                className="text-attention focus:outline-focus text-xs focus:outline-2 focus:outline-offset-2"
-              >
-                {errorMessage}
-              </p>
-            ) : null}
-
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {phase === 'error' && errorKind === 'validation' ? null : (
-                <button
-                  type="button"
-                  onClick={() => void process()}
-                  disabled={phase === 'processing'}
-                  className={cn(
-                    'ease-firma flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150',
-                    phase === 'processing'
-                      ? 'border-line text-faint cursor-not-allowed'
-                      : 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900',
-                  )}
-                >
-                  {phase === 'processing' ? i.processing : phase === 'error' ? i.retry : i.process}
-                </button>
-              )}
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragging(false);
+            const file = event.dataTransfer.files[0];
+            if (file !== undefined) selectFile(file);
+          }}
+          className={cn(
+            'flex min-h-36 flex-col items-center justify-center gap-3 rounded-md border border-dashed p-6 text-center transition-colors duration-150',
+            isDragging ? 'border-ink-950 bg-raised' : 'border-line-strong',
+          )}
+        >
+          {phase === 'idle' ? (
+            <>
+              <p className="text-ink text-sm font-medium">{i.dropTitle}</p>
+              <p className="text-faint max-w-sm text-xs">{i.dropHint}</p>
               <button
                 type="button"
-                onClick={reset}
-                disabled={phase === 'processing'}
-                className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => inputRef.current?.click()}
+                className="border-ink-950 bg-ink-950 text-paper-000 ease-firma hover:bg-ink-900 mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
               >
-                {i.changeFile}
+                {i.chooseFile}
               </button>
+              <input
+                ref={inputRef}
+                type="file"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file !== undefined) selectFile(file);
+                }}
+              />
+            </>
+          ) : (
+            <div className="flex w-full flex-col items-center gap-3">
+              <SourceDocumentCard
+                fileName={fileName ?? ''}
+                fileNameLabel={i.selectedFile}
+                kindLabel={null}
+                state={
+                  phase === 'error' ? 'error' : phase === 'processing' ? 'processing' : 'selected'
+                }
+                statusLabel={phase === 'processing' ? i.processing : null}
+              />
+
+              {phase === 'error' ? (
+                <p
+                  ref={errorRef}
+                  tabIndex={-1}
+                  role="alert"
+                  className="text-attention focus:outline-focus text-xs focus:outline-2 focus:outline-offset-2"
+                >
+                  {errorMessage}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {phase === 'error' && errorKind === 'validation' ? null : (
+                  <button
+                    type="button"
+                    onClick={() => void process()}
+                    disabled={phase === 'processing'}
+                    className={cn(
+                      'ease-firma flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150',
+                      phase === 'processing'
+                        ? 'border-line text-faint cursor-not-allowed'
+                        : 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900',
+                    )}
+                  >
+                    {phase === 'processing'
+                      ? i.processing
+                      : phase === 'error'
+                        ? i.retry
+                        : i.process}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={reset}
+                  disabled={phase === 'processing'}
+                  className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 items-center rounded-md border px-3 text-xs transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {i.changeFile}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      <p role="status" aria-live="polite" id={statusId} className="sr-only">
-        {phase === 'processing' ? i.processing : ''}
-      </p>
+        <p role="status" aria-live="polite" id={statusId} className="sr-only">
+          {phase === 'processing' ? i.processing : ''}
+        </p>
 
-      <p className="text-faint text-xs">
-        <button
-          type="button"
-          onClick={() => setShowManualForm(true)}
-          className="text-faint hover:text-ink inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4"
-        >
-          {i.ctaManual}
-        </button>{' '}
-        · {i.ctaManualHint}
-      </p>
-    </section>
+        <p className="text-faint text-xs">
+          <button
+            ref={manualOpenerRef}
+            type="button"
+            onClick={() => setShowManualForm(true)}
+            className="text-faint hover:text-ink inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4"
+          >
+            {i.ctaManual}
+          </button>{' '}
+          · {i.ctaManualHint}
+        </p>
+      </section>
+    </>
   );
 }

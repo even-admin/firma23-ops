@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { formatDate } from '@/lib/date';
 
 import { AssignmentRow } from '@/components/operator/AssignmentRow';
 import { OperatorCard } from '@/components/operator/OperatorCard';
@@ -24,7 +25,7 @@ export default async function OperatorProfilePage({
       <OperatorCard operator={profile} linkToProfile={false} headingLevel="h1" />
 
       <section className="flex flex-col gap-3">
-        <h2 className="label-micro text-faint">Habilidades</h2>
+        <h2 className="label-micro text-faint">{copy.network.skills}</h2>
         <SkillChips skills={profile.skills} />
       </section>
 
@@ -49,7 +50,7 @@ export default async function OperatorProfilePage({
                     {item.title}
                   </a>
                   <span className="text-faint block truncate text-xs">
-                    {item.roleLabel} · {item.completedAt}
+                    {item.roleLabel} · {formatDate(item.completedAt)}
                   </span>
                 </span>
                 <span

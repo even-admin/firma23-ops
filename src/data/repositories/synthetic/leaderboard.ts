@@ -14,21 +14,26 @@ import {
 import type { LeaderboardProvenance, LeaderboardRow, ProvenanceEntry } from '@/types/views';
 
 export const syntheticLeaderboardRepository: LeaderboardRepository = {
-  async list(_viewer: ViewerContext): Promise<LeaderboardRow[]> {
+  async list(viewer: ViewerContext): Promise<LeaderboardRow[]> {
     const dataset = loadSyntheticDataset();
 
     const unranked = [...dataset.members.values()]
       .filter((member) => member.role !== 'founder')
       .map((member) => {
         const stats = statsFor(dataset, member.id);
+        const mayInspectPersonalMoney = viewer.role === 'founder' || viewer.viewerId === member.id;
         return {
           memberId: member.id,
           slug: member.slug,
           displayName: member.displayName,
           initials: member.initials,
           approvedEarnings: approvedEarnings(dataset, member.id),
-          paidEarnings: paidEarnings(dataset, member.id),
-          projectedEarnings: projectedEarnings(dataset, member.id),
+          ...(mayInspectPersonalMoney
+            ? {
+                paidEarnings: paidEarnings(dataset, member.id),
+                projectedEarnings: projectedEarnings(dataset, member.id),
+              }
+            : {}),
           closed: stats.closed,
           delivered: stats.delivered,
           onTimeRateBp: stats.onTimeRateBp,

@@ -53,6 +53,11 @@ export function FinanceMetricCard({ totals, pendingApprovals }: FinanceMetricCar
       <footer className="border-line bg-bg flex flex-wrap items-center gap-3 border-t px-5 py-3 sm:px-6 lg:px-8">
         <span className="label-micro text-faint">{copy.finance.pendingApprovals}</span>
         <span className="text-attention tnum text-sm font-semibold">{pendingApprovals}</span>
+        {totals.recovery.amount === 0 ? null : (
+          <span className="text-attention text-xs" data-money-state="recovery">
+            {copy.finance.recovery}: <Amount value={totals.recovery} />
+          </span>
+        )}
         <Link
           href="/admin/finance"
           className="border-line-strong text-ink-strong hover:bg-raised ease-firma ml-auto flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"

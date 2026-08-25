@@ -62,32 +62,52 @@ export function ConfirmContractControl({
   const [result, setResult] = useState<ConfirmContractDraftResult | null>(null);
   const [discarded, setDiscarded] = useState(false);
   const [discardArmed, setDiscardArmed] = useState(false);
+  const [discardResult, setDiscardResult] = useState<DiscardContractDraftResult | null>(null);
   const [isPending, startTransition] = useTransition();
   const outcomeRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (discarded || result?.kind === 'confirmed') outcomeRef.current?.focus();
-  }, [discarded, result]);
+    if (discarded || result !== null || discardResult !== null) outcomeRef.current?.focus();
+  }, [discarded, discardResult, result]);
 
   function confirm(): void {
     setDiscardArmed(false);
+    setDiscardResult(null);
     startTransition(async () => {
-      const outcome = await confirmAction({ draftId, sponsorName, programName, currency });
+      let outcome: ConfirmContractDraftResult;
+      try {
+        outcome = await confirmAction({ draftId, sponsorName, programName, currency });
+      } catch {
+        outcome = { kind: 'error', message: i.confirmRejected };
+      }
       setResult(outcome);
       if (outcome.kind === 'confirmed') onConfirmed?.();
     });
   }
 
-  function discard(): void {
+  function executeDiscard(): void {
     if (draftId === null) return;
+    startTransition(async () => {
+      let outcome: DiscardContractDraftResult;
+      try {
+        outcome = await discardAction(draftId);
+      } catch {
+        outcome = { kind: 'error', message: i.discardError };
+      }
+      setDiscardArmed(false);
+      setDiscardResult(outcome);
+      if (outcome.kind === 'discarded') setDiscarded(true);
+    });
+  }
+
+  function discard(): void {
+    setResult(null);
+    setDiscardResult(null);
     if (!discardArmed) {
       setDiscardArmed(true);
       return;
     }
-    startTransition(async () => {
-      const outcome = await discardAction(draftId);
-      if (outcome.kind === 'discarded') setDiscarded(true);
-    });
+    executeDiscard();
   }
 
   if (discarded) {
@@ -97,6 +117,7 @@ export function ConfirmContractControl({
         tabIndex={-1}
         role="status"
         aria-live="polite"
+        data-admin-outcome="discarded"
         className="border-line bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
       >
         <p className="text-ink text-sm">{i.discarded}</p>
@@ -111,6 +132,7 @@ export function ConfirmContractControl({
         tabIndex={-1}
         role="status"
         aria-live="polite"
+        data-admin-outcome="confirmed"
         className="border-money/40 bg-surface focus:outline-focus flex flex-col gap-2 rounded-md border p-4 focus:outline-2 focus:outline-offset-2"
       >
         <p className="text-money text-sm font-medium">{i.confirmed}</p>
@@ -126,6 +148,23 @@ export function ConfirmContractControl({
 
   const blockedReason = result?.kind === 'unavailable' ? result.reason : null;
   const errorMessage = result?.kind === 'error' ? result.message : null;
+  const discardMessage =
+    discardResult?.kind === 'unavailable'
+      ? discardResult.reason || i.discardUnavailable
+      : discardResult?.kind === 'error'
+        ? discardResult.message || i.discardError
+        : null;
+  const outcomeMessage = errorMessage ?? blockedReason ?? discardMessage;
+  const outcomeKind =
+    result?.kind === 'error'
+      ? 'confirm-error'
+      : result?.kind === 'unavailable'
+        ? 'confirm-unavailable'
+        : discardResult?.kind === 'error'
+          ? 'discard-error'
+          : discardResult?.kind === 'unavailable'
+            ? 'discard-unavailable'
+            : null;
 
   return (
     <section className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4">
@@ -165,15 +204,26 @@ export function ConfirmContractControl({
           </button>
         ) : null}
       </div>
-      <p
-        id="intake-confirm-status"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="text-muted text-xs"
-      >
-        {discardArmed ? i.discardWarning : (errorMessage ?? blockedReason ?? i.confirmHint)}
-      </p>
+      {outcomeMessage === null ? (
+        <p id="intake-confirm-status" className="text-muted text-xs">
+          {discardArmed ? i.discardWarning : i.confirmHint}
+        </p>
+      ) : (
+        <p
+          ref={(node) => {
+            outcomeRef.current = node;
+          }}
+          id="intake-confirm-status"
+          tabIndex={-1}
+          role={outcomeKind?.endsWith('error') ? 'alert' : 'status'}
+          aria-live={outcomeKind?.endsWith('error') ? 'assertive' : 'polite'}
+          aria-atomic="true"
+          data-admin-outcome={outcomeKind}
+          className="text-attention focus:outline-focus text-xs focus:outline-2 focus:outline-offset-2"
+        >
+          {outcomeMessage}
+        </p>
+      )}
       {errorMessage === null ? null : (
         <button
           type="button"
@@ -181,6 +231,16 @@ export function ConfirmContractControl({
           className="text-attention hover:text-ink-strong ease-firma flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150"
         >
           {i.retry}
+        </button>
+      )}
+      {discardMessage === null ? null : (
+        <button
+          type="button"
+          onClick={executeDiscard}
+          disabled={isPending}
+          className="text-attention hover:text-ink-strong ease-firma flex min-h-11 items-center text-xs underline decoration-dotted underline-offset-4 transition-colors duration-150 disabled:cursor-not-allowed"
+        >
+          {i.retryDiscard}
         </button>
       )}
     </section>

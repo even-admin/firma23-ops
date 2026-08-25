@@ -1,12 +1,19 @@
 import { copy } from '@/copy/es-MX';
 import type { ApprovedSettlement } from '@/lib/allocation';
-import { subMoney, sumMoney, type Money } from '@/lib/money';
+import { reconcileApprovedAndPaid, sumMoney, type Money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
+import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
-import { cashEventViews, poolWeightViews } from '@/data/repositories/synthetic/shared';
+import {
+  approvedBaseForOpportunity,
+  cashEventViews,
+  organizationApprovedForOpportunity,
+  paidForOpportunity,
+  poolWeightViews,
+} from '@/data/repositories/synthetic/shared';
 import type {
   FinanceOverview,
   FinanceRow,
@@ -26,60 +33,75 @@ export function organizationRecipientApproved(rail: ApprovedSettlement): Money {
   );
 }
 
-export const syntheticFinanceRepository: FinanceRepository = {
-  async getOverview(viewer: ViewerContext): Promise<FinanceOverview> {
-    assertFounder(viewer, 'getFinanceOverview');
-    const dataset = loadSyntheticDataset();
+export function buildFinanceOverview(
+  dataset: SyntheticDataset,
+  viewer: ViewerContext,
+): FinanceOverview {
+  assertFounder(viewer, 'getFinanceOverview');
 
-    const rows: FinanceRow[] = [];
-    const cashReceived = [];
-    const approvedBases = [];
-    const projectedBases = [];
-    const paidAmounts = [];
-    const houseAmounts = [];
+  const rows: FinanceRow[] = [];
+  const cashReceived = [];
+  const approvedBases = [];
+  const projectedBases = [];
+  const paidAmounts = [];
+  const houseAmounts = [];
+  const owedAmounts = [];
+  const recoveryAmounts = [];
 
-    for (const opportunity of dataset.opportunities) {
-      const built = buildOpportunityRail(dataset, opportunity);
-      const ruleVersion = dataset.allocationRuleVersions.get(opportunity.allocationRuleVersionId);
-      if (ruleVersion === undefined) {
-        throw new DataError(`Opportunity ${opportunity.id} references a missing rule version`);
-      }
-
-      rows.push({
-        opportunity: built.summary,
-        rail: built.rail,
-        distributableBase: built.distributableBase.base,
-        cashReceived: built.cashReceived,
-        cashEvents: cashEventViews(dataset, opportunity.id, ruleVersion.basePolicy.includeTypes),
-      });
-
-      cashReceived.push(built.cashReceived);
-
-      if (built.rail.kind === 'settlement') {
-        approvedBases.push(built.rail.base);
-        paidAmounts.push(built.rail.paid);
-        houseAmounts.push(organizationRecipientApproved(built.rail));
-      } else {
-        // Projections are totalled separately and never folded into approved money.
-        projectedBases.push(built.rail.base);
-      }
+  for (const opportunity of dataset.opportunities) {
+    const built = buildOpportunityRail(dataset, opportunity);
+    const ruleVersion = dataset.allocationRuleVersions.get(opportunity.allocationRuleVersionId);
+    if (ruleVersion === undefined) {
+      throw new DataError(`Opportunity ${opportunity.id} references a missing rule version`);
     }
 
-    const distributableApproved = sumMoney(approvedBases);
-    const paidOut = sumMoney(paidAmounts);
+    rows.push({
+      opportunity: built.summary,
+      rail: built.rail,
+      distributableBase: built.distributableBase.base,
+      cashReceived: built.cashReceived,
+      cashEvents: cashEventViews(dataset, opportunity.id, ruleVersion.basePolicy.includeTypes),
+    });
 
-    return {
-      totals: {
-        cashReceived: sumMoney(cashReceived),
-        distributableApproved,
-        distributableProjected: sumMoney(projectedBases),
-        paidOut,
-        owed: subMoney(distributableApproved, paidOut),
-        houseApproved: sumMoney(houseAmounts),
-      },
-      rows,
-      pendingApprovals: dataset.settlements.filter((entry) => entry.status === 'pending').length,
-    };
+    cashReceived.push(built.cashReceived);
+
+    const approvedBase = approvedBaseForOpportunity(dataset, opportunity.id);
+    const paid = paidForOpportunity(dataset, opportunity.id);
+    const reconciliation = reconcileApprovedAndPaid(approvedBase, paid);
+    if (approvedBase.amount !== 0) {
+      approvedBases.push(approvedBase);
+      paidAmounts.push(paid);
+      houseAmounts.push(organizationApprovedForOpportunity(dataset, opportunity.id));
+      owedAmounts.push(reconciliation.owed);
+      recoveryAmounts.push(reconciliation.recovery);
+    } else if (paid.amount !== 0) {
+      paidAmounts.push(paid);
+      recoveryAmounts.push(reconciliation.recovery);
+    }
+    if (built.rail.kind === 'projection') {
+      // Projections are totalled separately and never folded into approved money.
+      projectedBases.push(built.rail.base);
+    }
+  }
+
+  return {
+    totals: {
+      cashReceived: sumMoney(cashReceived),
+      distributableApproved: sumMoney(approvedBases),
+      distributableProjected: sumMoney(projectedBases),
+      paidOut: sumMoney(paidAmounts),
+      owed: sumMoney(owedAmounts),
+      recovery: sumMoney(recoveryAmounts),
+      houseApproved: sumMoney(houseAmounts),
+    },
+    rows,
+    pendingApprovals: dataset.settlements.filter((entry) => entry.status === 'pending').length,
+  };
+}
+
+export const syntheticFinanceRepository: FinanceRepository = {
+  async getOverview(viewer: ViewerContext): Promise<FinanceOverview> {
+    return buildFinanceOverview(loadSyntheticDataset(), viewer);
   },
 
   async getSettlementPreview(

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PROTOTYPE_FOUNDER, PROTOTYPE_MEMBER } from '@/data/prototype-viewers';
 import { syntheticLeaderboardRepository } from '@/data/repositories/synthetic/leaderboard';
-import { compareMoney } from '@/lib/money';
+import { compareMoney, money } from '@/lib/money';
 
 const rows = await syntheticLeaderboardRepository.list(PROTOTYPE_FOUNDER);
 
@@ -26,21 +26,25 @@ describe('leaderboard ranking', () => {
   });
 
   it('does not rank by projected earnings', () => {
-    const projectedOrder = [...rows]
+    const projectedRows = rows.map((row) => ({
+      ...row,
+      projectedEarnings: row.projectedEarnings ?? money(0),
+    }));
+    const projectedOrder = [...projectedRows]
       .sort((a, b) => compareMoney(b.projectedEarnings, a.projectedEarnings))
       .map((row) => row.memberId);
-    expect(rows.some((row) => row.projectedEarnings.amount > 0)).toBe(true);
+    expect(projectedRows.some((row) => row.projectedEarnings.amount > 0)).toBe(true);
     expect(rows.map((row) => row.memberId)).not.toEqual(projectedOrder);
   });
 
   it('never lets paid exceed approved', () => {
     for (const row of rows) {
-      expect(row.paidEarnings.amount).toBeLessThanOrEqual(row.approvedEarnings.amount);
+      expect(row.paidEarnings?.amount ?? 0).toBeLessThanOrEqual(row.approvedEarnings.amount);
     }
   });
 
   it('carries projected earnings as a separate figure', () => {
-    const projectedTotal = rows.reduce((acc, row) => acc + row.projectedEarnings.amount, 0);
+    const projectedTotal = rows.reduce((acc, row) => acc + (row.projectedEarnings?.amount ?? 0), 0);
     const approvedTotal = rows.reduce((acc, row) => acc + row.approvedEarnings.amount, 0);
     expect(projectedTotal).toBeGreaterThan(0);
     expect(approvedTotal).toBeGreaterThan(0);
@@ -55,6 +59,17 @@ describe('leaderboard ranking', () => {
   it('is readable by a member, not just a founder', async () => {
     const asMember = await syntheticLeaderboardRepository.list(PROTOTYPE_MEMBER);
     expect(asMember.map((row) => row.memberId)).toEqual(rows.map((row) => row.memberId));
+  });
+
+  it('omits teammate paid and projected figures for a member without zero-filling them', async () => {
+    const asMember = await syntheticLeaderboardRepository.list(PROTOTYPE_MEMBER);
+    const self = asMember.find((row) => row.memberId === PROTOTYPE_MEMBER.viewerId);
+    expect(self).toHaveProperty('paidEarnings');
+    expect(self).toHaveProperty('projectedEarnings');
+    for (const teammate of asMember.filter((row) => row.memberId !== PROTOTYPE_MEMBER.viewerId)) {
+      expect(teammate).not.toHaveProperty('paidEarnings');
+      expect(teammate).not.toHaveProperty('projectedEarnings');
+    }
   });
 
   it('keeps founders excluded for both viewer roles', async () => {

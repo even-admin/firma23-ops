@@ -1,6 +1,7 @@
 import { Amount } from '@/components/money/Amount';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
+import { formatDate } from '@/lib/date';
 import type { CashEventView } from '@/types/views';
 
 interface CashLedgerProps {
@@ -23,7 +24,7 @@ export function CashLedger({ events }: CashLedgerProps) {
         >
           <span className="min-w-0 flex-1">
             <span className="text-ink block truncate text-sm">{event.label}</span>
-            <span className="text-faint block text-xs">{event.occurredAt}</span>
+            <span className="text-faint block text-xs">{formatDate(event.occurredAt)}</span>
           </span>
           <span
             className={cn(

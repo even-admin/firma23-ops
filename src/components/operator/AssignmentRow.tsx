@@ -27,7 +27,10 @@ export function AssignmentRow({ assignment }: AssignmentRowProps) {
 
       <StatusPill status={assignment.status} className="justify-self-start sm:justify-self-auto" />
 
-      <div className="row-span-2 flex flex-col items-end gap-1 sm:row-span-1">
+      <div
+        className="row-span-2 flex flex-col items-end gap-1 sm:row-span-1"
+        data-money-state={projected ? 'projected' : 'approved'}
+      >
         <Amount
           value={assignment.money.amount}
           className={projected ? 'text-muted text-sm' : 'text-ink text-sm'}

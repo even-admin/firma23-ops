@@ -32,6 +32,8 @@ export interface MemberMoney {
   readonly paid: Money;
   /** Approved but still owed. */
   readonly approvedUnpaid: Money;
+  /** Cash already paid beyond the currently approved amount after a reversal. */
+  readonly recovery: Money;
   /** Not earned, not payable, never ranked. Shown apart from everything above. */
   readonly projected: Money;
 }
@@ -277,9 +279,10 @@ export interface LeaderboardRow {
   readonly initials: string;
   /** The only figure the ranking uses. */
   readonly approvedEarnings: Money;
-  readonly paidEarnings: Money;
-  /** Shown alongside, never ranked, never added to approved. */
-  readonly projectedEarnings: Money;
+  /** Present only for founders or the row's own member. Never zero-filled for privacy. */
+  readonly paidEarnings?: Money;
+  /** Present only for founders or the row's own member. Never ranked or added to approved. */
+  readonly projectedEarnings?: Money;
   readonly closed: number;
   readonly delivered: number;
   readonly onTimeRateBp: BasisPoints | null;
@@ -317,6 +320,8 @@ export interface FinanceTotals {
   readonly distributableProjected: Money;
   readonly paidOut: Money;
   readonly owed: Money;
+  /** Historical cash paid beyond current approval after a reversal. */
+  readonly recovery: Money;
   readonly houseApproved: Money;
 }
 

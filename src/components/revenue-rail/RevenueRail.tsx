@@ -39,6 +39,7 @@ export function RevenueRail({ model, variant = 'row', className }: RevenueRailPr
       className={cn('flex flex-col gap-3', className)}
       data-variant={variant}
       data-rail-kind={model.kind}
+      data-base-centavos={model.base.amount}
       aria-label={settled ? copy.rail.settlementAria : copy.rail.projectionAria}
     >
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">

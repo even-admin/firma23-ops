@@ -51,7 +51,125 @@ function assert(condition, message, detail = null) {
   if (!condition) failures.push({ message, detail });
 }
 
-async function inspectPage(page, role, routeName, routePath, width, response, consoleErrors) {
+function monitorPage(page, scope, allowResponse = () => false) {
+  const events = [];
+  const onConsole = (message) => {
+    if (message.type() === 'error') {
+      events.push({ type: 'console.error', scope, text: message.text() });
+    }
+  };
+  const onPageError = (error) => {
+    events.push({ type: 'pageerror', scope, message: error.message, stack: error.stack });
+  };
+  const onRequestFailed = (request) => {
+    events.push({
+      type: 'requestfailed',
+      scope,
+      url: request.url(),
+      method: request.method(),
+      resourceType: request.resourceType(),
+      failure: request.failure(),
+    });
+  };
+  const onResponse = (response) => {
+    if (response.status() < 400 || allowResponse(response)) return;
+    events.push({
+      type: 'unexpected-response',
+      scope,
+      url: response.url(),
+      status: response.status(),
+      resourceType: response.request().resourceType(),
+    });
+  };
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  page.on('requestfailed', onRequestFailed);
+  page.on('response', onResponse);
+  return {
+    events,
+    reset() {
+      events.length = 0;
+    },
+    detach() {
+      page.off('console', onConsole);
+      page.off('pageerror', onPageError);
+      page.off('requestfailed', onRequestFailed);
+      page.off('response', onResponse);
+    },
+  };
+}
+
+function expectedActiveHref(routeName, routePath, width) {
+  if (routeName === 'home') return '/';
+  if (routeName === 'opportunities' || routeName === 'opportunity') return '/opportunities';
+  if (routeName === 'network' || routeName === 'member') return '/network';
+  if (routeName === 'leaderboard' || routeName === 'provenance') return '/leaderboard';
+  if (routeName === 'projects') return '/projects';
+  if (routeName === 'project') return width >= 768 ? routePath : '/projects';
+  if (routeName === 'finance' || routeName === 'settle') {
+    return width >= 768 ? '/admin/finance' : '/admin';
+  }
+  return '/admin';
+}
+
+async function inspectInteractiveState(scope, label) {
+  return scope.evaluate((root, stateLabel) => {
+    const visible = (element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return (
+        style.visibility !== 'hidden' &&
+        style.display !== 'none' &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    };
+    const controls = [
+      ...root.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]'),
+    ]
+      .filter(
+        (element) =>
+          visible(element) &&
+          !element.hasAttribute('disabled') &&
+          element.getAttribute('tabindex') !== '-1',
+      )
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName,
+          label:
+            element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 80) ?? '',
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+    const headings = [...root.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible);
+    const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
+    const headingSkips = levels.filter(
+      (level, index) => index > 0 && level > (levels[index - 1] ?? level) + 1,
+    );
+    const focused = document.activeElement;
+    const focusedRect = focused instanceof HTMLElement ? focused.getBoundingClientRect() : null;
+    return {
+      stateLabel,
+      controls,
+      headingSkips,
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      focused:
+        focused instanceof HTMLElement
+          ? {
+              tag: focused.tagName,
+              text: focused.textContent?.trim().slice(0, 100) ?? '',
+              outcome: focused.dataset.adminOutcome ?? null,
+              visible: visible(focused),
+              rect: focusedRect,
+            }
+          : null,
+    };
+  }, label);
+}
+
+async function inspectPage(page, role, routeName, routePath, width, response, runtimeEvents) {
   const expectedDenied = role === 'member' && deniedForMember.has(routeName);
   const result = await page.evaluate(
     ({ expectedDenied, routeName, width }) => {
@@ -74,14 +192,11 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
       const controls = [
         ...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]'),
       ]
-        .filter(
-          (element) =>
-            visible(element) &&
-            !element.hasAttribute('disabled') &&
-            element.getAttribute('tabindex') !== '-1',
-        )
+        .filter((element) => visible(element) && element.getAttribute('tabindex') !== '-1')
         .map((element) => {
-          element.focus();
+          const disabled =
+            element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true';
+          if (!disabled) element.focus({ preventScroll: true });
           const rect = element.getBoundingClientRect();
           const style = getComputedStyle(element);
           return {
@@ -90,7 +205,8 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
               element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 80) ?? '',
             width: rect.width,
             height: rect.height,
-            focused: document.activeElement === element,
+            disabled,
+            focused: disabled || document.activeElement === element,
             outlineWidth: Number.parseFloat(style.outlineWidth || '0'),
             outlineStyle: style.outlineStyle,
           };
@@ -98,9 +214,15 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
       const undersized = controls.filter((control) => control.width < 44 || control.height < 44);
       const unfocused = controls.filter((control) => !control.focused);
       const withoutFocusIndicator = controls.filter(
-        (control) => control.outlineStyle === 'none' || control.outlineWidth < 2,
+        (control) =>
+          !control.disabled && (control.outlineStyle === 'none' || control.outlineWidth < 2),
       );
-      const projectedMoneyClasses = [...document.querySelectorAll('[data-rail-kind="projection"]')]
+      const projectedRoots = [
+        ...document.querySelectorAll(
+          '[data-rail-kind="projection"],[data-money-state="projected"]',
+        ),
+      ];
+      const projectedMoneyClasses = projectedRoots
         .flatMap((root) => [root, ...root.querySelectorAll('*')])
         .filter((element) => [...element.classList].some((token) => token.includes('money')))
         .map((element) => ({ tag: element.tagName, className: element.className }));
@@ -131,6 +253,51 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
           ? sidebar !== null && getComputedStyle(sidebar).display !== 'none'
           : sidebar !== null && getComputedStyle(sidebar).display === 'none';
       const mainText = main?.textContent ?? '';
+      const deniedStateCount = main?.querySelectorAll('[data-permission-denied]').length ?? 0;
+      const deniedInteractive = expectedDenied
+        ? [...(main?.querySelectorAll('a[href],button,input,select,textarea,summary') ?? [])]
+            .filter((element) => visible(element) && !element.hasAttribute('disabled'))
+            .map((element) => element.textContent?.trim().slice(0, 80) ?? element.tagName)
+        : [];
+      const deniedSensitive = expectedDenied
+        ? (main?.querySelectorAll('[data-money-state],[data-rail-kind],[data-leaderboard-member]')
+            .length ?? 0)
+        : 0;
+      const founderOnlyReachable = expectedDenied
+        ? [...document.querySelectorAll('a[href^="/admin"],a[href^="/opportunities"]')]
+            .filter(visible)
+            .map((link) => link.getAttribute('href'))
+        : [];
+      const setyRail =
+        routeName === 'opportunity' && !expectedDenied
+          ? document.querySelector('[data-rail-kind][data-base-centavos="897270"]')
+          : null;
+      const setyShares =
+        setyRail === null
+          ? null
+          : Object.fromEntries(
+              ['house', 'closer', 'delivery'].map((key) => {
+                const segment = setyRail.querySelector(`[data-share-key="${key}"]`);
+                return [key, Number(segment?.querySelector('data.tnum')?.getAttribute('value'))];
+              }),
+            );
+      const leaderboardRows =
+        routeName === 'leaderboard'
+          ? [...document.querySelectorAll('[data-leaderboard-member]')].map((row) => ({
+              slug: row.getAttribute('data-leaderboard-member'),
+              approved: Number(
+                row.querySelector('[data-money-state="approved"] data.tnum')?.getAttribute('value'),
+              ),
+              hasPaid: row.querySelector('[data-money-state="paid"]') !== null,
+              hasProjected: row.querySelector('[data-money-state="projected"]') !== null,
+            }))
+          : [];
+      const financeStates =
+        routeName === 'finance' && !expectedDenied
+          ? [...document.querySelectorAll('[data-money-state]')].map((node) =>
+              node.getAttribute('data-money-state'),
+            )
+          : [];
       return {
         viewport: window.innerWidth,
         overflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -147,6 +314,13 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
         shellCorrect,
         deniedCopy: mainText.includes('Necesitas permisos de fundador'),
         deniedAmounts: expectedDenied ? (main?.querySelectorAll('data.tnum').length ?? 0) : 0,
+        deniedStateCount,
+        deniedInteractive,
+        deniedSensitive,
+        founderOnlyReachable,
+        setyShares,
+        leaderboardRows,
+        financeStates,
         founderNamesOnLeaderboard:
           routeName === 'leaderboard'
             ? ['Luis Ramírez', 'Diego Martínez Herrera'].filter((name) => mainText.includes(name))
@@ -201,11 +375,16 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
     result.authority,
   );
   if (!expectedDenied) {
-    assert(result.activeLinks.length > 0, `${prefix} has no active route state`);
+    const expectedHref = expectedActiveHref(routeName, routePath, width);
+    assert(
+      result.activeLinks.includes(expectedHref),
+      `${prefix} active route does not match ${expectedHref}`,
+      result.activeLinks,
+    );
   }
   assert(result.mobileClearance, `${prefix} mobile tab bar lacks reserved clearance`);
   assert(result.shellCorrect, `${prefix} shell breakpoint mismatch`);
-  assert(consoleErrors.length === 0, `${prefix} console errors`, consoleErrors);
+  assert(runtimeEvents.length === 0, `${prefix} browser runtime/network errors`, runtimeEvents);
   assert(
     result.founderNamesOnLeaderboard.length === 0,
     `${prefix} founders appear in ranking`,
@@ -214,11 +393,63 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
   assert(result.homeEvidenceDisabled, `${prefix} inert evidence CTA is enabled`);
   if (expectedDenied) {
     assert(result.deniedCopy, `${prefix} missing denied presentation`);
+    assert(result.deniedStateCount === 1, `${prefix} missing explicit PermissionDenied state`);
     assert(
       result.deniedAmounts === 0,
       `${prefix} denied presentation leaks amounts`,
       result.deniedAmounts,
     );
+    assert(
+      result.deniedInteractive.length === 0,
+      `${prefix} denied page exposes actions`,
+      result.deniedInteractive,
+    );
+    assert(
+      result.deniedSensitive === 0,
+      `${prefix} denied page exposes sensitive structures`,
+      result.deniedSensitive,
+    );
+    assert(
+      result.founderOnlyReachable.length === 0,
+      `${prefix} founder navigation remains reachable`,
+      result.founderOnlyReachable,
+    );
+  }
+  if (result.setyShares !== null) {
+    assert(
+      result.setyShares.house === 269181 &&
+        result.setyShares.closer === 179454 &&
+        result.setyShares.delivery === 448635,
+      `${prefix} SETY rail centavos mismatch`,
+      result.setyShares,
+    );
+  }
+  if (routeName === 'leaderboard') {
+    const approved = result.leaderboardRows.map((row) => row.approved);
+    assert(
+      approved.every((amount, index) => index === 0 || amount <= approved[index - 1]),
+      `${prefix} leaderboard is not approved-descending`,
+      approved,
+    );
+    if (role === 'member') {
+      for (const row of result.leaderboardRows) {
+        const own = row.slug === 'sebastian-benitez';
+        assert(
+          row.hasPaid === own && row.hasProjected === own,
+          `${prefix} member personal-money redaction failed`,
+          row,
+        );
+      }
+    }
+  }
+  if (routeName === 'finance' && !expectedDenied) {
+    for (const state of ['approved', 'paid', 'payable', 'projected']) {
+      assert(
+        result.financeStates.includes(state),
+        `${prefix} missing finance state ${state}`,
+        result.financeStates,
+      );
+    }
   }
   return {
     role,
@@ -227,7 +458,7 @@ async function inspectPage(page, role, routeName, routePath, width, response, co
     width,
     expectedDenied,
     status: response?.status(),
-    consoleErrors,
+    runtimeEvents,
     ...result,
   };
 }
@@ -241,25 +472,24 @@ async function matrix(browser) {
       { name: 'f23_prototype_viewer', value: role, url: baseUrl, httpOnly: true, sameSite: 'Lax' },
     ]);
     const page = await context.newPage();
+    const health = monitorPage(page, `matrix:${role}`);
     for (const [routeName, routePath] of routes) {
       for (const width of widths) {
         await page.setViewportSize({ width, height });
-        const consoleErrors = [];
-        const onConsole = (message) => {
-          if (message.type() === 'error') consoleErrors.push(message.text());
-        };
-        page.on('console', onConsole);
+        health.reset();
         const response = await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'networkidle' });
-        const cell = await inspectPage(
-          page,
-          role,
-          routeName,
-          routePath,
-          width,
-          response,
-          consoleErrors,
-        );
-        cells.push(cell);
+        const cell = await inspectPage(page, role, routeName, routePath, width, response, [
+          ...health.events,
+        ]);
+        const activeElementBeforeScreenshot = await page.evaluate(() => {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          return {
+            tag: document.activeElement?.tagName ?? null,
+            id: document.activeElement?.id ?? null,
+          };
+        });
+        await page.waitForTimeout(100);
+        cells.push({ ...cell, activeElementBeforeScreenshot });
         await page.screenshot({
           path: path.join(
             screenshotDir,
@@ -267,9 +497,9 @@ async function matrix(browser) {
           ),
           fullPage: true,
         });
-        page.off('console', onConsole);
       }
     }
+    health.detach();
     await context.close();
   }
 }
@@ -286,6 +516,7 @@ async function runInteractions(browser) {
     },
   ]);
   const page = await context.newPage();
+  const health = monitorPage(page, 'interactions');
   await page.goto(`${baseUrl}/projects`, { waitUntil: 'networkidle' });
 
   await page.keyboard.press('Tab');
@@ -313,14 +544,36 @@ async function runInteractions(browser) {
       Boolean(document.activeElement?.closest('[role="dialog"]')),
     );
   }
+  let reverseTrapHeld = true;
+  for (let index = 0; index < 20; index += 1) {
+    await page.keyboard.press('Shift+Tab');
+    reverseTrapHeld &&= await page.evaluate(() =>
+      Boolean(document.activeElement?.closest('[role="dialog"]')),
+    );
+  }
   await page.keyboard.press('Escape');
+  await dialog.waitFor({ state: 'detached' });
+  const dialogRemoved = (await page.getByRole('dialog').count()) === 0;
   const restored = await opener.evaluate((element) => document.activeElement === element);
-  assert(backgroundInert && trapHeld && restored, 'command palette focus contract failed', {
+  assert(
+    backgroundInert && trapHeld && reverseTrapHeld && dialogRemoved && restored,
+    'command palette focus contract failed',
+    {
+      backgroundInert,
+      trapHeld,
+      reverseTrapHeld,
+      dialogRemoved,
+      restored,
+    },
+  );
+  interactions.push({
+    name: 'command-palette',
     backgroundInert,
     trapHeld,
+    reverseTrapHeld,
+    dialogRemoved,
     restored,
   });
-  interactions.push({ name: 'command-palette', backgroundInert, trapHeld, restored });
 
   await page.evaluate(() => localStorage.removeItem('firma23.sidebar-mode'));
   await page.reload({ waitUntil: 'networkidle' });
@@ -329,34 +582,81 @@ async function runInteractions(browser) {
   await sidebar.hover();
   await page.waitForTimeout(350);
   const hoverWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+  await page.mouse.move(1000, 400);
+  await sidebar.locator('a[href="/projects"]').focus();
+  await page.waitForTimeout(350);
+  const focusWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+  const expandedOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
   const toggle = page.getByRole('button', { name: 'Ocultar menú lateral' });
   await toggle.click();
   await page.reload({ waitUntil: 'networkidle' });
   const persistedHidden = await page.evaluate(
     () => localStorage.getItem('firma23.sidebar-mode') === 'hidden',
   );
+  const hiddenWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+  const hiddenInert = await sidebar.evaluate((element) => element.hasAttribute('inert'));
+  const restoreToggleVisible = await page
+    .getByRole('button', { name: 'Mostrar menú lateral' })
+    .isVisible();
   assert(
-    compactWidth === 92 && hoverWidth === 292 && persistedHidden,
+    compactWidth === 92 &&
+      hoverWidth === 292 &&
+      focusWidth === 292 &&
+      expandedOverflow <= 0 &&
+      persistedHidden &&
+      hiddenWidth === 0 &&
+      hiddenInert &&
+      restoreToggleVisible,
     'sidebar state contract failed',
-    { compactWidth, hoverWidth, persistedHidden },
+    {
+      compactWidth,
+      hoverWidth,
+      focusWidth,
+      expandedOverflow,
+      persistedHidden,
+      hiddenWidth,
+      hiddenInert,
+      restoreToggleVisible,
+    },
   );
-  interactions.push({ name: 'sidebar', compactWidth, hoverWidth, persistedHidden });
+  interactions.push({
+    name: 'sidebar',
+    compactWidth,
+    hoverWidth,
+    focusWidth,
+    expandedOverflow,
+    persistedHidden,
+    hiddenWidth,
+    hiddenInert,
+    restoreToggleVisible,
+  });
 
   await page.setViewportSize({ width: 767, height });
   await page.goto(`${baseUrl}/projects`, { waitUntil: 'networkidle' });
   const table767 = await page
-    .locator('table')
+    .locator('[data-record-view="table"]')
+    .evaluate((element) => getComputedStyle(element).display);
+  const list767 = await page
+    .locator('[data-record-view="list"]')
     .evaluate((element) => getComputedStyle(element).display);
   await page.setViewportSize({ width: 768, height });
   const table768 = await page
-    .locator('table')
+    .locator('[data-record-view="table"]')
     .evaluate((element) => getComputedStyle(element).display);
-  assert(table767 === 'none' && table768 !== 'none', '767/768 record-table switch failed', {
-    table767,
-    table768,
-  });
-  interactions.push({ name: 'table-breakpoint', table767, table768 });
+  const list768 = await page
+    .locator('[data-record-view="list"]')
+    .evaluate((element) => getComputedStyle(element).display);
+  assert(
+    table767 === 'none' && list767 !== 'none' && table768 !== 'none' && list768 === 'none',
+    '767/768 reciprocal record-table switch failed',
+    { table767, list767, table768, list768 },
+  );
+  assert(health.events.length === 0, 'interaction browser runtime/network errors', health.events);
+  interactions.push({ name: 'table-breakpoint', table767, list767, table768, list768 });
 
+  health.detach();
   await context.close();
 
   const reduced = await browser.newContext({
@@ -373,6 +673,7 @@ async function runInteractions(browser) {
     },
   ]);
   const reducedPage = await reduced.newPage();
+  const reducedHealth = monitorPage(reducedPage, 'reduced-motion');
   await reducedPage.goto(baseUrl, { waitUntil: 'networkidle' });
   const canvas = reducedPage.locator('canvas').first();
   await canvas.waitFor();
@@ -381,13 +682,207 @@ async function runInteractions(browser) {
   const secondFrame = await canvas.screenshot();
   const frozen = firstFrame.equals(secondFrame);
   const canvasRect = await canvas.boundingBox();
-  assert(
-    frozen && canvasRect?.width > 0 && canvasRect?.height > 0,
-    'MeshDrift reduced-motion frame is not stable',
-    { frozen, canvasRect },
+  assert(canvasRect !== null, 'MeshDrift canvas has no layout box');
+  await reducedPage.evaluate(
+    ({ width, height }) => {
+      const blank = document.createElement('canvas');
+      blank.dataset.acceptanceBlank = '';
+      blank.width = Math.max(1, Math.round(width));
+      blank.height = Math.max(1, Math.round(height));
+      blank.style.width = `${width}px`;
+      blank.style.height = `${height}px`;
+      blank.style.position = 'fixed';
+      blank.style.inset = '0 auto auto 0';
+      document.body.append(blank);
+    },
+    { width: canvasRect?.width ?? 1, height: canvasRect?.height ?? 1 },
   );
-  interactions.push({ name: 'reduced-motion', frozen, canvasRect });
+  const blankCanvas = reducedPage.locator('canvas[data-acceptance-blank]');
+  const blankFrame = await blankCanvas.screenshot();
+  const nonblank = !firstFrame.equals(blankFrame);
+  await blankCanvas.evaluate((element) => element.remove());
+  assert(
+    frozen &&
+      canvasRect?.width > 0 &&
+      canvasRect?.height > 0 &&
+      nonblank &&
+      reducedHealth.events.length === 0,
+    'MeshDrift reduced-motion frame is not stable',
+    { frozen, nonblank, canvasRect, runtimeEvents: reducedHealth.events },
+  );
+  interactions.push({ name: 'reduced-motion', frozen, nonblank, canvasRect });
+  reducedHealth.detach();
   await reduced.close();
+}
+
+function assertAdminInspection(name, inspection, expectedOutcome = null) {
+  const undersized = inspection.controls.filter(
+    (control) => control.width < 44 || control.height < 44,
+  );
+  assert(undersized.length === 0, `${name} has controls below 44px`, undersized);
+  assert(
+    inspection.headingSkips.length === 0,
+    `${name} has heading skips`,
+    inspection.headingSkips,
+  );
+  assert(inspection.overflow <= 0, `${name} has horizontal overflow`, inspection.overflow);
+  if (expectedOutcome !== null) {
+    assert(
+      inspection.focused?.outcome === expectedOutcome && inspection.focused.visible,
+      `${name} did not focus ${expectedOutcome}`,
+      inspection.focused,
+    );
+  }
+}
+
+async function runAdminAcceptance(browser) {
+  const screenshotDir = path.join(receiptDir, 'screenshots', 'admin-states');
+  await fs.mkdir(screenshotDir, { recursive: true });
+
+  for (const width of widths) {
+    const context = await browser.newContext({ viewport: { width, height } });
+    await context.addCookies([
+      {
+        name: 'f23_prototype_viewer',
+        value: 'founder',
+        url: baseUrl,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    const page = await context.newPage();
+    const health = monitorPage(page, `admin-states:${width}`);
+    await page.goto(`${baseUrl}/dev/states`, { waitUntil: 'networkidle' });
+    assert(
+      await page.locator('[data-admin-acceptance-states]').isVisible(),
+      `admin states unavailable at ${width}`,
+    );
+
+    const ready = page.locator('[data-admin-scenario="intake-ready"]');
+    const manualOpener = ready.getByRole('button', { name: 'Crear manualmente' });
+    await manualOpener.focus();
+    const openerHandle = await manualOpener.elementHandle();
+    await manualOpener.click();
+    const sponsor = ready.getByRole('textbox', { name: 'Patrocinador' });
+    await sponsor.waitFor();
+    const manualFocused = await sponsor.evaluate((element) => document.activeElement === element);
+    await ready.getByRole('button', { name: 'Cancelar' }).click();
+    await page.waitForFunction(
+      (element) => element !== null && document.activeElement === element,
+      openerHandle,
+    );
+    const manualRestored = true;
+    assert(manualFocused && manualRestored, `admin manual focus contract failed at ${width}`, {
+      manualFocused,
+      manualRestored,
+    });
+    interactions.push({ name: 'admin-manual-focus', width, manualFocused, manualRestored });
+
+    const readyInput = ready.locator('input[type="file"]');
+    await readyInput.setInputFiles({
+      name: 'propuesta.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('x'),
+    });
+    let inspection = await inspectInteractiveState(ready, `admin-selected-${width}`);
+    assertAdminInspection(`admin-selected-${width}`, inspection);
+    await ready.getByRole('button', { name: 'Procesar documento' }).click();
+    const processingButton = ready.getByRole('button', { name: 'Analizando documento…' });
+    const processingVisible = await processingButton.isVisible();
+    const processingDisabled = await processingButton.isDisabled();
+    assert(processingVisible && processingDisabled, `admin processing state failed at ${width}`, {
+      processingVisible,
+      processingDisabled,
+    });
+    await ready.getByText('Borrador extraído').waitFor();
+    inspection = await inspectInteractiveState(ready, `admin-ready-${width}`);
+    assertAdminInspection(`admin-ready-${width}`, inspection);
+
+    await ready.getByRole('button', { name: 'Confirmar contrato existente' }).click();
+    await ready.locator('[data-admin-outcome="confirm-unavailable"]').waitFor();
+    inspection = await inspectInteractiveState(ready, `admin-confirm-unavailable-${width}`);
+    assertAdminInspection(`admin-confirm-unavailable-${width}`, inspection, 'confirm-unavailable');
+    await ready.getByRole('button', { name: 'Descartar borrador' }).click();
+    await ready.getByRole('button', { name: 'Conservar borrador' }).click();
+    assert(
+      (await ready
+        .getByText('Confirma el descarte. Esta acción no crea ningún contrato.')
+        .count()) === 0,
+      `admin discard cancel remained armed at ${width}`,
+    );
+    await ready.getByRole('button', { name: 'Descartar borrador' }).click();
+    await ready.getByRole('button', { name: 'Confirmar descarte' }).click();
+    await ready.locator('[data-admin-outcome="discard-unavailable"]').waitFor();
+    inspection = await inspectInteractiveState(ready, `admin-discard-unavailable-${width}`);
+    assertAdminInspection(`admin-discard-unavailable-${width}`, inspection, 'discard-unavailable');
+
+    const error = page.locator('[data-admin-scenario="intake-error"]');
+    await error
+      .locator('input[type="file"]')
+      .setInputFiles({ name: 'error.pdf', mimeType: 'application/pdf', buffer: Buffer.from('x') });
+    await error.getByRole('button', { name: 'Procesar documento' }).click();
+    await error.getByRole('alert').waitFor();
+    const errorFocused = await error
+      .getByRole('alert')
+      .evaluate((element) => document.activeElement === element);
+    inspection = await inspectInteractiveState(error, `admin-intake-error-${width}`);
+    assertAdminInspection(`admin-intake-error-${width}`, inspection);
+    assert(errorFocused, `admin intake error was not focused at ${width}`);
+
+    const confirmExpected = {
+      'confirm-success': 'confirmed',
+      'confirm-unavailable': 'confirm-unavailable',
+      'confirm-error': 'confirm-error',
+      'confirm-rejected': 'confirm-error',
+    };
+    for (const [scenarioName, outcome] of Object.entries(confirmExpected)) {
+      const scenario = page.locator(`[data-admin-scenario="${scenarioName}"]`);
+      await scenario.getByRole('button', { name: 'Confirmar contrato existente' }).click();
+      await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
+      assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
+      if (outcome === 'confirm-error') {
+        await scenario.getByRole('button', { name: 'Reintentar' }).click();
+        await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      }
+    }
+
+    const discardExpected = {
+      'discard-success': 'discarded',
+      'discard-unavailable': 'discard-unavailable',
+      'discard-error': 'discard-error',
+      'discard-rejected': 'discard-error',
+    };
+    for (const [scenarioName, outcome] of Object.entries(discardExpected)) {
+      const scenario = page.locator(`[data-admin-scenario="${scenarioName}"]`);
+      await scenario.getByRole('button', { name: 'Descartar borrador' }).click();
+      await scenario.getByRole('button', { name: 'Confirmar descarte' }).click();
+      await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      inspection = await inspectInteractiveState(scenario, `${scenarioName}-${width}`);
+      assertAdminInspection(`${scenarioName}-${width}`, inspection, outcome);
+      if (outcome !== 'discarded') {
+        await scenario.getByRole('button', { name: 'Reintentar descarte' }).click();
+        await scenario.locator(`[data-admin-outcome="${outcome}"]`).waitFor();
+      }
+    }
+
+    assert(
+      health.events.length === 0,
+      `admin state runtime/network errors at ${width}`,
+      health.events,
+    );
+    await page.screenshot({
+      path: path.join(screenshotDir, `admin-conditional-${width}x${height}.png`),
+      fullPage: true,
+    });
+    interactions.push({
+      name: 'admin-conditional-states',
+      width,
+      runtimeEvents: [...health.events],
+    });
+    health.detach();
+    await context.close();
+  }
 }
 
 async function browser404(browser) {
@@ -402,14 +897,45 @@ async function browser404(browser) {
     },
   ]);
   const page = await context.newPage();
+  let expected404Path = null;
+  const health = monitorPage(
+    page,
+    'browser-404',
+    (response) =>
+      response.status() === 404 &&
+      response.request().resourceType() === 'document' &&
+      new URL(response.url()).pathname === expected404Path,
+  );
   for (const route of invalidRoutes) {
+    expected404Path = route;
+    health.reset();
     const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     const visible = await page.getByText('No encontramos eso').isVisible();
     assert(response?.status() === 404 && visible, `browser 404 failed for ${route}`, {
       status: response?.status(),
       visible,
     });
-    interactions.push({ name: 'browser-404', route, status: response?.status(), visible });
+    const expectedConsoleErrors = health.events.filter(
+      (event) =>
+        event.type === 'console.error' &&
+        event.text ===
+          'Failed to load resource: the server responded with a status of 404 (Not Found)',
+    );
+    const unexpectedEvents = health.events.filter(
+      (event) => !expectedConsoleErrors.includes(event),
+    );
+    assert(
+      unexpectedEvents.length === 0,
+      `browser 404 runtime/network errors for ${route}`,
+      unexpectedEvents,
+    );
+    interactions.push({
+      name: 'browser-404',
+      route,
+      status: response?.status(),
+      visible,
+      expectedConsoleErrors: expectedConsoleErrors.length,
+    });
   }
   const member = await browser.newContext({ viewport: { width: 1280, height } });
   await member.addCookies([
@@ -422,7 +948,16 @@ async function browser404(browser) {
     },
   ]);
   const memberPage = await member.newPage();
-  const other = await memberPage.goto(`${baseUrl}/leaderboard/emiliano-pasos/provenance`, {
+  const memberRoute = '/leaderboard/emiliano-pasos/provenance';
+  const memberHealth = monitorPage(
+    memberPage,
+    'member-other-provenance',
+    (response) =>
+      response.status() === 404 &&
+      response.request().resourceType() === 'document' &&
+      new URL(response.url()).pathname === memberRoute,
+  );
+  const other = await memberPage.goto(`${baseUrl}${memberRoute}`, {
     waitUntil: 'networkidle',
   });
   assert(
@@ -430,7 +965,27 @@ async function browser404(browser) {
     'member-other provenance must not expose line detail',
     other?.status(),
   );
-  interactions.push({ name: 'member-other-provenance', status: other?.status() });
+  const expectedMemberConsoleErrors = memberHealth.events.filter(
+    (event) =>
+      event.type === 'console.error' &&
+      event.text ===
+        'Failed to load resource: the server responded with a status of 404 (Not Found)',
+  );
+  const unexpectedMemberEvents = memberHealth.events.filter(
+    (event) => !expectedMemberConsoleErrors.includes(event),
+  );
+  assert(
+    unexpectedMemberEvents.length === 0,
+    'member-other provenance runtime/network errors',
+    unexpectedMemberEvents,
+  );
+  interactions.push({
+    name: 'member-other-provenance',
+    status: other?.status(),
+    expectedConsoleErrors: expectedMemberConsoleErrors.length,
+  });
+  memberHealth.detach();
+  health.detach();
   await member.close();
   await context.close();
 }
@@ -440,6 +995,7 @@ let fatalError = null;
 try {
   await matrix(browser);
   await runInteractions(browser);
+  await runAdminAcceptance(browser);
   await browser404(browser);
 } catch (error) {
   fatalError =

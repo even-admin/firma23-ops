@@ -117,7 +117,10 @@ function activeApprovedOriginalSettlementIds(dataset: SyntheticDataset): Set<str
  * represents current truth worth showing as its own row, even though both
  * still contribute to the signed totals from approvedLinesFor above.
  */
-export function activeApprovedLinesFor(dataset: SyntheticDataset, memberId: string): SettlementLine[] {
+export function activeApprovedLinesFor(
+  dataset: SyntheticDataset,
+  memberId: string,
+): SettlementLine[] {
   const activeIds = activeApprovedOriginalSettlementIds(dataset);
   return dataset.settlementLines.filter(
     (line) => line.memberId === memberId && activeIds.has(line.settlementId),
@@ -133,6 +136,64 @@ export function paidEarnings(dataset: SyntheticDataset, memberId: string): Money
     (line) => settlementFor(dataset, line).kind === 'original',
   );
   return sumMoney(originalLines.map((line) => payoutAllocatedFor(dataset, line)));
+}
+
+/** Signed current approval for one opportunity, including exact reversals. */
+export function approvedBaseForOpportunity(
+  dataset: SyntheticDataset,
+  opportunityId: string,
+): Money {
+  return sumMoney(
+    dataset.settlements
+      .filter(
+        (settlement) =>
+          settlement.opportunityId === opportunityId && settlement.status === 'approved',
+      )
+      .map((settlement) => settlement.base),
+  );
+}
+
+/** Append-only cash allocated against approved original lines for one opportunity. */
+export function paidForOpportunity(dataset: SyntheticDataset, opportunityId: string): Money {
+  const approvedOriginalIds = new Set(
+    dataset.settlements
+      .filter(
+        (settlement) =>
+          settlement.opportunityId === opportunityId &&
+          settlement.status === 'approved' &&
+          settlement.kind === 'original',
+      )
+      .map((settlement) => settlement.id),
+  );
+  return sumMoney(
+    dataset.settlementLines
+      .filter((line) => approvedOriginalIds.has(line.settlementId))
+      .map((line) => payoutAllocatedFor(dataset, line)),
+  );
+}
+
+/** Signed current organization-recipient approval for one opportunity. */
+export function organizationApprovedForOpportunity(
+  dataset: SyntheticDataset,
+  opportunityId: string,
+): Money {
+  const approvedSettlementIds = new Set(
+    dataset.settlements
+      .filter(
+        (settlement) =>
+          settlement.opportunityId === opportunityId && settlement.status === 'approved',
+      )
+      .map((settlement) => settlement.id),
+  );
+  return sumMoney(
+    dataset.settlementLines
+      .filter(
+        (line) =>
+          approvedSettlementIds.has(line.settlementId) &&
+          line.recipientBehavior === 'org_recipient',
+      )
+      .map((line) => line.amount),
+  );
 }
 
 /**
@@ -165,7 +226,12 @@ export function poolWeightViews(
       const totalBp = assignments
         .filter((assignment) => assignment.roleKey === share.key)
         .reduce<number>((acc, assignment) => acc + assignment.weightBp, 0);
-      return { key: share.key, label: share.label, totalBp, balanced: totalBp === BASIS_POINTS_TOTAL };
+      return {
+        key: share.key,
+        label: share.label,
+        totalBp,
+        balanced: totalBp === BASIS_POINTS_TOTAL,
+      };
     });
 }
 

@@ -100,6 +100,18 @@ describe('LeaderboardRankRow', () => {
     );
     expect(screen.queryByRole('link', { name: copy.leaderboard.provenance })).toBeNull();
   });
+
+  it('renders approved rank but omits unauthorized paid and projected fields', () => {
+    const { paidEarnings: _paid, projectedEarnings: _projected, ...restrictedRow } = row();
+    render(
+      <ul>
+        <LeaderboardRankRow row={restrictedRow} showProvenance={false} />
+      </ul>,
+    );
+    expect(screen.getByText(copy.leaderboard.approved)).toBeInTheDocument();
+    expect(screen.queryByText(copy.leaderboard.paid)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.leaderboard.projected)).not.toBeInTheDocument();
+  });
 });
 
 describe('ProvenanceEntryRow', () => {
