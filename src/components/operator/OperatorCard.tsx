@@ -77,7 +77,7 @@ export function OperatorCard({
           {operator.activeWorkCount > 0 ? (
             <span className="label-micro text-faint">
               <span className="tnum text-muted">{operator.activeWorkCount}</span>{' '}
-              {copy.home.activeWork}
+              {copy.network.activeWork}
             </span>
           ) : null}
         </div>

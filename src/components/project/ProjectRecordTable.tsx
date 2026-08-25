@@ -22,10 +22,10 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
         <thead>
           <tr className="border-line border-b text-left">
             <th scope="col" className="label-micro text-faint w-[30%] px-3 py-2 font-medium">
-              {copy.board.filterProject}
+              {copy.projects.filterProject}
             </th>
             <th scope="col" className="label-micro text-faint w-[13%] px-3 py-2 font-medium">
-              {copy.board.filterStatus}
+              {copy.projects.filterStatus}
             </th>
             <th
               scope="col"

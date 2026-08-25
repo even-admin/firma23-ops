@@ -88,7 +88,6 @@ export const copy = {
     approved: 'Aprobado',
     paid: 'Cobrado',
     pendingPayout: 'Por cobrar',
-    activeWork: 'Trabajo activo',
     actionQueue: 'Cola operativa',
     projectedAside: 'Proyección en curso',
     primaryAction: 'Subir evidencia',
@@ -154,6 +153,8 @@ export const copy = {
     statusLabels: { draft: 'Borrador', active: 'Activo', closed: 'Cerrado' },
     versionPrefix: 'v',
     milestones: 'hitos',
+    filterProject: 'Proyecto',
+    filterStatus: 'Estado',
   },
   detail: {
     milestones: 'Hitos',
@@ -200,6 +201,7 @@ export const copy = {
     filterAvailability: 'Disponibilidad',
     filterAll: 'Todas',
     noMembers: 'Ningún operador coincide con el filtro',
+    activeWork: 'Trabajo activo',
   },
   leaderboard: {
     title: 'Ranking',

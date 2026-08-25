@@ -48,14 +48,14 @@ describe('OperatorCard as the Player identity surface', () => {
   it('surfaces real active work as a count, never an invented streak or XP label', () => {
     const { container } = render(<OperatorCard operator={OPERATOR} />);
     const line = [...container.querySelectorAll('span')].find(
-      (node) => node.textContent === `2 ${copy.home.activeWork}`,
+      (node) => node.textContent === `2 ${copy.network.activeWork}`,
     );
     expect(line).not.toBeUndefined();
   });
 
   it('omits the active-work line entirely when there is none, rather than showing a zero', () => {
     render(<OperatorCard operator={{ ...OPERATOR, activeWorkCount: 0 }} />);
-    expect(screen.queryByText(copy.home.activeWork)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.network.activeWork)).not.toBeInTheDocument();
   });
 
   it('never renders a projection on the identity surface', () => {
