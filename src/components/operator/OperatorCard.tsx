@@ -49,7 +49,7 @@ export function OperatorCard({
             <Heading
               className={cn(
                 'text-ink-strong truncate font-medium tracking-[-0.02em]',
-                isHero ? 'text-2xl sm:text-3xl' : 'text-lg',
+                isHero ? 'text-3xl sm:text-4xl' : 'text-lg',
               )}
             >
               {linkToProfile ? (
