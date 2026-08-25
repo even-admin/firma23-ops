@@ -24,7 +24,8 @@ export default async function OpportunityDetailPage({
 
   if (!isFounder(viewer)) {
     return (
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 lg:px-10">
+        <h1 className="text-ink-strong text-2xl font-medium tracking-tight">{copy.board.title}</h1>
         <PermissionDenied detail={copy.viewer.warning} />
       </div>
     );
