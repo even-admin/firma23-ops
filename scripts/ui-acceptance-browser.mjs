@@ -494,6 +494,11 @@ async function matrix(browser) {
         await page.setViewportSize({ width, height });
         health.reset();
         const response = await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'networkidle' });
+        // A route change can otherwise abort a still-loading Next font from the
+        // previous document and misattribute that real request failure to the
+        // next matrix cell. Finish the current document's font work before
+        // accepting or leaving the cell; no request failure is filtered out.
+        await page.evaluate(() => document.fonts.ready.then(() => undefined));
         const cell = await inspectPage(page, role, routeName, routePath, width, response);
         const activeElementBeforeScreenshot = await page.evaluate(() => {
           if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
