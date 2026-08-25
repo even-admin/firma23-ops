@@ -29,6 +29,9 @@ export default async function SettlePage({
   if (!isFounder(viewer)) {
     return (
       <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-8 lg:px-10">
+        <h1 className="text-ink-strong mb-6 text-2xl font-medium tracking-tight">
+          {copy.settle.title}
+        </h1>
         <PermissionDenied detail={copy.viewer.warning} />
       </div>
     );

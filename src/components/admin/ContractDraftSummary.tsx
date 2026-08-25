@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { ConfidenceBadge } from '@/components/admin/ConfidenceBadge';
 import { ConfirmContractControl } from '@/components/admin/ConfirmContractControl';
+import { SourceDocumentCard } from '@/components/admin/SourceDocumentCard';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
@@ -9,6 +10,9 @@ import type { ContractDraftView } from '@/types/views';
 
 interface ContractDraftSummaryProps {
   readonly draft: ContractDraftView;
+  /** Notifies a parent (e.g. the intake stepper) once confirmation actually
+   * succeeds. Optional so existing callers/tests are unaffected. */
+  readonly onConfirmed?: (() => void) | undefined;
 }
 
 const i = copy.admin.intake;
@@ -21,7 +25,7 @@ const i = copy.admin.intake;
  * no path from a draft to a real contract, and a dead button is more honest
  * than one that quietly does nothing.
  */
-export function ContractDraftSummary({ draft }: ContractDraftSummaryProps) {
+export function ContractDraftSummary({ draft, onConfirmed }: ContractDraftSummaryProps) {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
@@ -31,10 +35,13 @@ export function ContractDraftSummary({ draft }: ContractDraftSummaryProps) {
             <ConfidenceBadge confidence={draft.confidenceOverall} />
           )}
         </div>
-        {draft.sourceDocumentKindLabel === null ? null : (
-          <p className="text-faint text-xs">
-            {draft.sourceDocumentKindLabel} · {draft.sourceDocumentName} · {draft.extractedAt}
-          </p>
+        {draft.sourceDocumentName === null ? null : (
+          <SourceDocumentCard
+            fileName={draft.sourceDocumentName}
+            kindLabel={draft.sourceDocumentKindLabel}
+            extractedAt={draft.extractedAt}
+            state="ready"
+          />
         )}
         {draft.matchedProjectSlug === null ? (
           <p className="text-muted text-sm">{i.noMatchedProject}</p>
@@ -199,6 +206,7 @@ export function ContractDraftSummary({ draft }: ContractDraftSummaryProps) {
         currency="MXN"
         matchedProjectSlug={draft.matchedProjectSlug}
         readyToConfirm
+        onConfirmed={onConfirmed}
       />
     </div>
   );

@@ -30,6 +30,9 @@ interface ConfirmContractControlProps {
    * Server Actions' cookies() call. Defaults to the real actions. */
   readonly confirmAction?: (input: ConfirmContractDraftInput) => Promise<ConfirmContractDraftResult>;
   readonly discardAction?: (draftId: string) => Promise<DiscardContractDraftResult>;
+  /** Notifies a parent (e.g. the intake stepper) once a real 'confirmed'
+   * result comes back. Never called for 'unavailable' or 'error'. */
+  readonly onConfirmed?: (() => void) | undefined;
 }
 
 const i = copy.admin.intake;
@@ -52,6 +55,7 @@ export function ConfirmContractControl({
   readyToConfirm,
   confirmAction = confirmContractDraftAction,
   discardAction = discardContractDraftAction,
+  onConfirmed,
 }: ConfirmContractControlProps) {
   const [result, setResult] = useState<ConfirmContractDraftResult | null>(null);
   const [discarded, setDiscarded] = useState(false);
@@ -61,6 +65,7 @@ export function ConfirmContractControl({
     startTransition(async () => {
       const outcome = await confirmAction({ draftId, sponsorName, programName, currency });
       setResult(outcome);
+      if (outcome.kind === 'confirmed') onConfirmed?.();
     });
   }
 

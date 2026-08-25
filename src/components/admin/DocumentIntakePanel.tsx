@@ -3,7 +3,9 @@
 import { useId, useRef, useState } from 'react';
 
 import { ContractDraftSummary } from '@/components/admin/ContractDraftSummary';
+import { IntakeStepper, type IntakeStepKey, type IntakeStepStatus } from '@/components/admin/IntakeStepper';
 import { ManualContractForm } from '@/components/admin/ManualContractForm';
+import { SourceDocumentCard } from '@/components/admin/SourceDocumentCard';
 import { runIntakeAction } from '@/app/(network)/admin/intake-actions';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
@@ -31,6 +33,33 @@ function validateFile(file: File): string | null {
 }
 
 /**
+ * Derives the stepper's four statuses entirely from real phase/result state
+ * — never a timer or decorative animation. `confirmed` only becomes true
+ * after ConfirmContractControl reports a real 'confirmed' outcome.
+ */
+function stepStatuses(
+  phase: Phase,
+  errorKind: ErrorKind | null,
+  confirmed: boolean,
+): Record<IntakeStepKey, IntakeStepStatus> {
+  if (phase === 'idle') {
+    return { document: 'current', extraction: 'upcoming', review: 'upcoming', confirmation: 'upcoming' };
+  }
+  if (phase === 'error' && errorKind === 'validation') {
+    return { document: 'current', extraction: 'upcoming', review: 'upcoming', confirmation: 'upcoming' };
+  }
+  if (phase === 'selected' || phase === 'processing' || phase === 'error') {
+    return { document: 'complete', extraction: 'current', review: 'upcoming', confirmation: 'upcoming' };
+  }
+  return {
+    document: 'complete',
+    extraction: 'complete',
+    review: confirmed ? 'complete' : 'current',
+    confirmation: confirmed ? 'complete' : 'upcoming',
+  };
+}
+
+/**
  * The document-first contract intake flow.
  *
  * Selecting and validating a file happens entirely client-side (real
@@ -51,6 +80,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const attemptKeyRef = useRef<string | null>(null);
   const statusId = useId();
@@ -75,6 +105,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
     setDraft(null);
     setErrorMessage(null);
     setErrorKind(null);
+    setConfirmed(false);
     attemptKeyRef.current = null;
     if (inputRef.current !== null) inputRef.current.value = '';
   }
@@ -107,6 +138,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
   if (phase === 'ready' && draft !== null) {
     return (
       <section className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
+        <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-attention bg-attention/10 rounded-sm px-3 py-2 text-xs">
             {i.syntheticNotice}
@@ -119,13 +151,14 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
             {i.changeFile}
           </button>
         </div>
-        <ContractDraftSummary draft={draft} />
+        <ContractDraftSummary draft={draft} onConfirmed={() => setConfirmed(true)} />
       </section>
     );
   }
 
   return (
     <section className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
+      <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
       <h2 className="text-ink-strong text-lg font-medium">{i.ctaUpload}</h2>
 
       <div
@@ -170,9 +203,13 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
           </>
         ) : (
           <div className="flex w-full flex-col items-center gap-3">
-            <p className="text-ink max-w-full truncate text-sm font-medium">
-              {i.selectedFile}: {fileName}
-            </p>
+            <SourceDocumentCard
+              fileName={fileName ?? ''}
+              fileNameLabel={i.selectedFile}
+              kindLabel={null}
+              state={phase === 'error' ? 'error' : phase === 'processing' ? 'processing' : 'selected'}
+              statusLabel={phase === 'processing' ? i.processing : null}
+            />
 
             {phase === 'error' ? (
               <p className="text-attention text-xs">{errorMessage}</p>
