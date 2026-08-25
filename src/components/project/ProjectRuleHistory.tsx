@@ -33,7 +33,7 @@ export function ProjectRuleHistory({ activeRuleId, rules }: ProjectRuleHistoryPr
               {rule.version}
             </span>
             {rule.id === activeRuleId ? (
-              <span className="label-micro border-money/50 text-money rounded-sm border px-2 py-0.5">
+              <span className="label-micro border-line-strong text-ink rounded-sm border px-2 py-0.5">
                 {copy.projects.activeRule}
               </span>
             ) : null}

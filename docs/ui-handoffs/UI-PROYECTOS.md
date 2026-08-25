@@ -13,6 +13,48 @@
   `ui-proyectos-record-table` reports after that commit — not the bootstrap SHA
   above, which predates every change described here.
 
+## Repair pass (this update)
+
+Fable UI-COUNCIL returned `UI-PROYECTOS` as the only lane needing repair, on
+top of clean prior HEAD `4b6b717923a4a699a6c3cf57e323c531d1cfdfb4`. Finding:
+the active-rule badge in `ProjectRuleHistory.tsx` used ledger-green
+configuration styling (`border-money/50 text-money`), but an active
+allocation rule is project configuration, not confirmed money or primary
+completion — ledger green is reserved for those per `docs/UI-DIRECTION.md`.
+
+Applied exactly the bounded correction: the badge's class changed from
+`label-micro border-money/50 text-money rounded-sm border px-2 py-0.5` to
+`label-micro border-line-strong text-ink rounded-sm border px-2 py-0.5` — one
+class list, one line, in `src/components/project/ProjectRuleHistory.tsx`.
+Nothing else in that file changed. The legitimate `text-money` usages for
+`approvedSettled` (`ProjectHeader.tsx` and both branches of
+`ProjectRecordTable.tsx`) were left untouched, confirmed by diff and by
+re-grepping every `text-money`/`border-money` usage under
+`src/components/project/` after the edit.
+
+Verification re-run after the fix:
+
+```
+npx vitest run tests/components/project-detail-view.test.tsx tests/components/project-record-table.test.tsx
+  Test Files  2 passed (2)
+       Tests  7 passed (7)
+
+npm run lint        0 problems
+npm run typecheck   0 errors
+```
+
+No test asserted the old `money` class on this badge (the existing money-class
+isolation test in `project-record-table.test.tsx` only counts nodes under
+`Amount`'s money wrappers, which this badge was never part of), so all 7
+tests pass unchanged with no test edits needed. No browser rerun was done for
+this token-only visual correction, per the repair instruction.
+
+This repair is its own commit on top of `4b6b717923a4a699a6c3cf57e323c531d1cfdfb4`,
+not an amend — that prior commit is unchanged and still reachable. The new
+commit's SHA is the superseding candidate HEAD for `UI-PROYECTOS`; any earlier
+recorded candidate (including `4b6b717...` itself) is superseded by it for
+integration purposes.
+
 ## Owned files changed
 
 All within `UI-PROYECTOS` exclusive ownership per
