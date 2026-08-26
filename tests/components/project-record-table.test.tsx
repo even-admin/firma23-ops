@@ -24,11 +24,20 @@ describe('ProjectRecordTable', () => {
   it('renders a structured list row for every project below the table breakpoint', () => {
     render(<ProjectRecordTable projects={projects} />);
     const lists = screen.getAllByRole('list');
-    const mobileList = lists.find((list) => list.tagName === 'UL' && list.className.includes('md:hidden'));
+    const mobileList = lists.find(
+      (list) => list.tagName === 'UL' && list.className.includes('project-record-list'),
+    );
     expect(mobileList).toBeDefined();
     for (const project of projects) {
       expect(within(mobileList!).getByText(project.name)).toBeInTheDocument();
     }
+  });
+
+  it('uses a named content container instead of a viewport breakpoint', () => {
+    const { container } = render(<ProjectRecordTable projects={projects} />);
+    expect(container.querySelector('[data-project-records]')).toHaveClass('project-records');
+    expect(screen.getByRole('table')).toHaveClass('project-record-table');
+    expect(screen.getByRole('table').className).not.toContain('md:table');
   });
 
   it('never invents money: every displayed amount is the project approvedSettled value', () => {

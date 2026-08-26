@@ -619,11 +619,13 @@ async function runInteractions(browser) {
       const panel = rail?.firstElementChild;
       const main = document.querySelector('#main-content');
       const heading = main?.querySelector('h1');
+      const records = main?.querySelector('[data-project-records]');
       if (
         !(rail instanceof HTMLElement) ||
         !(panel instanceof HTMLElement) ||
         !(main instanceof HTMLElement) ||
-        !(heading instanceof HTMLElement)
+        !(heading instanceof HTMLElement) ||
+        !(records instanceof HTMLElement)
       ) {
         return null;
       }
@@ -634,6 +636,28 @@ async function runInteractions(browser) {
       const headingHit = document.elementFromPoint(
         Math.max(0, Math.min(window.innerWidth - 1, headingRect.left + headingRect.width / 2)),
         Math.max(0, Math.min(window.innerHeight - 1, headingRect.top + headingRect.height / 2)),
+      );
+      const recordsRect = records.getBoundingClientRect();
+      const table = records.querySelector('[data-record-view="table"]');
+      const list = records.querySelector('[data-record-view="list"]');
+      const tableVisible = table instanceof HTMLElement && getComputedStyle(table).display !== 'none';
+      const listVisible = list instanceof HTMLElement && getComputedStyle(list).display !== 'none';
+      const visibleRecordChildren = [...records.querySelectorAll('th, td, li')].filter(
+        (element) => element instanceof HTMLElement && element.offsetParent !== null,
+      );
+      const recordChildrenContained = visibleRecordChildren.every((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left >= recordsRect.left - 0.5 && rect.right <= recordsRect.right + 0.5;
+      });
+      const visibleCells = [...records.querySelectorAll('th, td')].filter(
+        (element) => element instanceof HTMLElement && element.offsetParent !== null,
+      );
+      const cellContentsContained = visibleCells.every((cell) =>
+        [...cell.children].every((child) => {
+          const cellRect = cell.getBoundingClientRect();
+          const childRect = child.getBoundingClientRect();
+          return childRect.left >= cellRect.left - 0.5 && childRect.right <= cellRect.right + 0.5;
+        }),
       );
       return {
         rail: { left: railRect.left, right: railRect.right, width: railRect.width },
@@ -652,6 +676,12 @@ async function runInteractions(browser) {
           unobscured: headingHit !== null && heading.contains(headingHit),
         },
         panelBorderRightWidth: Number.parseFloat(getComputedStyle(panel).borderRightWidth),
+        records: {
+          tableVisible,
+          listVisible,
+          childrenContained: recordChildrenContained,
+          cellContentsContained,
+        },
       };
     });
     await page.mouse.move(width - 10, 400);
@@ -707,6 +737,14 @@ async function runInteractions(browser) {
       measurement.hoverGeometry.panelBorderRightWidth < 1 ||
       !measurement.hoverGeometry.heading.visible ||
       !measurement.hoverGeometry.heading.unobscured ||
+      !measurement.hoverGeometry.records.childrenContained ||
+      !measurement.hoverGeometry.records.cellContentsContained ||
+      (measurement.width === 768 &&
+        (!measurement.hoverGeometry.records.listVisible ||
+          measurement.hoverGeometry.records.tableVisible)) ||
+      (measurement.width === 1280 &&
+        (!measurement.hoverGeometry.records.tableVisible ||
+          measurement.hoverGeometry.records.listVisible)) ||
       measurement.focusedControl?.href !== '/projects' ||
       !measurement.focusedControl.visible,
   );
@@ -761,14 +799,34 @@ async function runInteractions(browser) {
   const list768 = await page
     .locator('[data-record-view="list"]')
     .evaluate((element) => getComputedStyle(element).display);
+  await page.setViewportSize({ width: 1280, height });
+  const table1280 = await page
+    .locator('[data-record-view="table"]')
+    .evaluate((element) => getComputedStyle(element).display);
+  const list1280 = await page
+    .locator('[data-record-view="list"]')
+    .evaluate((element) => getComputedStyle(element).display);
   assert(
-    table767 === 'none' && list767 !== 'none' && table768 !== 'none' && list768 === 'none',
-    '767/768 reciprocal record-table switch failed',
-    { table767, list767, table768, list768 },
+    table767 === 'none' &&
+      list767 !== 'none' &&
+      table768 === 'none' &&
+      list768 !== 'none' &&
+      table1280 !== 'none' &&
+      list1280 === 'none',
+    'container-responsive record composition failed',
+    { table767, list767, table768, list768, table1280, list1280 },
   );
   await page.waitForTimeout(50);
   assert(health.events.length === 0, 'interaction browser runtime/network errors', health.events);
-  interactions.push({ name: 'table-breakpoint', table767, list767, table768, list768 });
+  interactions.push({
+    name: 'record-container-switch',
+    table767,
+    list767,
+    table768,
+    list768,
+    table1280,
+    list1280,
+  });
 
   health.detach();
   await context.close();

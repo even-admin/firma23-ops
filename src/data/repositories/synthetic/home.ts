@@ -5,6 +5,7 @@ import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
 import {
+  activeWorkCount,
   approvedEarnings,
   paidEarnings,
   payoutAllocatedFor,
@@ -129,7 +130,7 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
       recovery: sumMoney(balances.map((balance) => balance.recovery)),
       projected: projectedEarnings(dataset, member.id),
     },
-    activeWorkCount: assignments.filter((assignment) => assignment.active).length,
+    activeWorkCount: activeWorkCount(dataset, member.id),
     assignments,
     nextActions,
   };

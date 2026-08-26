@@ -9,16 +9,15 @@ interface ProjectRecordTableProps {
 }
 
 /**
- * FIRMA23 responsive record grammar for Proyectos: a semantic table at 768px and
- * above, and structured rows below it. Both renderings read the same
- * `ProjectSummary` fields; only the composition changes, so nothing is lost on
- * the narrow presentation.
+ * FIRMA23 responsive record grammar for Proyectos. Composition follows the
+ * available content width rather than the viewport, because the transient
+ * desktop rail can remove 200px from the page without changing the viewport.
  */
 export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
   return (
-    <>
+    <div className="project-records" data-project-records>
       <table
-        className="hidden w-full table-fixed border-collapse md:table"
+        className="project-record-table w-full table-fixed border-collapse"
         data-record-view="table"
       >
         <caption className="sr-only">{copy.projects.title}</caption>
@@ -90,7 +89,7 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
         </tbody>
       </table>
 
-      <ul className="flex flex-col gap-4 md:hidden" data-record-view="list">
+      <ul className="project-record-list flex flex-col gap-3" data-record-view="list">
         {projects.map((project) => (
           <li
             key={project.id}
@@ -140,6 +139,6 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

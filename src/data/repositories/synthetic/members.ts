@@ -72,6 +72,92 @@ function toCard(dataset: SyntheticDataset, member: Member): OperatorCardView {
   };
 }
 
+export function buildOperatorProfile(
+  dataset: SyntheticDataset,
+  slug: string,
+): OperatorProfile | null {
+  const member = [...dataset.members.values()].find((entry) => entry.slug === slug);
+  if (member === undefined) return null;
+
+  const portfolio: PortfolioView[] = dataset.portfolioItems
+    .filter((item) => item.memberId === member.id)
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      roleLabel: item.roleLabel,
+      url: item.url,
+      kind: item.kind,
+      verification: item.verification,
+      completedAt: item.completedAt,
+    }));
+
+  const recentWork: HomeAssignment[] = [];
+  for (const opportunity of dataset.opportunities) {
+    const mine = dataset.assignments.filter(
+      (assignment) =>
+        assignment.opportunityId === opportunity.id && assignment.memberId === member.id,
+    );
+    if (mine.length === 0) continue;
+
+    const built = buildOpportunityRail(dataset, opportunity);
+    for (const assignment of mine) {
+      // A member may fill multiple project-defined pools in one opportunity.
+      // Settlement identity therefore requires both the role key and member id.
+      if (built.rail.kind === 'settlement') {
+        const line = built.rail.segments
+          .find((segment) => segment.key === assignment.roleKey)
+          ?.participants.find((participant) => participant.memberId === member.id);
+        if (line === undefined) continue;
+        recentWork.push({
+          opportunityId: opportunity.id,
+          code: built.summary.code,
+          beneficiaryName: built.summary.beneficiaryName,
+          beneficiaryLocation: built.summary.beneficiaryLocation,
+          projectName: built.summary.projectName,
+          serviceName: built.summary.serviceName,
+          roleLabel: assignment.roleLabel,
+          status: opportunity.status,
+          active: ACTIVE_STATUSES.includes(opportunity.status),
+          money: { kind: 'approved', amount: line.amount, payoutStatus: line.payoutStatus },
+        });
+      } else if (built.rail.kind === 'projection') {
+        const participant = built.rail.segments
+          .flatMap((segment) => segment.participants)
+          .find((entry) => entry.key === assignment.id);
+        if (participant === undefined) continue;
+        recentWork.push({
+          opportunityId: opportunity.id,
+          code: built.summary.code,
+          beneficiaryName: built.summary.beneficiaryName,
+          beneficiaryLocation: built.summary.beneficiaryLocation,
+          projectName: built.summary.projectName,
+          serviceName: built.summary.serviceName,
+          roleLabel: assignment.roleLabel,
+          status: opportunity.status,
+          active: ACTIVE_STATUSES.includes(opportunity.status),
+          money: { kind: 'projected', amount: participant.amount },
+        });
+      } else {
+        recentWork.push({
+          opportunityId: opportunity.id,
+          code: built.summary.code,
+          beneficiaryName: built.summary.beneficiaryName,
+          beneficiaryLocation: built.summary.beneficiaryLocation,
+          projectName: built.summary.projectName,
+          serviceName: built.summary.serviceName,
+          roleLabel: assignment.roleLabel,
+          status: opportunity.status,
+          active: ACTIVE_STATUSES.includes(opportunity.status),
+          money: { kind: 'correction_required' },
+        });
+      }
+    }
+  }
+
+  return { ...toCard(dataset, member), portfolio, recentWork };
+}
+
 export const syntheticMemberRepository: MemberRepository = {
   async listDirectory(
     query: MemberDirectoryQuery,
@@ -91,85 +177,6 @@ export const syntheticMemberRepository: MemberRepository = {
   },
 
   async getProfileBySlug(slug: string, _viewer: ViewerContext): Promise<OperatorProfile | null> {
-    const dataset = loadSyntheticDataset();
-    const member = [...dataset.members.values()].find((entry) => entry.slug === slug);
-    if (member === undefined) return null;
-
-    const portfolio: PortfolioView[] = dataset.portfolioItems
-      .filter((item) => item.memberId === member.id)
-      .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        roleLabel: item.roleLabel,
-        url: item.url,
-        kind: item.kind,
-        verification: item.verification,
-        completedAt: item.completedAt,
-      }));
-
-    const recentWork: HomeAssignment[] = [];
-    for (const opportunity of dataset.opportunities) {
-      const mine = dataset.assignments.filter(
-        (assignment) =>
-          assignment.opportunityId === opportunity.id && assignment.memberId === member.id,
-      );
-      if (mine.length === 0) continue;
-
-      const built = buildOpportunityRail(dataset, opportunity);
-      for (const assignment of mine) {
-        // Narrow on the rail kind first so the settled branch keeps its payout status.
-        if (built.rail.kind === 'settlement') {
-          const line = built.rail.segments
-            .flatMap((segment) => segment.participants)
-            .find((entry) => entry.memberId === member.id);
-          if (line === undefined) continue;
-          recentWork.push({
-            opportunityId: opportunity.id,
-            code: built.summary.code,
-            beneficiaryName: built.summary.beneficiaryName,
-            beneficiaryLocation: built.summary.beneficiaryLocation,
-            projectName: built.summary.projectName,
-            serviceName: built.summary.serviceName,
-            roleLabel: assignment.roleLabel,
-            status: opportunity.status,
-            active: ACTIVE_STATUSES.includes(opportunity.status),
-            money: { kind: 'approved', amount: line.amount, payoutStatus: line.payoutStatus },
-          });
-        } else if (built.rail.kind === 'projection') {
-          const participant = built.rail.segments
-            .flatMap((segment) => segment.participants)
-            .find((entry) => entry.key === assignment.id);
-          if (participant === undefined) continue;
-          recentWork.push({
-            opportunityId: opportunity.id,
-            code: built.summary.code,
-            beneficiaryName: built.summary.beneficiaryName,
-            beneficiaryLocation: built.summary.beneficiaryLocation,
-            projectName: built.summary.projectName,
-            serviceName: built.summary.serviceName,
-            roleLabel: assignment.roleLabel,
-            status: opportunity.status,
-            active: ACTIVE_STATUSES.includes(opportunity.status),
-            money: { kind: 'projected', amount: participant.amount },
-          });
-        } else {
-          recentWork.push({
-            opportunityId: opportunity.id,
-            code: built.summary.code,
-            beneficiaryName: built.summary.beneficiaryName,
-            beneficiaryLocation: built.summary.beneficiaryLocation,
-            projectName: built.summary.projectName,
-            serviceName: built.summary.serviceName,
-            roleLabel: assignment.roleLabel,
-            status: opportunity.status,
-            active: ACTIVE_STATUSES.includes(opportunity.status),
-            money: { kind: 'correction_required' },
-          });
-        }
-      }
-    }
-
-    return { ...toCard(dataset, member), portfolio, recentWork };
+    return buildOperatorProfile(loadSyntheticDataset(), slug);
   },
 };

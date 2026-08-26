@@ -35,6 +35,25 @@
   }
 }
 
+/* Project records respond to their content chamber, not the browser viewport. */
+.project-records {
+  container: project-records / inline-size;
+}
+
+.project-record-table {
+  display: none;
+}
+
+@container project-records (min-width: 54rem) {
+  .project-record-table {
+    display: table;
+  }
+
+  .project-record-list {
+    display: none;
+  }
+}
+
 @keyframes firma-mesh-plate {
   from {
     transform: translate3d(-1.5%, -1%, 0) scale(1.04);

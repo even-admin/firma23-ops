@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { PROTOTYPE_FOUNDER, PROTOTYPE_MEMBER } from '@/data/prototype-viewers';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
-import { addMoney } from '@/lib/money';
+import { buildPersonalHome } from '@/data/repositories/synthetic/home';
+import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
+import { addMoney, basisPoints } from '@/lib/money';
 
 const founderHome = await syntheticHomeRepository.getPersonalHome(PROTOTYPE_FOUNDER);
 const memberHome = await syntheticHomeRepository.getPersonalHome(PROTOTYPE_MEMBER);
@@ -80,6 +82,34 @@ describe('personal home, member viewer', () => {
 });
 
 describe('personal home boundaries', () => {
+  it('counts one active opportunity once when a member fills two roles', () => {
+    const baseline = loadSyntheticDataset();
+    const activeAssignment = baseline.assignments.find(
+      (assignment) =>
+        assignment.memberId === PROTOTYPE_MEMBER.viewerId &&
+        assignment.opportunityId === 'f0000000-0000-4000-8000-000000000001',
+    );
+    if (activeAssignment === undefined) throw new Error('missing active assignment fixture');
+
+    const dualRole = {
+      ...baseline,
+      assignments: [
+        ...baseline.assignments,
+        {
+          ...activeAssignment,
+          id: '19000000-0000-4000-8000-000000000001',
+          roleKey: 'delivery',
+          roleLabel: 'Producción adicional',
+          weightBp: basisPoints(0),
+        },
+      ],
+    };
+    const home = buildPersonalHome(dualRole, PROTOTYPE_MEMBER);
+
+    expect(home.assignments.filter((assignment) => assignment.active)).toHaveLength(3);
+    expect(home.activeWorkCount).toBe(2);
+  });
+
   it('rejects a viewer who is not a member of the organization', async () => {
     await expect(
       syntheticHomeRepository.getPersonalHome({
