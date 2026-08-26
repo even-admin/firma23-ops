@@ -25,13 +25,13 @@ insert into public.members (id, org_id, slug, display_name, initials, role) valu
   ('b0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000001', 'diego-martinez-hernandez', 'Diego Martínez Hernández', 'DMN', 'member')
 on conflict (id) do nothing;
 
-insert into public.memberships (id, org_id, member_id, status) values
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'invited'),
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'invited'),
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'invited'),
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000004', 'invited'),
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000005', 'invited'),
-  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000006', 'invited')
+insert into public.memberships (id, org_id, member_id, status, activated_at) values
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'active', now()),
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'active', now()),
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'active', now()),
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000004', 'active', now()),
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000005', 'active', now()),
+  (gen_random_uuid(), 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000006', 'active', now())
 on conflict (id) do nothing;
 
 insert into public.member_profiles (member_id, bio, availability, next_capability, joined_at) values
@@ -340,4 +340,3 @@ where source_document_id = '90000000-0000-4000-8000-000000000001' and draft_id i
 
 
 commit;
-

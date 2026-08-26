@@ -46,20 +46,37 @@ This checkpoint implements the Usable V1 slice from `docs/USABLE-V1-MASTER-PLAN.
 - No historical migration rewrites.
 - No finance write RPC changes.
 
-## Verification
+## Repair Verification
 
-Local verification completed before this handoff:
+Starting evidence was a clean worktree at
+`9dfba87c872bc82d93070a38964e815570578094` on
+`ui-integrator-merge-six-lanes`. The repair checkpoint is local-only; inspect
+`git rev-parse HEAD` and `git status --short` after the commit for its exact
+immutable identity and clean final state.
 
-- `npm run lint`: pass.
-- `npm run typecheck`: pass.
-- `npm test`: pass, 33 files and 403 tests.
-- `rm -rf .next && npm run build`: pass. Local build id: `aePKBRzLlyts63JsowtIU`.
-- `scripts/db-verify.sh`: pass, disposable PostgreSQL 17.10 from zero, 164 passed and 0 failed.
+Fresh local receipts from the repaired source tree:
+
+- `npm run lint`: exit 0.
+- `npm run typecheck`: exit 0.
+- `npm test`: exit 0, 34 files and 405 tests.
+- `rm -rf .next && npm run build`: exit 0. Fresh `BUILD_ID`:
+  `qYm7811NrbFGPg0AHCQTB`.
+- `scripts/db-verify.sh`: exit 0. Disposable PostgreSQL 17.10 applied every
+  migration and seed from zero; 170 passed and 0 failed.
+
+The repair coverage includes configured leaderboard/provenance selection,
+projection-versus-cash settlement preview semantics, canonical request
+serialization, lost-response retry identity, delimiter collision, mismatched
+replay, concurrent setup replay, active-membership assignment guards, raw
+projection RLS denial, member-scoped calculated financial output, and reversal
+correction state behavior.
 
 Unavailable evidence:
 
 - Real Development Supabase create/readback was not run because applying the new migration remotely and creating real canonical records are provider-backed mutations requiring fresh explicit authorization.
-- Browser proof against real configured Supabase data was not run for the same reason.
+- Configured-browser and Development QA were not run: they require an
+  authorized remote migration application and real canonical records. They are
+  unavailable evidence, not a substitute with synthetic fixtures.
 - No Production, Preview, deploy, or push evidence exists for this checkpoint.
 
 ## Operator Notes

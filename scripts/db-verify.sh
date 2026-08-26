@@ -1702,6 +1702,61 @@ where opportunity_id = (
 SQL
 
 echo
+echo "=== scenario 22: usable V1 repair — canonical digest, active membership, and member finance privacy ==="
+
+expect_success "manual setup fingerprint accepts the first delimiter-bearing structured request" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001', 'A|B', 'Contrato digest', 'C', 10000, 'MXN', 3000,
+  jsonb_build_array(jsonb_build_object('memberId','b0000000-0000-4000-8000-000000000003','roleLabel','Entrega','weightBp',10000)),
+  'db-verify-delimiter-key'
+);
+SQL
+
+expect_failure "manual setup fingerprint does not permit delimiter-collision replay" "already used for a different" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001', 'A', 'Contrato digest', 'B|C', 10000, 'MXN', 3000,
+  jsonb_build_array(jsonb_build_object('memberId','b0000000-0000-4000-8000-000000000003','roleLabel','Entrega','weightBp',10000)),
+  'db-verify-delimiter-key'
+);
+SQL
+
+MANUAL_CONCURRENT_DIR="$WORKDIR/concurrent_manual_setup"
+run_concurrent "$MANUAL_CONCURRENT_DIR" 12 "set role authenticated; set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111'; select opportunity_id from public.create_manual_contract_setup('a0000000-0000-4000-8000-000000000001', 'Cliente concurrente', 'Contrato concurrente', 'Alcance', 10000, 'MXN', 3000, jsonb_build_array(jsonb_build_object('memberId','b0000000-0000-4000-8000-000000000003','roleLabel','Entrega','weightBp',10000)), 'db-verify-manual-concurrent');"
+MANUAL_CONCURRENT_ERRORS="$(concurrent_error_count "$MANUAL_CONCURRENT_DIR")"
+MANUAL_CONCURRENT_ROWS="$(query_scalar "select count(*) from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-manual-concurrent';")"
+if [ "$MANUAL_CONCURRENT_ERRORS" = "0" ] && [ "$MANUAL_CONCURRENT_ROWS" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: concurrent manual setup replay creates one receipt with no caller errors"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("manual setup concurrency"); echo "FAIL: manual setup concurrency errors=$MANUAL_CONCURRENT_ERRORS receipts=$MANUAL_CONCURRENT_ROWS"
+fi
+
+expect_failure "assignment writes reject a revoked same-org member at the trigger boundary" "must be an active member" <<'SQL'
+update public.memberships set status = 'revoked' where member_id = 'b0000000-0000-4000-8000-000000000004';
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+insert into public.assignments (opportunity_id, member_id, role_key, role_label, weight_bp, status)
+values ('f0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000004','closer','Revocado',10000,'approved');
+SQL
+
+MEMBER_PROJECTION_ROWS="$(query_scalar "set role authenticated; set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222'; select count(*) from public.opportunity_projection_versions;" | tail -n 1)"
+if [ "$MEMBER_PROJECTION_ROWS" = "0" ]; then
+  PASS=$((PASS + 1)); echo "PASS: assigned member cannot read raw projected distributable bases"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("member projection privacy"); echo "FAIL: member read $MEMBER_PROJECTION_ROWS raw projection rows"
+fi
+
+MEMBER_FINANCE_ROWS="$(query_scalar "set role authenticated; set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222'; select count(*) from public.member_opportunity_financials() where projected_share_centavos > 0 or approved_centavos > 0 or paid_centavos > 0;" | tail -n 1)"
+if [ "$MEMBER_FINANCE_ROWS" -gt 0 ]; then
+  PASS=$((PASS + 1)); echo "PASS: member financial read model returns only calculated personal values"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("member financial read model"); echo "FAIL: member financial read model returned no personal values"
+fi
+
+echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then

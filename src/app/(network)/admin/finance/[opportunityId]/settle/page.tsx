@@ -83,7 +83,7 @@ export default async function SettlePage({
         base={preview.distributableBase}
         policyLabel={preview.basePolicyLabel}
         policyNote={preview.basePolicyNote}
-        cashReceived={preview.distributableBase}
+        cashReceived={preview.cashReceived}
       />
 
       <RevenueRail model={preview.rail} variant="approval" />
@@ -113,6 +113,14 @@ export default async function SettlePage({
       </section>
 
       <section className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4">
+        <div className="flex flex-wrap items-baseline gap-x-3" data-rail-kind="projection">
+          <span className="label-micro text-faint">{copy.money.projected}</span>
+          <Amount value={preview.projectedDistributableBase} className="text-muted text-lg font-medium" />
+        </div>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <span className="label-micro text-faint">{copy.money.cashReceived}</span>
+          <Amount value={preview.cashReceived} className="text-ink text-lg font-medium" />
+        </div>
         <div className="flex flex-wrap items-baseline gap-x-3">
           <span className="label-micro text-faint">{copy.money.base}</span>
           <Amount

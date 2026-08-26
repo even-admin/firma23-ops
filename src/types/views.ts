@@ -400,7 +400,11 @@ export interface FinanceOverview {
 export interface SettlementPreview {
   readonly opportunity: OpportunitySummary;
   readonly rail: RailModel;
+  /** Non-ledger planning value. Never used for cash, approval, or paid totals. */
+  readonly projectedDistributableBase: Money;
   readonly distributableBase: Money;
+  /** Actual receipts, separately shown from both projection and approved base. */
+  readonly cashReceived: Money;
   readonly basePolicyLabel: string;
   readonly basePolicyNote: string;
   readonly cashEvents: readonly CashEventView[];

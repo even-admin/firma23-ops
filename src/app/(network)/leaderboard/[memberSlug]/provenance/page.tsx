@@ -5,7 +5,7 @@ import { ProvenanceEntryRow } from '@/components/leaderboard/ProvenanceEntryRow'
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticLeaderboardRepository } from '@/data/repositories/synthetic/leaderboard';
+import { activeLeaderboardRepository } from '@/data/repositories/active/leaderboard';
 
 /**
  * Rail context 5 of 5: leaderboard provenance.
@@ -20,7 +20,7 @@ export default async function ProvenancePage({
 }) {
   const { memberSlug } = await params;
   const viewer = await getViewer();
-  const provenance = await syntheticLeaderboardRepository.getProvenance(memberSlug, viewer);
+  const provenance = await activeLeaderboardRepository.getProvenance(memberSlug, viewer);
   if (provenance === null) notFound();
 
   return (

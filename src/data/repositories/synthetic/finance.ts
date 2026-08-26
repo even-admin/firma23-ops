@@ -1,6 +1,6 @@
 import { copy } from '@/copy/es-MX';
 import type { ApprovedSettlement } from '@/lib/allocation';
-import { sumMoney, type Money } from '@/lib/money';
+import { sumMoney, zeroMoney, type Money } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { FinanceRepository } from '@/data/repositories/finance';
@@ -135,7 +135,10 @@ export const syntheticFinanceRepository: FinanceRepository = {
     return {
       opportunity: built.summary,
       rail: built.rail,
+      projectedDistributableBase:
+        built.rail.kind === 'projection' ? built.rail.base : zeroMoney(built.distributableBase.base.currency),
       distributableBase: built.distributableBase.base,
+      cashReceived: built.cashReceived,
       basePolicyLabel: built.distributableBase.policyLabel,
       basePolicyNote: built.distributableBase.policyNote,
       cashEvents: cashEventViews(dataset, opportunity.id, ruleVersion.basePolicy.includeTypes),

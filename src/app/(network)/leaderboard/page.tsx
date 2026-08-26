@@ -5,11 +5,11 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticLeaderboardRepository } from '@/data/repositories/synthetic/leaderboard';
+import { activeLeaderboardRepository } from '@/data/repositories/active/leaderboard';
 
 async function LeaderboardBody() {
   const viewer = await getViewer();
-  const rows = await syntheticLeaderboardRepository.list(viewer);
+  const rows = await activeLeaderboardRepository.list(viewer);
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">

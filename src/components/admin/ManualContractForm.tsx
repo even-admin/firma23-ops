@@ -8,6 +8,7 @@ import { createManualContractSetupAction } from '@/app/(network)/admin/intake-ac
 import { Amount } from '@/components/money/Amount';
 import { copy } from '@/copy/es-MX';
 import { money } from '@/lib/money';
+import { canonicalManualContractSetupRequest, sha256Hex } from '@/lib/manual-contract-request';
 import type {
   AssignmentPickerMember,
   ManualContractSetupInput,
@@ -72,7 +73,7 @@ export function ManualContractForm({
   const firmaShareId = useId();
   const clientRef = useRef<HTMLInputElement>(null);
   const outcomeRef = useRef<HTMLParagraphElement>(null);
-  const attemptFallbackCounter = useRef(0);
+  const attemptByFingerprint = useRef(new Map<string, string>());
   const assignmentKeyCounter = useRef(1);
   const router = useRouter();
 
@@ -136,31 +137,53 @@ export function ManualContractForm({
     ]);
   }
 
+  function inputForSubmit(): ManualContractSetupInput | null {
+    if (!readyToSubmit || parsedBase === null || parsedFirmaShare === null) return null;
+    return {
+      clientName: clientName.trim(),
+      contractName: contractName.trim(),
+      serviceScope: serviceScope.trim(),
+      projectedBaseCentavos: parsedBase,
+      currency: 'MXN',
+      firma23ShareBp: parsedFirmaShare as never,
+      assignments: parsedAssignments.map((assignment) => ({
+        memberId: assignment.memberId,
+        roleLabel: assignment.roleLabel.trim(),
+        weightBp: assignment.weightBp as never,
+      })),
+      idempotencyKey: '',
+    };
+  }
+
   function submit(): void {
-    if (!readyToSubmit || parsedBase === null || parsedFirmaShare === null) return;
+    const baseInput = inputForSubmit();
+    if (baseInput === null) return;
     setResult(null);
-    attemptFallbackCounter.current += 1;
-    const idempotencyKey =
-      typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `manual-${attemptFallbackCounter.current}-${contractName}`;
     startTransition(async () => {
-      const outcome = await createAction({
-        clientName: clientName.trim(),
-        contractName: contractName.trim(),
-        serviceScope: serviceScope.trim(),
-        projectedBaseCentavos: parsedBase,
-        currency: 'MXN',
-        firma23ShareBp: parsedFirmaShare as never,
-        assignments: parsedAssignments.map((assignment) => ({
-          memberId: assignment.memberId,
-          roleLabel: assignment.roleLabel.trim(),
-          weightBp: assignment.weightBp as never,
-        })),
-        idempotencyKey,
-      });
-      setResult(outcome);
-      if (outcome.kind === 'created') router.push(`/opportunities/${outcome.opportunityId}`);
+      try {
+        const fingerprint = await sha256Hex(canonicalManualContractSetupRequest(baseInput));
+        const storageKey = `firma23.manual-contract-attempt:${fingerprint}`;
+        const persisted = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(storageKey);
+        const idempotencyKey =
+          attemptByFingerprint.current.get(fingerprint) ??
+          persisted ??
+          crypto.randomUUID();
+        attemptByFingerprint.current.set(fingerprint, idempotencyKey);
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(storageKey, idempotencyKey);
+
+        const outcome = await createAction({ ...baseInput, idempotencyKey });
+        setResult(outcome);
+        if (outcome.kind === 'created') {
+          attemptByFingerprint.current.delete(fingerprint);
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(storageKey);
+          router.push(`/opportunities/${outcome.opportunityId}`);
+        }
+      } catch (error) {
+        setResult({
+          kind: 'error',
+          message: error instanceof Error ? error.message : i.manualError,
+        });
+      }
     });
   }
 

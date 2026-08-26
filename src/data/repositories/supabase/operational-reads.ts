@@ -1,6 +1,8 @@
 import {
   buildApprovedSettlement,
   resolveAllocation,
+  resolveDistributableBase,
+  totalCashReceived,
   type DistributableBase,
   type RailModel,
 } from '@/lib/allocation';
@@ -9,6 +11,7 @@ import {
   money,
   sumMoney,
   zeroMoney,
+  reconcileApprovedAndPaid,
   assertCurrencyCode,
   type Money,
 } from '@/lib/money';
@@ -35,6 +38,7 @@ import type {
   FinanceOverview,
   FinanceRow,
   HomeAssignment,
+  HomePerformanceHistory,
   MemberMoney,
   OpportunityDetail,
   OpportunitySummary,
@@ -47,13 +51,6 @@ import type {
   ProjectSummary,
   SettlementPreview,
 } from '@/types/views';
-import { buildHomePerformanceHistory } from '@/data/repositories/synthetic/home-performance';
-import {
-  activeWorkCount,
-  paidEarnings,
-  poolWeightViews,
-  settlementLineBalances,
-} from '@/data/repositories/synthetic/shared';
 import { deriveMemberStats } from '@/lib/stats';
 
 type Client = NonNullable<Awaited<ReturnType<typeof createSupabaseServerClient>>>;
@@ -94,6 +91,15 @@ export interface OperationalSnapshot {
   readonly settlements: readonly Settlement[];
   readonly settlementLines: readonly SettlementLine[];
   readonly payouts: readonly SettlementLinePayout[];
+  /** Member-only RPC output; it contains calculated shares, never raw projection bases. */
+  readonly memberFinancials: ReadonlyMap<string, {
+    readonly projected: Money;
+    readonly approved: Money;
+    readonly paid: Money;
+    readonly owed: Money;
+    readonly recovery: Money;
+    readonly correctionRequired: boolean;
+  }>;
   readonly profiles: ReadonlyMap<string, { bio: string; availability: OperatorCardView['availability']; nextCapability: string; joinedAt: string }>;
   readonly skills: readonly { id: string; name: string; family: string }[];
   readonly memberSkills: readonly { memberId: string; skillId: string; level: OperatorCardView['skills'][number]['level']; verification: OperatorCardView['skills'][number]['verification'] }[];
@@ -165,38 +171,41 @@ function distributableBaseFor(
   rule: AllocationRuleVersion,
   opportunityId: string,
 ): DistributableBase {
-  const projection = latestProjection(snapshot, opportunityId);
-  if (projection !== null) {
-    return {
-      base: projection,
-      policyLabel: rule.basePolicy.label,
-      policyNote: rule.basePolicy.note,
-      included: [],
-      excluded: snapshot.cashEvents.filter((event) => event.opportunityId === opportunityId),
-    };
-  }
+  return resolveDistributableBase(
+    rule.basePolicy,
+    snapshot.cashEvents.filter((event) => event.opportunityId === opportunityId),
+    rule.currency,
+  );
+}
+
+function correctionFor(snapshot: OperationalSnapshot, opportunityId: string): RailModel | null {
+  const reversal = snapshot.settlements.find(
+    (row) => row.opportunityId === opportunityId && row.status === 'approved' && row.kind === 'reversal',
+  );
+  if (reversal === undefined || activeSettlement(snapshot, opportunityId) !== null) return null;
+  const rule = snapshot.rules.get(reversal.allocationRuleVersionId);
+  if (rule === undefined || reversal.correctsSettlementId === null || reversal.approvedAt === null) return null;
   return {
-    base: zeroMoney(rule.currency),
-    policyLabel: rule.basePolicy.label,
-    policyNote: rule.basePolicy.note,
-    included: [],
-    excluded: snapshot.cashEvents.filter((event) => event.opportunityId === opportunityId),
+    kind: 'correction_required',
+    reversedSettlementId: reversal.correctsSettlementId,
+    reversalSettlementId: reversal.id,
+    ruleVersionId: rule.id,
+    ruleVersion: rule.version,
+    reversedAt: reversal.approvedAt,
   };
 }
 
 function railFor(snapshot: OperationalSnapshot, opportunity: OperationalSnapshot['opportunities'][number]): {
   readonly rail: RailModel;
   readonly base: DistributableBase;
+  readonly projectedBase: Money;
   readonly cashReceived: Money;
 } {
   const rule = snapshot.rules.get(opportunity.allocationRuleVersionId);
   if (rule === undefined) throw new DataError(`Opportunity ${opportunity.id} has no rule`);
   const settlement = activeSettlement(snapshot, opportunity.id);
   const cashEvents = snapshot.cashEvents.filter((row) => row.opportunityId === opportunity.id);
-  const cashReceived = sumMoney(
-    cashEvents.filter((row) => row.type === 'deposit' || row.type === 'contribution').map((row) => row.amount),
-    rule.currency,
-  );
+  const cashReceived = totalCashReceived(cashEvents, rule.currency);
 
   if (settlement !== null) {
     const approver = settlement.approvedByMemberId === null ? undefined : snapshot.members.get(settlement.approvedByMemberId);
@@ -219,22 +228,26 @@ function railFor(snapshot: OperationalSnapshot, opportunity: OperationalSnapshot
         included: cashEvents.filter((event) => rule.basePolicy.includeTypes.includes(event.type)),
         excluded: cashEvents.filter((event) => !rule.basePolicy.includeTypes.includes(event.type)),
       },
+      projectedBase: zeroMoney(rule.currency),
       cashReceived,
     };
   }
 
   const base = distributableBaseFor(snapshot, rule, opportunity.id);
+  const correction = correctionFor(snapshot, opportunity.id);
+  const projectedBase = correction === null ? latestProjection(snapshot, opportunity.id) ?? zeroMoney(rule.currency) : zeroMoney(rule.currency);
   return {
-    rail: resolveAllocation({
+    rail: correction ?? resolveAllocation({
       ruleVersion: rule,
-      base: base.base,
-      basePolicyLabel: base.policyLabel,
+      base: projectedBase,
+      basePolicyLabel: copy.money.projectedLong,
       assignments: snapshot.assignments.filter((row) => row.opportunityId === opportunity.id),
       members: snapshot.members,
       organizations: snapshot.organizations,
       unassignedLabel: copy.money.unassigned,
     }),
     base,
+    projectedBase,
     cashReceived,
   };
 }
@@ -250,6 +263,47 @@ function cashEventViews(snapshot: OperationalSnapshot, opportunityId: string, ru
       occurredAt: event.occurredAt,
       countsTowardBase: rule.basePolicy.includeTypes.includes(event.type),
     }));
+}
+
+function poolWeightViews(rule: AllocationRuleVersion, assignments: readonly { readonly roleKey: string; readonly weightBp: number }[]): PoolWeightView[] {
+  return rule.shares
+    .filter((share) => share.recipientBehavior === 'member_pool')
+    .map((share) => {
+      const totalBp = assignments
+        .filter((assignment) => assignment.roleKey === share.key)
+        .reduce((total, assignment) => total + assignment.weightBp, 0);
+      return { key: share.key, label: share.label, totalBp, balanced: totalBp === 10_000 };
+    });
+}
+
+function settlementBalances(snapshot: OperationalSnapshot) {
+  return snapshot.settlementLines
+    .filter((line) => {
+      const settlement = snapshot.settlements.find((entry) => entry.id === line.settlementId);
+      return settlement?.kind === 'original' && settlement.status === 'approved';
+    })
+    .map((line) => {
+      const settlement = snapshot.settlements.find((entry) => entry.id === line.settlementId);
+      if (settlement === undefined) throw new DataError(`Missing settlement for line ${line.id}`);
+      const active = activeSettlement(snapshot, settlement.opportunityId)?.id === settlement.id;
+      const paid = sumMoney(snapshot.payouts.filter((payout) => payout.settlementLineId === line.id).map((payout) => payout.amount), line.amount.currency);
+      const currentApproved = active ? line.amount : zeroMoney(line.amount.currency);
+      const reconciliation = reconcileApprovedAndPaid(currentApproved, paid);
+      return { line, opportunityId: settlement.opportunityId, paid, owed: reconciliation.owed, recovery: reconciliation.recovery };
+    });
+}
+
+function unavailablePerformance(moneyState: MemberMoney): HomePerformanceHistory {
+  return {
+    asOf: new Date().toISOString(),
+    series: [
+      { kind: 'money', key: 'approved', current: moneyState.approved, historyAvailability: 'unavailable', points: [] },
+      { kind: 'money', key: 'paid', current: moneyState.paid, historyAvailability: 'unavailable', points: [] },
+      { kind: 'money', key: 'approved_unpaid', current: moneyState.approvedUnpaid, historyAvailability: 'unavailable', points: [] },
+      { kind: 'money', key: 'projected', current: moneyState.projected, historyAvailability: 'unavailable', points: [] },
+      { kind: 'count', key: 'closed', current: 0, historyAvailability: 'available', points: [] },
+    ],
+  };
 }
 
 export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<OperationalSnapshot> {
@@ -274,6 +328,7 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
     settlementLines,
     payouts,
     statEvents,
+    memberFinancials,
   ] = await Promise.all([
     client.from('organizations').select('id, slug, name').eq('id', viewer.orgId),
     client.from('members').select('id, org_id, slug, display_name, initials, role').eq('org_id', viewer.orgId),
@@ -293,9 +348,12 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
     client.from('settlement_lines').select('id, settlement_id, share_key, recipient_behavior, recipient_label, member_id, role_label, weight_bp, amount_centavos, currency, sequence'),
     client.from('settlement_line_payouts').select('id, settlement_line_id, payout_cash_event_id, amount_centavos, currency, created_at, created_by_member_id, idempotency_key'),
     client.from('stat_events').select('id, member_id, opportunity_id, metric_key, quantity, source_kind, source_id, reverses_stat_event_id, occurred_at'),
+    viewer.role === 'member'
+      ? client.rpc('member_opportunity_financials')
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  for (const result of [organizations, members, profiles, skills, memberSkills, portfolioItems, projects, services, rules, shares, opportunities, assignments, projections, cashEvents, settlements, settlementLines, payouts, statEvents]) {
+  for (const result of [organizations, members, profiles, skills, memberSkills, portfolioItems, projects, services, rules, shares, opportunities, assignments, projections, cashEvents, settlements, settlementLines, payouts, statEvents, memberFinancials]) {
     if (result.error !== null) throw new Error(result.error.message);
   }
 
@@ -437,6 +495,28 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
       createdByMemberId: row.created_by_member_id,
       idempotencyKey: row.idempotency_key,
     })),
+    memberFinancials: new Map(
+      ((memberFinancials.data ?? []) as {
+        opportunity_id: string;
+        currency: string;
+        projected_share_centavos: number;
+        approved_centavos: number;
+        paid_centavos: number;
+        owed_centavos: number;
+        recovery_centavos: number;
+        correction_required: boolean;
+      }[]).map((row) => [
+        row.opportunity_id,
+        {
+          projected: money(row.projected_share_centavos, assertCurrencyCode(row.currency)),
+          approved: money(row.approved_centavos, assertCurrencyCode(row.currency)),
+          paid: money(row.paid_centavos, assertCurrencyCode(row.currency)),
+          owed: money(row.owed_centavos, assertCurrencyCode(row.currency)),
+          recovery: money(row.recovery_centavos, assertCurrencyCode(row.currency)),
+          correctionRequired: row.correction_required,
+        },
+      ]),
+    ),
     profiles: new Map(
       ((profiles.data ?? []) as { member_id: string; bio: string; availability: OperatorCardView['availability']; next_capability: string; joined_at: string }[]).map((row) => [
         row.member_id,
@@ -576,17 +656,15 @@ export function financeOverview(snapshot: OperationalSnapshot): FinanceOverview 
       cashEvents: cashEventViews(snapshot, opportunity.id, rule),
     };
   });
-  const balances = settlementLineBalances({
-    settlements: snapshot.settlements,
-    settlementLines: snapshot.settlementLines,
-    settlementLinePayouts: snapshot.payouts,
-  } as never);
-  const approved = snapshot.settlements.filter((row) => row.status === 'approved').map((row) => row.base);
+  const balances = settlementBalances(snapshot);
+  const approved = snapshot.settlements
+    .filter((row) => row.status === 'approved' && row.kind === 'original' && activeSettlement(snapshot, row.opportunityId)?.id === row.id)
+    .map((row) => row.base);
   return {
     totals: {
       cashReceived: sumMoney(rows.map((row) => row.cashReceived)),
       distributableApproved: sumMoney(approved),
-      distributableProjected: sumMoney(rows.filter((row) => row.rail.kind === 'projection').map((row) => row.distributableBase)),
+      distributableProjected: sumMoney(snapshot.opportunities.map((opportunity) => railFor(snapshot, opportunity).projectedBase)),
       paidOut: sumMoney(balances.map((row) => row.paid)),
       owed: sumMoney(balances.map((row) => row.owed)),
       recovery: sumMoney(balances.map((row) => row.recovery)),
@@ -607,7 +685,9 @@ export function settlementPreview(snapshot: OperationalSnapshot, opportunityId: 
   return {
     opportunity: detail.summary,
     rail: detail.rail,
+    projectedDistributableBase: railFor(snapshot, snapshot.opportunities.find((row) => row.id === opportunityId) as OperationalSnapshot['opportunities'][number]).projectedBase,
     distributableBase: detail.distributableBase,
+    cashReceived: detail.cashReceived,
     basePolicyLabel: detail.basePolicyLabel,
     basePolicyNote: detail.basePolicyNote,
     cashEvents: detail.cashEvents,
@@ -637,11 +717,7 @@ export function memberCards(snapshot: OperationalSnapshot): OperatorCardView[] {
           verification: entry.verification,
         };
       });
-    const balances = settlementLineBalances({
-      settlements: snapshot.settlements,
-      settlementLines: snapshot.settlementLines,
-      settlementLinePayouts: snapshot.payouts,
-    } as never).filter((row) => row.line.memberId === member.id);
+    const balances = settlementBalances(snapshot).filter((row) => row.line.memberId === member.id);
     return {
       memberId: member.id,
       slug: member.slug,
@@ -675,6 +751,9 @@ export function personalHome(snapshot: OperationalSnapshot, viewer: ViewerContex
       if (opportunity === undefined) throw new DataError(`Assignment ${assignment.id} has no opportunity`);
       const built = railFor(snapshot, opportunity);
       const summary = summaryFor(snapshot, opportunity);
+      const privateFinancial = viewer.role === 'member'
+        ? snapshot.memberFinancials.get(opportunity.id)
+        : undefined;
       const projectedParticipant =
         built.rail.kind === 'projection'
           ? built.rail.segments
@@ -697,7 +776,13 @@ export function personalHome(snapshot: OperationalSnapshot, viewer: ViewerContex
         roleLabel: assignment.roleLabel,
         status: opportunity.status,
         active: ['draft', 'assigned', 'in_delivery', 'delivered'].includes(opportunity.status),
-        money:
+        money: privateFinancial?.correctionRequired
+          ? { kind: 'correction_required' as const }
+          : privateFinancial !== undefined && privateFinancial.approved.amount > 0
+            ? { kind: 'approved' as const, amount: privateFinancial.approved, payoutStatus: privateFinancial.paid.amount === 0 ? 'unpaid' as const : privateFinancial.paid.amount === privateFinancial.approved.amount ? 'paid' as const : 'partial' as const }
+            : privateFinancial !== undefined && privateFinancial.projected.amount > 0
+              ? { kind: 'projected' as const, amount: privateFinancial.projected }
+              :
           settledParticipant !== undefined
             ? {
                 kind: 'approved' as const,
@@ -709,40 +794,32 @@ export function personalHome(snapshot: OperationalSnapshot, viewer: ViewerContex
               : { kind: 'correction_required' as const },
       };
     });
-  const balances = settlementLineBalances({
-    settlements: snapshot.settlements,
-    settlementLines: snapshot.settlementLines,
-    settlementLinePayouts: snapshot.payouts,
-  } as never).filter((row) => row.line.memberId === member.id);
+  const balances = settlementBalances(snapshot).filter((row) => row.line.memberId === member.id);
+  const privateFinancials = [...snapshot.memberFinancials.values()];
   const memberMoney: MemberMoney = {
-    approved: sumMoney(
+    approved: viewer.role === 'member'
+      ? sumMoney(privateFinancials.map((entry) => entry.approved))
+      : sumMoney(
       snapshot.settlementLines
         .filter((line) => line.memberId === member.id && snapshot.settlements.some((settlement) => settlement.id === line.settlementId && settlement.status === 'approved'))
         .map((line) => line.amount),
     ),
-    paid: paidEarnings({
-      settlements: snapshot.settlements,
-      settlementLines: snapshot.settlementLines,
-      settlementLinePayouts: snapshot.payouts,
-    } as never, member.id),
-    approvedUnpaid: sumMoney(balances.map((balance) => balance.owed)),
-    recovery: sumMoney(balances.map((balance) => balance.recovery)),
-    projected: sumMoney(
+    paid: viewer.role === 'member' ? sumMoney(privateFinancials.map((entry) => entry.paid)) : sumMoney(balances.map((balance) => balance.paid)),
+    approvedUnpaid: viewer.role === 'member' ? sumMoney(privateFinancials.map((entry) => entry.owed)) : sumMoney(balances.map((balance) => balance.owed)),
+    recovery: viewer.role === 'member' ? sumMoney(privateFinancials.map((entry) => entry.recovery)) : sumMoney(balances.map((balance) => balance.recovery)),
+    projected: viewer.role === 'member' ? sumMoney(privateFinancials.map((entry) => entry.projected)) : sumMoney(
       assignments.flatMap((row) => (row.money.kind === 'projected' ? [row.money.amount] : [])),
     ),
   };
   return {
     member: { id: member.id, displayName: member.displayName, initials: member.initials, role: member.role },
     money: memberMoney,
-    performance: buildHomePerformanceHistory(
-      { statEvents: snapshot.statEvents } as never,
-      member.id,
-      memberMoney,
-    ),
-    activeWorkCount: activeWorkCount(
-      { opportunities: snapshot.opportunities, assignments: snapshot.assignments } as never,
-      member.id,
-    ),
+    performance: unavailablePerformance(memberMoney),
+    activeWorkCount: new Set(
+      snapshot.assignments
+        .filter((assignment) => assignment.memberId === member.id)
+        .map((assignment) => assignment.opportunityId),
+    ).size,
     assignments,
     nextActions: assignments
       .filter((assignment) => assignment.active)
