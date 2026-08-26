@@ -186,7 +186,7 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
       </div>
 
       <div
-        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden border-y border-line py-5 focus:outline-none sm:min-h-[38rem]"
+        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden border-y border-line py-5 sm:min-h-[38rem]"
         role="group"
         aria-roledescription="carrusel"
         aria-label={copy.network.carouselLabel}

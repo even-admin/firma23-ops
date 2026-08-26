@@ -105,6 +105,34 @@ describe('OperationalHeader', () => {
     expect(screen.queryByRole('link', { name: copy.home.openOpportunity })).not.toBeInTheDocument();
     expect(screen.getByText(copy.home.nextMove)).toBeInTheDocument();
   });
+
+  it('keeps evidence submission disabled until an authorized write path exists', () => {
+    render(
+      header({
+        primaryAssignment: {
+          opportunityId: 'o1',
+          code: 'F23-001',
+          beneficiaryName: 'Beneficiaria',
+          beneficiaryLocation: 'Merida',
+          projectName: 'Proyecto',
+          serviceName: 'Servicio',
+          roleLabel: 'Entrega',
+          status: 'assigned',
+          active: true,
+          money: { kind: 'projected', amount: money(10_000) },
+        },
+        primaryAction: {
+          key: 'evidence:o1',
+          label: copy.home.actionEvidence,
+          detail: 'F23-001 · Beneficiaria',
+          tone: 'neutral',
+        },
+      }),
+    );
+
+    expect(screen.getByRole('button', { name: copy.home.primaryAction })).toBeDisabled();
+    expect(screen.getByText(copy.home.primaryActionUnavailable)).toBeInTheDocument();
+  });
 });
 
 const NAV_PROJECTS = [

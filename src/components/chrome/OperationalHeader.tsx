@@ -116,17 +116,37 @@ export function OperationalHeader({
                       <p className="text-faint mt-1 truncate text-xs">{primaryAction.detail}</p>
                     )}
                   </div>
-                  {canOpenOpportunity ? (
-                    <Link
-                      href={assignmentHref}
-                      className="inline-flex min-h-12 shrink-0 items-center gap-3 text-sm font-medium"
-                    >
-                      <span>{copy.home.openOpportunity}</span>
-                      <span className="glass-orb-button flex size-11 items-center justify-center rounded-full">
-                        <ChromeIcon name="chevron-right" />
-                      </span>
-                    </Link>
-                  ) : null}
+                  <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                    {primaryAction?.key.startsWith('evidence:') ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled
+                          aria-describedby="home-evidence-unavailable"
+                          className="border-line text-faint flex min-h-11 cursor-not-allowed items-center rounded-[var(--radius-control)] border px-4 text-sm font-medium"
+                        >
+                          {copy.home.primaryAction}
+                        </button>
+                        <p
+                          id="home-evidence-unavailable"
+                          className="text-faint max-w-64 text-left text-xs leading-5 sm:text-right"
+                        >
+                          {copy.home.primaryActionUnavailable}
+                        </p>
+                      </>
+                    ) : null}
+                    {canOpenOpportunity ? (
+                      <Link
+                        href={assignmentHref}
+                        className="inline-flex min-h-12 items-center gap-3 text-sm font-medium"
+                      >
+                        <span>{copy.home.openOpportunity}</span>
+                        <span className="glass-orb-button flex size-11 items-center justify-center rounded-full">
+                          <ChromeIcon name="chevron-right" />
+                        </span>
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
