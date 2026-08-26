@@ -69,6 +69,10 @@ The first three behaviors are already implemented. No extra flip effect landed.
 
 ## Highest-value continuation
 
+The operational launch definition and execution order now live in
+`docs/OPERATIONAL-V1-SHIP-PLAN.md`; treat that tracked document as the control
+contract for tomorrow's internal Development/Preview launch.
+
 1. Start one new control workspace from the exact tracked handoff HEAD. Do not
    run two live agents in the same worktree.
 2. Reconstruct exact branch/SHA/clean status before edits.
