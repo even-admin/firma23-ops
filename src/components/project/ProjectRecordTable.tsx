@@ -119,22 +119,22 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
               </span>
             </div>
 
-            <dl className="border-line grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-4 sm:grid-cols-4">
-              <div>
+            <dl className="project-record-stats border-line grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-4">
+              <div className="min-w-0">
                 <dt className="label-micro text-faint">{copy.projects.services}</dt>
                 <dd className="text-ink tnum text-sm">{project.serviceCount}</dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="label-micro text-faint">{copy.projects.opportunitiesCount}</dt>
                 <dd className="text-ink tnum text-sm">{project.opportunityCount}</dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="label-micro text-faint">{copy.projects.settledApproved}</dt>
                 <dd className="text-money text-sm font-medium">
                   <Amount value={project.approvedSettled} />
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="label-micro text-faint">{copy.projects.activeRule}</dt>
                 <dd className="text-ink tnum text-sm">
                   {project.activeRule === null

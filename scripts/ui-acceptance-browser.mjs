@@ -669,6 +669,15 @@ async function runInteractions(browser) {
             return cell.getBoundingClientRect().right <= next.getBoundingClientRect().left + 0.5;
           });
         });
+      const listMetricsContained = [...records.querySelectorAll('.project-record-stats > div')]
+        .filter((item) => item instanceof HTMLElement && item.offsetParent !== null)
+        .every((item) =>
+          [...item.children].every((child) => {
+            const itemRect = item.getBoundingClientRect();
+            const childRect = child.getBoundingClientRect();
+            return childRect.left >= itemRect.left - 0.5 && childRect.right <= itemRect.right + 0.5;
+          }),
+        );
       return {
         rail: { left: railRect.left, right: railRect.right, width: railRect.width },
         panel: { left: panelRect.left, right: panelRect.right },
@@ -692,6 +701,7 @@ async function runInteractions(browser) {
           childrenContained: recordChildrenContained,
           cellContentsContained,
           tableCellsSeparated,
+          listMetricsContained,
         },
       };
     });
@@ -751,6 +761,7 @@ async function runInteractions(browser) {
       !measurement.hoverGeometry.records.childrenContained ||
       !measurement.hoverGeometry.records.cellContentsContained ||
       !measurement.hoverGeometry.records.tableCellsSeparated ||
+      !measurement.hoverGeometry.records.listMetricsContained ||
       (measurement.width === 768 &&
         (!measurement.hoverGeometry.records.listVisible ||
           measurement.hoverGeometry.records.tableVisible)) ||

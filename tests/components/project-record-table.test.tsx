@@ -38,6 +38,7 @@ describe('ProjectRecordTable', () => {
     expect(container.querySelector('[data-project-records]')).toHaveClass('project-records');
     expect(screen.getByRole('table').parentElement).toHaveClass('project-record-table-shell');
     expect(screen.getByRole('table').className).not.toContain('md:table');
+    expect(container.querySelector('.project-record-stats')).not.toHaveClass('sm:grid-cols-4');
   });
 
   it('never invents money: every displayed amount is the project approvedSettled value', () => {

@@ -44,6 +44,12 @@
   display: none;
 }
 
+@container project-records (min-width: 40rem) {
+  .project-record-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @container project-records (min-width: 54rem) {
   .project-record-table-shell {
     display: block;
