@@ -56,14 +56,15 @@ canonical Development project and the verified sending domain
 `auth.firma23.com`. DNS has Resend SPF and DKIM records; DMARC remains pending.
 The intended sender is `FIRMA23 <acceso@auth.firma23.com>`.
 
-Delivery is not verified. After reloading the Supabase Dashboard, Custom SMTP
-remained disabled and its fields were not populated. Auth logs showed a config
-reload and an email-rate-limit change from 30 to 25 emails/hour, but neither is
-evidence that SMTP credentials were installed. Two earlier manual SMTP attempts
-failed with `535 Authentication credentials invalid`; those attempts predated
-the native integration. No OTP was sent after the native integration reported
-ready. Resolve the dashboard discrepancy with Resend/Supabase support before
-another delivery test or credential rotation.
+On 2026-08-25, the Auth configuration was re-applied through Supabase's
+documented Management API and read back successfully: `external_email_enabled`
+is true and the Resend host, port, user, encrypted SMTP password, sender email,
+and FIRMA23 sender name are present. The Dashboard SMTP toggle may still render
+disabled after reload despite that authenticated configuration read; do not
+rotate credentials solely to reconcile that UI. Delivery remains untested: no
+OTP was sent after this reconfiguration. The two earlier manual SMTP attempts
+failed with `535 Authentication credentials invalid` before this final,
+API-verified configuration.
 
 No SMTP secret is present in this repository, local environment files, or
 Vercel. This investigation did not touch the database, migrations, Production,

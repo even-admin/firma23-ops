@@ -3,6 +3,8 @@
 Status: execution contract for an internal Development/Preview launch.
 Target: usable by FIRMA23 tomorrow without synthetic-data misrepresentation.
 
+Session/model routing follows `docs/AGENT-OPERATING-MODEL.md`.
+
 ## What "shipped" means
 
 Operational V1 is shipped only when all of these are true on one exact SHA:
