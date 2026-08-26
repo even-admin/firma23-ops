@@ -82,7 +82,6 @@
   overflow: hidden;
   isolation: isolate;
   contain: layout paint;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, var(--color-line));
   background: var(--color-ink-950);
   transform: scale(1);
   transition: transform 180ms var(--ease-firma);
@@ -185,11 +184,6 @@
   border-color: color-mix(in srgb, var(--color-orb-cobalt) 36%, var(--color-line-strong));
   background-color: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-orb-sky));
   transform: translateY(-1px);
-}
-
-.glass-pagination,
-.member-portrait-slot {
-  background: color-mix(in srgb, var(--color-paper-000) 78%, var(--color-orb-ice));
 }
 
 .glass-action-button {

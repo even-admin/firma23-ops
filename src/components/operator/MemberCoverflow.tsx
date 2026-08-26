@@ -92,24 +92,19 @@ function ActiveMemberCover({ operator }: { readonly operator: OperatorCardView }
       className="identity-orb-surface spatial-object border-line/70 bg-surface flex h-full min-w-0 flex-col overflow-hidden border p-5 sm:p-6"
       data-mobile-nav-clearance
     >
-      <header className="flex min-w-0 items-start gap-4">
-        <div className="member-portrait-slot flex size-14 shrink-0 items-center justify-center rounded-full border border-line backdrop-blur-md">
-          <IdentityOrb memberId={operator.memberId} size="card" className="size-10" />
-        </div>
+      <header className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-3 sm:flex">
+        <IdentityOrb memberId={operator.memberId} size="hero" className="size-12" />
         <div className="min-w-0 flex-1">
           <p className="text-faint text-xs">
             {operator.role === 'founder' ? copy.viewer.founder : copy.viewer.member}
           </p>
-          <h2 className="text-ink-strong mt-0.5 text-2xl leading-tight font-medium">
-            <Link
-              href={`/network/${operator.slug}`}
-              className="inline-flex min-h-11 items-center break-words underline-offset-4 hover:underline"
-            >
-              {operator.displayName}
-            </Link>
+          <h2 className="text-ink-strong mt-0.5 text-xl leading-tight font-medium sm:text-2xl">
+            {operator.displayName}
           </h2>
         </div>
-        <AvailabilityBadge availability={operator.availability} />
+        <div className="col-span-2 sm:contents">
+          <AvailabilityBadge availability={operator.availability} />
+        </div>
       </header>
 
       <p className="text-muted mt-4 line-clamp-2 min-h-12 text-sm leading-6">{operator.bio}</p>
@@ -137,13 +132,22 @@ function ActiveMemberCover({ operator }: { readonly operator: OperatorCardView }
 }
 
 function MemberCover({ operator, selected }: { readonly operator: OperatorCardView; readonly selected: boolean }) {
-  return selected ? <ActiveMemberCover operator={operator} /> : <InactiveMemberCover operator={operator} />;
+  return (
+    <Link
+      href={`/network/${operator.slug}`}
+      aria-label={operator.displayName}
+      className="focus-ring block h-full rounded-[var(--radius-object)]"
+    >
+      {selected ? <ActiveMemberCover operator={operator} /> : <InactiveMemberCover operator={operator} />}
+    </Link>
+  );
 }
 
 /** Repository-backed member coverflow; mobile displays one stable card at a time. */
 export function MemberCoverflow({ operators }: MemberCoverflowProps) {
   const [active, setActive] = useState(0);
   const pointerStart = useRef<number | null>(null);
+  const dragged = useRef(false);
 
   if (operators.length === 0) return null;
 
@@ -173,17 +177,9 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
 
   return (
     <section aria-labelledby="network-coverflow-title" className="min-w-0">
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <p className="label-micro text-faint">{copy.network.roster}</p>
-          <h2 id="network-coverflow-title" className="text-ink-strong mt-1 text-xl font-medium">
-            {copy.network.directoryTitle}
-          </h2>
-        </div>
-        <p className="label-micro text-faint tnum" aria-live="polite" aria-atomic="true">
-          {String(activeIndex + 1).padStart(2, '0')} / {String(operators.length).padStart(2, '0')}
-        </p>
-      </div>
+      <h2 id="network-coverflow-title" className="text-ink-strong mb-4 text-xl font-medium">
+        {copy.network.directoryTitle}
+      </h2>
 
       <div
         className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden border-y border-line py-5 sm:min-h-[38rem]"
@@ -192,21 +188,40 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
         aria-label={copy.network.carouselLabel}
         tabIndex={0}
         onKeyDown={onKeyDown}
+        onClickCapture={(event) => {
+          if (!dragged.current) return;
+          event.preventDefault();
+          event.stopPropagation();
+          dragged.current = false;
+        }}
         onPointerDown={(event) => {
+          dragged.current = false;
           pointerStart.current = event.clientX;
-          event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerUp={(event) => {
           const start = pointerStart.current;
           pointerStart.current = null;
           if (start === null) return;
           const delta = event.clientX - start;
-          if (Math.abs(delta) >= 48) move(delta > 0 ? -1 : 1);
+          if (Math.abs(delta) >= 48) {
+            dragged.current = true;
+            move(delta > 0 ? -1 : 1);
+          }
         }}
         onPointerCancel={() => {
           pointerStart.current = null;
+          dragged.current = false;
         }}
       >
+        <button
+          type="button"
+          onClick={() => move(-1)}
+          className="text-ink-strong absolute top-1/2 left-0 z-30 flex size-12 -translate-y-1/2 items-center justify-center border-0 bg-transparent opacity-60 transition-[opacity,transform] duration-150 hover:-translate-x-0.5 hover:opacity-100"
+          aria-label={copy.network.previousMember}
+        >
+          <ChromeIcon name="chevron-right" className="size-6 rotate-180" />
+        </button>
+
         {operators.map((operator, index) => {
           const offset = boundedOffset(index, activeIndex, operators.length);
           const distance = Math.abs(offset);
@@ -233,46 +248,14 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => move(-1)}
-          className="glass-orb-button flex size-12 items-center justify-center rounded-full"
-          aria-label={copy.network.previousMember}
-        >
-          <ChromeIcon name="chevron-right" className="rotate-180" />
-        </button>
-
-        <div className="glass-pagination no-scrollbar flex max-w-[min(60vw,24rem)] items-center justify-center gap-1 overflow-x-auto rounded-full border border-line px-2 backdrop-blur-md">
-          {operators.map((operator, index) => (
-            <button
-              key={operator.memberId}
-              type="button"
-              onClick={() => setActive(index)}
-              className="group flex size-11 shrink-0 items-center justify-center rounded-full"
-              aria-label={`${copy.network.showMember}: ${operator.displayName}`}
-              aria-current={index === activeIndex ? 'true' : undefined}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'block rounded-full transition-[width,background-color] duration-200',
-                  index === activeIndex ? 'bg-ink-950 h-1.5 w-6' : 'bg-line-strong size-1.5 group-hover:bg-ink',
-                )}
-              />
-            </button>
-          ))}
-        </div>
 
         <button
           type="button"
           onClick={() => move(1)}
-          className="glass-orb-button flex size-12 items-center justify-center rounded-full"
+          className="text-ink-strong absolute top-1/2 right-0 z-30 flex size-12 -translate-y-1/2 items-center justify-center border-0 bg-transparent opacity-60 transition-[opacity,transform] duration-150 hover:translate-x-0.5 hover:opacity-100"
           aria-label={copy.network.nextMember}
         >
-          <ChromeIcon name="chevron-right" />
+          <ChromeIcon name="chevron-right" className="size-6" />
         </button>
       </div>
     </section>

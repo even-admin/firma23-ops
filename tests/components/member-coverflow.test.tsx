@@ -58,15 +58,23 @@ describe('MemberCoverflow', () => {
     const carousel = screen.getByRole('group', { name: copy.network.carouselLabel });
     fireEvent.keyDown(carousel, { key: 'ArrowRight' });
 
-    expect(screen.getByText('02 / 03')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Beto Sur' })).toBeInTheDocument();
     expect(container.querySelectorAll('[aria-hidden="false"]')).toHaveLength(1);
   });
 
-  it('offers 44px previous, next and direct-selection controls', () => {
+  it('uses bare 48px directional controls without pagination chrome', () => {
     render(<MemberCoverflow operators={OPERATORS} />);
     expect(screen.getByRole('button', { name: copy.network.previousMember }).className).toContain('size-12');
     expect(screen.getByRole('button', { name: copy.network.nextMember }).className).toContain('size-12');
-    expect(screen.getByRole('button', { name: `${copy.network.showMember}: Caro Este` }).className).toContain('size-11');
+    expect(screen.queryByRole('button', { name: `${copy.network.showMember}: Caro Este` })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Members' })).toBeInTheDocument();
+  });
+
+  it('makes the complete selected card the member profile link', () => {
+    render(<MemberCoverflow operators={OPERATORS} />);
+    const link = screen.getByRole('link', { name: 'Ana Norte' });
+
+    expect(link).toHaveAttribute('href', '/network/ana-norte');
+    expect(link.querySelector('article')).not.toBeNull();
   });
 });
