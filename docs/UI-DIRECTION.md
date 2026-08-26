@@ -67,8 +67,11 @@ artwork, rainbow metrics or unbounded decorative wash is allowed.
 - Owed and recovery are reconciled per settlement line before aggregation. A
   reversed recipient's recovery may never cancel an active line's obligation;
   only a signed `-old/+new` payout allocation transfer resolves both sides.
-- Historical charts remain unavailable until a frozen model contains at least
-  two complete comparable periods.
+- Comparative trend charts and period-over-period deltas remain unavailable until
+  a frozen model contains at least two complete comparable periods. Inicio may
+  render cumulative event history when every plotted observation comes from a
+  dated settlement, payout, correction or stat event. A visual curve may connect
+  exact observations, but the product never creates intermediate data points.
 - Components consume repository-backed view models and never import `src/data/**`.
 - AI may draft, extract or explain. It may not approve contracts, assignments,
   settlements, payouts or other financial mutations.
@@ -78,10 +81,13 @@ artwork, rainbow metrics or unbounded decorative wash is allowed.
 
 ### Inicio
 
-Preserve `OperationalHeader` and `MeshDriftCanvas`, but compose Home as one focused
-work object with an active periphery: identity and orientation, active opportunity,
-one real route/action, private exact ledger, then remaining work. Do not replace
-the surface with generic KPI cards or a marketing hero.
+Use one two-card Personal Command Strip above the existing action and assignment
+queues. The compact `MeshDriftCanvas` identity field carries only the member name,
+local date/time and active-operation count. The adjacent performance instrument
+switches among approved, paid, payable, projected and verified-close metrics.
+Historical lines connect exact cumulative event balances, and event mode exposes
+the signed source movements; neither contains inferred daily values. Projection
+shows a current value without a line until dated projection events exist.
 
 ### Oportunidades
 
@@ -131,15 +137,15 @@ approval state.
 progression, PDF viewing, community/chat, kanban and rare delight are outside V1.
 Each requires its named data, permission or privacy trigger before UI work starts.
 
-No V1 route, repository interface, view model, domain type or financial contract
-change is authorized by this direction.
+The Home performance-history extension is a read-only view-model addition. It does
+not change a repository method, domain entity, financial rule or write contract.
 
 ## Shared pattern resolution
 
 ### Metrics
 
-Do not create one universal KPI card. Home keeps `OperationalHeader`; finance
-keeps `FinanceMetricCard`; non-money metrics use route-local compact `dl`
+Do not create one universal KPI card. Home uses its Personal Command Strip;
+finance keeps `FinanceMetricCard`; non-money metrics use route-local compact `dl`
 compositions. Deltas require real comparable periods.
 
 ### Timelines

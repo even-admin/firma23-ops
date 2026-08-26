@@ -33,6 +33,16 @@ describe('personal home, founder viewer', () => {
     expect(settle).toHaveLength(2);
     expect(settle.every((action) => action.tone === 'attention')).toBe(true);
   });
+
+  it('keeps projection current-only when no dated projection events exist', () => {
+    const projected = founderHome.performance.series.find((series) => series.key === 'projected');
+    expect(projected).toMatchObject({
+      kind: 'money',
+      historyAvailability: 'unavailable',
+      current: founderHome.money.projected,
+      points: [],
+    });
+  });
 });
 
 describe('personal home, member viewer', () => {
@@ -78,6 +88,41 @@ describe('personal home, member viewer', () => {
     const settled = memberHome.assignments.filter((entry) => !entry.active);
     expect(settled).toHaveLength(1);
     expect(settled[0]?.status).toBe('settled_approved');
+  });
+
+  it('derives approved and payable history from the dated settlement event', () => {
+    const approved = memberHome.performance.series.find((series) => series.key === 'approved');
+    const payable = memberHome.performance.series.find(
+      (series) => series.key === 'approved_unpaid',
+    );
+
+    expect(approved?.points).toHaveLength(1);
+    expect(approved?.points.at(-1)).toMatchObject({
+      occurredAt: '2026-08-12T17:40:00.000Z',
+      value: memberHome.money.approved,
+      state: 'verified',
+    });
+    expect(payable?.points.at(-1)).toMatchObject({
+      value: memberHome.money.approvedUnpaid,
+      state: 'verified',
+    });
+  });
+
+  it('derives closes from signed append-only stat events', () => {
+    const closed = memberHome.performance.series.find((series) => series.key === 'closed');
+    expect(closed).toMatchObject({ kind: 'count', current: 1 });
+    expect(closed?.points).toEqual([
+      expect.objectContaining({
+        occurredAt: '2026-07-28',
+        value: 1,
+        delta: 1,
+        state: 'verified',
+      }),
+    ]);
+  });
+
+  it('anchors period filtering to the repository snapshot, not the browser clock', () => {
+    expect(memberHome.performance.asOf).toBe('2026-08-20T00:00:00.000Z');
   });
 });
 

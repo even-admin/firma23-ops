@@ -198,6 +198,31 @@
   background: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-orb-ice));
 }
 
+@keyframes instrument-line-reveal {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes instrument-area-reveal {
+  from {
+    opacity: 0;
+  }
+}
+
+.instrument-line {
+  stroke-dasharray: 1;
+  animation: instrument-line-reveal 520ms var(--ease-firma) both;
+}
+
+.instrument-area {
+  animation: instrument-area-reveal 420ms var(--ease-firma) both;
+}
+
 /* Perspective is decorative; the active member remains the only interactive card. */
 .member-coverflow {
   perspective: 1100px;
@@ -235,6 +260,11 @@
   .glass-orb-button,
   .glass-orb-button:hover {
     transform: none;
+  }
+
+  .instrument-line,
+  .instrument-area {
+    animation: none;
   }
 }
 

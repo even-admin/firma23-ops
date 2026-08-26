@@ -1,8 +1,8 @@
 import { copy } from '@/copy/es-MX';
 import type { HomeRepository } from '@/data/repositories/home';
-import type { AssignmentMoney, HomeAssignment, NextAction, PersonalHome } from '@/types/views';
 import { loadSyntheticDataset } from '@/data/repositories/synthetic/dataset';
 import type { SyntheticDataset } from '@/data/repositories/synthetic/dataset';
+import { buildHomePerformanceHistory } from '@/data/repositories/synthetic/home-performance';
 import { buildOpportunityRail } from '@/data/repositories/synthetic/rails';
 import {
   activeWorkCount,
@@ -16,6 +16,13 @@ import { sumMoney, zeroMoney } from '@/lib/money';
 import { DataError } from '@/lib/result';
 import { isFounder, type ViewerContext } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
+import type {
+  AssignmentMoney,
+  HomeAssignment,
+  MemberMoney,
+  NextAction,
+  PersonalHome,
+} from '@/types/views';
 
 const ACTIVE_STATUSES: readonly OpportunityStatus[] = [
   'draft',
@@ -116,6 +123,14 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
     }
   }
 
+  const memberMoney: MemberMoney = {
+    approved,
+    paid,
+    approvedUnpaid: sumMoney(balances.map((balance) => balance.owed)),
+    recovery: sumMoney(balances.map((balance) => balance.recovery)),
+    projected: projectedEarnings(dataset, member.id),
+  };
+
   return {
     member: {
       id: member.id,
@@ -123,13 +138,8 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
       initials: member.initials,
       role: member.role,
     },
-    money: {
-      approved,
-      paid,
-      approvedUnpaid: sumMoney(balances.map((balance) => balance.owed)),
-      recovery: sumMoney(balances.map((balance) => balance.recovery)),
-      projected: projectedEarnings(dataset, member.id),
-    },
+    money: memberMoney,
+    performance: buildHomePerformanceHistory(dataset, member.id, memberMoney),
     activeWorkCount: activeWorkCount(dataset, member.id),
     assignments,
     nextActions,

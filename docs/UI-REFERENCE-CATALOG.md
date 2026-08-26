@@ -8,9 +8,10 @@ composition inputs, never trusted drop-in code.
 | Reference | Decision | FIRMA23 placement and constraints |
 | --- | --- | --- |
 | [Statistics Card 1](https://21st.dev/@sean0205/components/statistics-card-1) | Adapt | Compact exact metrics on Projects and Profiles. No fake deltas, decorative color or uniform money/status treatment. |
-| [Progress Metric Card](https://21st.dev/@makviesainte/components/progress-metric-card) | Preserve | Existing `FinanceMetricCard` is the truthful adaptation. No chart until real history; no Recharts or Lucide. |
+| [Progress Metric Card](https://21st.dev/@makviesainte/components/progress-metric-card) | Adapt | Existing `FinanceMetricCard` remains the chartless finance authority surface. Inicio separately extracts the compact glass controls, line/event switch and quiet summary footer for repository-backed personal history. No demo series, fake deltas, Recharts or Lucide. |
 | [Statistics Card 7](https://21st.dev/@sean0205/components/statistics-card-7) | Extract | Use comparison density for project counts and member outcomes, without colored trends. |
 | [Advanced Stats](https://21st.dev/@uilayout.contact/components/advanced-stats) | Preserve | Existing finance composition already contains its useful hierarchy. Reject chart, scroll reveals and invented analytics. |
+| [Stock Market Tracker Chart](https://21st.dev/@ahmedmayara/components/stock-market-tracker-chart) | Adapt | Inicio uses its metric/period selection model for repository-backed event history. Reject stock styling, gains/losses, Recharts, shadcn chart/card/select dependencies and interpolated daily data. Projection has no line without dated events. |
 | [Folder Interaction](https://21st.dev/@0xUrvish/components/folder-interaction) | Adapt | Admin intake document packet. CSS motion follows selected and processed evidence; never decorative completion. |
 | [File Tree](https://21st.dev/@justinlevinedotme/components/file-tree) | Extract | Collapsible source/evidence outline. Never present source documents as a fake local filesystem. |
 | [AI Input](https://21st.dev/@aghasisahakyan1/components/ai-input) | Defer | Requires an AI command/action contract. AI may draft or explain, never approve or mutate finance. |
@@ -55,8 +56,8 @@ composition inputs, never trusted drop-in code.
 
 ## Shared decisions
 
-- Metrics stay purpose-specific: `OperationalHeader`, `FinanceMetricCard` or
-  route-local `dl` compositions.
+- Metrics stay purpose-specific: Home's Personal Command Strip,
+  `FinanceMetricCard` or route-local `dl` compositions.
 - One future Integrator-owned `ProcessTimeline` may serve intake, milestones and
   provenance after repeated real demand.
 - One responsive record grammar serves desktop tables and mobile lists.
@@ -76,7 +77,7 @@ composition inputs, never trusted drop-in code.
 | Privacy switches | Authorized capability and consent mutation boundary exists. |
 | XP/player progression | Versioned `xp_events` and anti-gaming rules exist. |
 | Community/chat | Persistence, moderation and permission model approved. |
-| Historical charts | Two complete comparable periods in a frozen model. |
+| Comparative trend charts | Two complete comparable periods in a frozen model. Append-only event history is permitted when each point retains its source. |
 
 ## Prohibited dependencies
 

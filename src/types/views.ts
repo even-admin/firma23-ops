@@ -64,6 +64,62 @@ export interface NextAction {
   readonly tone: 'attention' | 'neutral';
 }
 
+export type HomePerformanceMetricKey =
+  | 'approved'
+  | 'paid'
+  | 'approved_unpaid'
+  | 'projected'
+  | 'closed';
+
+export type HomePerformancePointState = 'verified' | 'correction' | 'recovery';
+
+interface HomePerformancePointBase {
+  readonly id: string;
+  readonly occurredAt: string;
+  readonly sourceLabel: string;
+  readonly state: HomePerformancePointState;
+}
+
+export interface HomeMoneyPerformancePoint extends HomePerformancePointBase {
+  readonly value: Money;
+  readonly delta: Money;
+}
+
+export interface HomeCountPerformancePoint extends HomePerformancePointBase {
+  readonly value: number;
+  readonly delta: number;
+}
+
+export interface HomeMoneyPerformanceSeries {
+  readonly kind: 'money';
+  readonly key: Exclude<HomePerformanceMetricKey, 'closed'>;
+  readonly current: Money;
+  /**
+   * `unavailable` means the current value is authoritative but no dated event
+   * history exists. The UI must not turn that value into a fabricated line.
+   */
+  readonly historyAvailability: 'available' | 'unavailable';
+  readonly points: readonly HomeMoneyPerformancePoint[];
+}
+
+export interface HomeCountPerformanceSeries {
+  readonly kind: 'count';
+  readonly key: 'closed';
+  readonly current: number;
+  readonly historyAvailability: 'available';
+  readonly points: readonly HomeCountPerformancePoint[];
+}
+
+export type HomePerformanceSeries =
+  | HomeMoneyPerformanceSeries
+  | HomeCountPerformanceSeries;
+
+export interface HomePerformanceHistory {
+  /** Repository snapshot boundary used by deterministic period filters. */
+  readonly asOf: string;
+  readonly series: readonly HomePerformanceSeries[];
+}
+
 export interface PersonalHome {
   readonly member: {
     readonly id: string;
@@ -72,6 +128,7 @@ export interface PersonalHome {
     readonly role: MemberRole;
   };
   readonly money: MemberMoney;
+  readonly performance: HomePerformanceHistory;
   readonly activeWorkCount: number;
   readonly assignments: readonly HomeAssignment[];
   readonly nextActions: readonly NextAction[];

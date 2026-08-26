@@ -327,6 +327,19 @@ describe('financial aggregate shapes', () => {
     expect(home.money.paid.amount).toBe(179_454);
     expect(home.money.approvedUnpaid.amount).toBe(0);
     expect(home.money.recovery.amount).toBe(179_454);
+    expect(home.performance.series.find((series) => series.key === 'approved')?.points.at(-1)).toMatchObject({
+      value: money(0),
+      state: 'correction',
+    });
+    expect(
+      home.performance.series.find((series) => series.key === 'approved_unpaid')?.points.at(-1),
+    ).toMatchObject({
+      value: money(0),
+      state: 'recovery',
+    });
+    expect(home.performance.series.find((series) => series.key === 'paid')?.points.at(-1)).toMatchObject({
+      value: money(179_454),
+    });
     expect(reversedRow?.rail.kind).toBe('correction_required');
     expect(
       home.assignments.find((assignment) => assignment.opportunityId === SETTLED_OPPORTUNITY_ID)
@@ -376,6 +389,9 @@ describe('financial aggregate shapes', () => {
     expect(afterFinance.totals.owed.amount).toBe(269_181);
     expect(home.money.approvedUnpaid.amount).toBe(0);
     expect(home.money.recovery.amount).toBe(0);
+    expect(
+      home.performance.series.find((series) => series.key === 'approved_unpaid')?.points.at(-1),
+    ).toMatchObject({ value: money(0) });
     expect(
       rows.find((row) => row.memberId === PROTOTYPE_MEMBER.viewerId)?.paidEarnings?.amount,
     ).toBe(179_454);

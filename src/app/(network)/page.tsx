@@ -1,13 +1,12 @@
 import { Suspense } from 'react';
 
-import { OperationalHeader } from '@/components/chrome/OperationalHeader';
 import { AssignmentQueue } from '@/components/dashboard/AssignmentQueue';
 import { NextActionQueue } from '@/components/dashboard/NextActionQueue';
+import { PersonalCommandStrip } from '@/components/dashboard/PersonalCommandStrip';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
-import { isFounder } from '@/lib/viewer';
 
 /*
  * Loading UI lives in a Suspense boundary inside the page, not in a segment-level
@@ -31,24 +30,14 @@ export default function HomePage() {
 async function HomeBody() {
   const viewer = await getViewer();
   const home = await syntheticHomeRepository.getPersonalHome(viewer);
-  const primaryAssignment = home.assignments.find((assignment) => assignment.active);
-  const primaryAction =
-    primaryAssignment === undefined
-      ? undefined
-      : home.nextActions.find(
-          (action) => action.key === `evidence:${primaryAssignment.opportunityId}`,
-        );
 
   return (
     <>
-      <OperationalHeader
-        memberId={home.member.id}
+      <PersonalCommandStrip
         displayName={home.member.displayName}
-        money={home.money}
         activeWorkCount={home.activeWorkCount}
-        primaryAssignment={primaryAssignment}
-        primaryAction={primaryAction}
-        canOpenOpportunity={isFounder(viewer)}
+        money={home.money}
+        performance={home.performance}
       />
 
       <div className="grid min-w-0 gap-x-10 gap-y-8 border-t border-line pt-7 xl:grid-cols-[minmax(0,0.82fr)_minmax(22rem,1.18fr)]">
