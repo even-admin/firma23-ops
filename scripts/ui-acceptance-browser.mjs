@@ -659,6 +659,16 @@ async function runInteractions(browser) {
           return childRect.left >= cellRect.left - 0.5 && childRect.right <= cellRect.right + 0.5;
         }),
       );
+      const tableCellsSeparated = [...records.querySelectorAll('tr')]
+        .filter((row) => row instanceof HTMLElement && row.offsetParent !== null)
+        .every((row) => {
+          const cells = [...row.querySelectorAll(':scope > th, :scope > td')];
+          return cells.every((cell, index) => {
+            const next = cells[index + 1];
+            if (next === undefined) return true;
+            return cell.getBoundingClientRect().right <= next.getBoundingClientRect().left + 0.5;
+          });
+        });
       return {
         rail: { left: railRect.left, right: railRect.right, width: railRect.width },
         panel: { left: panelRect.left, right: panelRect.right },
@@ -681,6 +691,7 @@ async function runInteractions(browser) {
           listVisible,
           childrenContained: recordChildrenContained,
           cellContentsContained,
+          tableCellsSeparated,
         },
       };
     });
@@ -739,6 +750,7 @@ async function runInteractions(browser) {
       !measurement.hoverGeometry.heading.unobscured ||
       !measurement.hoverGeometry.records.childrenContained ||
       !measurement.hoverGeometry.records.cellContentsContained ||
+      !measurement.hoverGeometry.records.tableCellsSeparated ||
       (measurement.width === 768 &&
         (!measurement.hoverGeometry.records.listVisible ||
           measurement.hoverGeometry.records.tableVisible)) ||

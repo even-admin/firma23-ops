@@ -35,7 +35,7 @@ async function HomeBody() {
     <>
       <OperationalHeader
         displayName={home.member.displayName}
-        initials={home.member.initials}
+        memberId={home.member.id}
         money={home.money}
         activeWorkCount={home.activeWorkCount}
         activeAssignmentCodes={home.assignments

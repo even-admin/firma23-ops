@@ -38,7 +38,9 @@ not create status, earnings, XP or rank.
 ### Signature
 
 Preserve `MeshDriftCanvas` at full character on Home only. It is the sole
-gradient and grain exception. No other component may introduce gradients,
+gradient and grain environment. `IdentityOrb` is the only other gradient
+exception: small, circular and deterministic from `memberId`, with no initials,
+photo or semantic colour. No other component may introduce gradients,
 decorative color washes, grain or generic AI artwork.
 
 ## Product truth
@@ -86,8 +88,9 @@ aggregate model; no invented score or trend is permitted.
 ### Red
 
 Evolve Operator Card into the Player identity surface using only existing
-skills, outcomes, approved/paid earnings and availability. No remote avatars,
-fake people, glass effects or telemetry competition.
+skills, outcomes, approved/paid earnings and availability. Member artwork uses
+the decorative `IdentityOrb` wherever a stable `memberId` already exists. No
+remote avatars, fake people, glass effects or telemetry competition.
 
 ### Ranking
 
@@ -140,9 +143,20 @@ semantic events, without commerce language or invented timestamps.
 
 ### Tables
 
-Use one FIRMA23 responsive record grammar, not HeroUI. Render a semantic table at
-768px and above and a structured list below 768px. Mobile is recomposed, never a
-horizontally scrolling desktop table.
+Use one FIRMA23 responsive record grammar, not HeroUI. Render a semantic table
+only when its content chamber is at least 864px wide and a structured list below
+that width. This is a container decision, not a viewport decision: a transiently
+expanded sidebar must never compress a desktop table into collisions. Mobile is
+recomposed, never a horizontally scrolling desktop table.
+
+### Spatial surfaces
+
+Object cards use one 8px outer boundary, generous internal rhythm and at most one
+structural divider between information zones. Internal facts group through space,
+alignment and quiet surface shifts instead of nested bordered cards. Compact tags
+use 4px radii and are filled or outlined only when the distinction is meaningful.
+Authority records may remain denser, but repeated equal-weight boxes are not the
+default visual grammar.
 
 ### Progress
 
@@ -166,10 +180,11 @@ must not create competing alert, toast or status systems.
 - Dialogs make background controls inert, trap focus and restore the exact opener.
 - Motion is causal, quick deceleration and never bounce or spring.
 - Reduced motion freezes causal effects without blanking their final state.
-- No gradients or shadows except `MeshDriftCanvas` and the focus ring.
+- No gradients or shadows except `MeshDriftCanvas`, `IdentityOrb`, and the focus ring.
 - No hardcoded hex outside `src/app/tokens.css`.
 - No foreign branding, monograms, horses, generic AI decoration or accent colors.
-- Cards use restrained radii and never nest inside decorative cards.
+- Cards use an 8px outer radius, 6px controls and 4px compact tags, and never nest
+  inside decorative cards.
 - Mobile recomposes workflows and preserves the primary action and money state.
 
 ## Dependency policy

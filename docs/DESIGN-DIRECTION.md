@@ -29,15 +29,21 @@ The product should feel fast, ambitious, social, precise, and private. Take insp
 - Muted amber only for items requiring attention.
 - Muted red only for destructive actions or failed states.
 
-No gradients. No decorative rainbow metrics. Use a borders-first depth system with
-quiet surface shifts.
+No gradients outside the two named signature exceptions below. No decorative
+rainbow metrics. Use a borders-first depth system with quiet surface shifts.
 
-The one approved exception is the shell's animated `MeshDriftCanvas` background
-(`src/components/visual/MeshDriftCanvas.tsx`). It is the single documented
-gradient/grain artwork in the product — no other component may add a gradient,
-colour wash, or grain texture. Its approved palette, drift speed, grain, and
-WebGL fallback stay as built; `prefers-reduced-motion: reduce` freezes it on its
-current frame rather than blanking it.
+The shell's animated `MeshDriftCanvas` background
+(`src/components/visual/MeshDriftCanvas.tsx`) remains the only gradient and grain
+environment. Its approved palette, drift speed, grain, and WebGL fallback stay
+as built; `prefers-reduced-motion: reduce` freezes it on its current frame rather
+than blanking it.
+
+`IdentityOrb` is the only additional gradient exception. It is a small circular,
+decorative member identifier with six tokenized palettes selected deterministically
+from `memberId`. It contains no initials or photo and never communicates role,
+availability, rank, earnings, money state, attention or failure. It uses CSS only,
+stays static by default, and removes its restrained hover/focus transform under
+reduced motion.
 
 ## Signature component: Revenue Rail
 

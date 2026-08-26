@@ -1,12 +1,13 @@
 import { Amount } from '@/components/money/Amount';
 import { MeshDriftCanvas } from '@/components/visual/MeshDriftCanvas';
+import { IdentityOrb } from '@/components/operator/IdentityOrb';
 import { copy } from '@/copy/es-MX';
 import type { MemberMoney } from '@/types/views';
 import { cn } from '@/lib/cn';
 
 interface OperationalHeaderProps {
   readonly displayName: string;
-  readonly initials: string;
+  readonly memberId: string;
   readonly money: MemberMoney;
   readonly activeWorkCount: number;
   readonly activeAssignmentCodes?: readonly string[];
@@ -24,7 +25,7 @@ interface OperationalHeaderProps {
  */
 export function OperationalHeader({
   displayName,
-  initials,
+  memberId,
   money,
   activeWorkCount,
   activeAssignmentCodes = [],
@@ -38,12 +39,7 @@ export function OperationalHeader({
   return (
     <header className="border-line bg-surface rounded-md border p-4 sm:p-5">
       <div className="mb-5 flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="label-micro border-line-strong text-muted flex size-11 items-center justify-center rounded-full border font-medium"
-        >
-          {initials}
-        </span>
+        <IdentityOrb memberId={memberId} size="card" />
         <div className="min-w-0">
           <p className="label-micro text-faint">{copy.home.greeting}</p>
           <h1 className="text-ink-strong truncate text-xl font-medium tracking-[-0.025em] sm:text-2xl">

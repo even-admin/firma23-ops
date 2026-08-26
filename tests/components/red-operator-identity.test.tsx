@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
+import { IdentityOrb, identityOrbVariant } from '@/components/operator/IdentityOrb';
 import { OperatorCard } from '@/components/operator/OperatorCard';
 import { copy } from '@/copy/es-MX';
 import { basisPoints, money } from '@/lib/money';
@@ -18,7 +19,13 @@ const OPERATOR: OperatorCardView = {
   nextCapability: 'Motion graphics',
   joinedAt: '2026-02-03',
   skills: [
-    { id: 's1', name: 'Cierre comercial', family: 'Comercial', level: 'strong', verification: 'verified' },
+    {
+      id: 's1',
+      name: 'Cierre comercial',
+      family: 'Comercial',
+      level: 'strong',
+      verification: 'verified',
+    },
   ],
   stats: {
     closed: 2,
@@ -36,6 +43,23 @@ const OPERATOR: OperatorCardView = {
 };
 
 describe('OperatorCard as the Player identity surface', () => {
+  it('uses a decorative deterministic orb, never initials or a remote image', () => {
+    const { container, rerender } = render(<OperatorCard operator={OPERATOR} />);
+    const first = container.querySelector('[data-identity-orb]');
+    const variant = first?.getAttribute('data-orb-variant');
+
+    expect(first).toHaveAttribute('aria-hidden', 'true');
+    expect(first).toHaveTextContent('');
+    expect(container).not.toHaveTextContent('SB');
+    expect(container.querySelector('img')).toBeNull();
+
+    rerender(<OperatorCard operator={OPERATOR} />);
+    expect(container.querySelector('[data-identity-orb]')).toHaveAttribute(
+      'data-orb-variant',
+      variant,
+    );
+  });
+
   it('shows the real handle only on the profile hero, never in the dense directory', () => {
     const list = render(<OperatorCard operator={OPERATOR} />);
     expect(screen.queryByText('@sebastian-benitez')).not.toBeInTheDocument();
@@ -62,6 +86,21 @@ describe('OperatorCard as the Player identity surface', () => {
     render(<OperatorCard operator={OPERATOR} />);
     expect(screen.queryByText(copy.money.projected)).not.toBeInTheDocument();
     expect(document.querySelectorAll('[class*="money"]')).toHaveLength(1);
+  });
+});
+
+describe('IdentityOrb palette selection', () => {
+  it('is stable and reaches the six tokenized variants', () => {
+    expect(identityOrbVariant(OPERATOR.memberId)).toBe(identityOrbVariant(OPERATOR.memberId));
+    const variants = new Set(
+      Array.from({ length: 80 }, (_, index) => identityOrbVariant(`member-${index}`)),
+    );
+    expect([...variants].sort()).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it('renders no inline palette values', () => {
+    const { container } = render(<IdentityOrb memberId={OPERATOR.memberId} />);
+    expect(container.firstElementChild).not.toHaveAttribute('style');
   });
 });
 

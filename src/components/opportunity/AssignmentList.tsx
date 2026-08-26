@@ -1,4 +1,5 @@
 import { copy } from '@/copy/es-MX';
+import { IdentityOrb } from '@/components/operator/IdentityOrb';
 import { cn } from '@/lib/cn';
 import { formatBasisPoints } from '@/lib/money';
 import type { AssignmentView, PoolWeightView } from '@/types/views';
@@ -26,14 +27,9 @@ export function AssignmentList({ assignments, pools }: AssignmentListProps) {
               {poolAssignments.map((assignment) => (
                 <li
                   key={assignment.id}
-                  className="border-line bg-surface flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border p-3"
+                  className="identity-orb-surface border-line bg-surface flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border p-3"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="border-line-strong text-muted label-micro flex size-7 items-center justify-center rounded-full border"
-                  >
-                    {assignment.initials}
-                  </span>
+                  <IdentityOrb memberId={assignment.memberId} size="compact" />
                   <span className="min-w-0 flex-1">
                     <span className="text-ink block truncate text-sm">
                       {assignment.displayName}

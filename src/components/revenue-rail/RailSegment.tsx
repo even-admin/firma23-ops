@@ -1,4 +1,5 @@
 import { Amount } from '@/components/money/Amount';
+import { IdentityOrb } from '@/components/operator/IdentityOrb';
 import { RailStateBadge } from '@/components/revenue-rail/RailStateBadge';
 import { copy } from '@/copy/es-MX';
 import type {
@@ -63,16 +64,20 @@ export function RailSegment({ segment, settled }: RailSegmentProps) {
           {participants.map((participant) => {
             const paid = isSettledLine(participant) && participant.payoutStatus === 'paid';
             return (
-              <li key={participant.key} className="flex min-w-0 items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'label-micro flex size-7 shrink-0 items-center justify-center rounded-full border font-medium',
-                    paid ? 'border-money text-money' : 'border-line-strong text-muted',
-                  )}
-                >
-                  {participant.initials}
-                </span>
+              <li
+                key={participant.key}
+                className="identity-orb-surface flex min-w-0 items-center gap-2"
+              >
+                {participant.memberId === null ? (
+                  <span
+                    aria-hidden="true"
+                    className="label-micro border-line-strong text-muted flex size-7 shrink-0 items-center justify-center rounded-full border font-medium"
+                  >
+                    {participant.initials}
+                  </span>
+                ) : (
+                  <IdentityOrb memberId={participant.memberId} size="compact" className="size-7" />
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="text-ink block truncate text-sm">{participant.displayName}</span>
                   <span className="text-faint block truncate text-xs">{participant.roleLabel}</span>

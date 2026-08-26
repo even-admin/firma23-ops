@@ -21,7 +21,7 @@ export function SkillChips({ skills, limit }: SkillChipsProps) {
           className={cn(
             'label-micro rounded-sm border px-2 py-0.5',
             skill.verification === 'verified'
-              ? 'border-line-strong text-ink'
+              ? 'bg-raised/65 text-ink border-transparent'
               : 'border-line text-faint border-dashed',
           )}
         >

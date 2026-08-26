@@ -36,7 +36,7 @@ describe('ProjectRecordTable', () => {
   it('uses a named content container instead of a viewport breakpoint', () => {
     const { container } = render(<ProjectRecordTable projects={projects} />);
     expect(container.querySelector('[data-project-records]')).toHaveClass('project-records');
-    expect(screen.getByRole('table')).toHaveClass('project-record-table');
+    expect(screen.getByRole('table').parentElement).toHaveClass('project-record-table-shell');
     expect(screen.getByRole('table').className).not.toContain('md:table');
   });
 

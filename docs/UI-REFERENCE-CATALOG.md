@@ -34,6 +34,8 @@ composition inputs, never trusted drop-in code.
 | [8-bit Game Progress](https://21st.dev/@theorcdev/components/8bit-game-progress) | Adapt later | Member level/XP after versioned `xp_events`. Use hand-authored pixel styling, not 8bitcn/CVA/tw-animate. |
 | [8-bit Stats](https://21st.dev/@theorcdev/components/8bit-advanced2) | Extract later | Player progress grammar. Never create token, spend, LOC or commit leaderboards. |
 | [Glass Profile Card](https://21st.dev/@beratberkayg/components/glassmorphism-profile-card) | Extract | Identity focal hierarchy only. Reject glass, blur, neon, photos, remote avatars and Framer Motion. |
+| [User Profile Card](https://21st.dev/@aghasisahakyan1/components/user-profile-card) | Extract | Identity focal hierarchy and abstract spherical artwork only. Reject its dark transplant, Lucide, Framer Motion and demo content. FIRMA23 uses the local CSS `IdentityOrb`. |
+| [Avatar With Name](https://21st.dev/@moumensoliman/components/avatar-with-name) | Extract | Circular identity/name relationship only. Names remain visible on full cards; compact placements may reveal existing names without remote photos or Framer Motion. |
 | [Dashboard 1](https://21st.dev/@ravikatiyar162/components/dashboard-1) | Preserve | Existing Revenue Rail and compact crew concepts are the accepted extraction. Reject hours, fake people, count-up money and springs. |
 | [Community Support](https://21st.dev/@preetsuthar17/components/community-support-block) | Defer | Community/chat is post-MVP and requires moderation, persistence and permissions. |
 | [3D Pin](https://21st.dev/@manuarora700/components/3d-pin) | Reject | Gradient and hover-only interaction conflict with the system and have no operational target. |

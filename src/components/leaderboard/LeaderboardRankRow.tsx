@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Amount } from '@/components/money/Amount';
+import { IdentityOrb } from '@/components/operator/IdentityOrb';
 import { copy } from '@/copy/es-MX';
 import { formatBasisPoints } from '@/lib/money';
 import type { LeaderboardRow } from '@/types/views';
@@ -18,19 +19,14 @@ interface LeaderboardRankRowProps {
 export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowProps) {
   return (
     <li
-      className="border-line bg-surface flex flex-col gap-3 rounded-md border p-4"
+      className="identity-orb-surface border-line bg-surface flex flex-col gap-3 rounded-lg border p-4 sm:p-5"
       data-leaderboard-member={row.slug}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="label-micro text-faint tnum w-6 shrink-0">
           {String(row.rank).padStart(2, '0')}
         </span>
-        <span
-          aria-hidden="true"
-          className="border-line-strong text-muted label-micro flex size-8 shrink-0 items-center justify-center rounded-full border"
-        >
-          {row.initials}
-        </span>
+        <IdentityOrb memberId={row.memberId} size="compact" />
         <span className="min-w-0 flex-1">
           <Link
             href={`/network/${row.slug}`}
