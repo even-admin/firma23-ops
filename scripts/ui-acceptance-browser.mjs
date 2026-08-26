@@ -350,11 +350,12 @@ async function inspectPage(page, role, routeName, routePath, width, response) {
             : [],
         homeEvidenceDisabled:
           routeName === 'home'
-            ? Boolean(
-                [...document.querySelectorAll('button')].find((button) =>
+            ? (() => {
+                const evidenceButton = [...document.querySelectorAll('button')].find((button) =>
                   button.textContent?.includes('Subir evidencia'),
-                )?.disabled,
-              )
+                );
+                return evidenceButton === undefined || evidenceButton.disabled;
+              })()
             : true,
       };
     },
@@ -1072,7 +1073,7 @@ async function runAdminAcceptance(browser) {
     await manualOpener.focus();
     const openerHandle = await manualOpener.elementHandle();
     await manualOpener.click();
-    const sponsor = ready.getByRole('textbox', { name: 'Patrocinador' });
+    const sponsor = ready.getByRole('textbox', { name: 'Cliente' });
     await sponsor.waitFor();
     const manualFocused = await sponsor.evaluate((element) => document.activeElement === element);
     let inspection = await inspectInteractiveState(ready, `admin-manual-${width}`);
