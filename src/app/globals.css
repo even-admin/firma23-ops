@@ -77,87 +77,23 @@
  * role, availability, rank, money or completion.
  */
 .identity-orb {
-  --orb-a: var(--color-orb-cobalt);
-  --orb-b: var(--color-orb-cyan);
-  --orb-c: var(--color-orb-violet);
   position: relative;
   display: inline-block;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid color-mix(in srgb, var(--orb-b) 24%, var(--color-line));
-  background:
-    radial-gradient(circle at 73% 16%, color-mix(in srgb, var(--orb-b) 72%, white) 0, transparent 31%),
-    radial-gradient(circle at 82% 76%, color-mix(in srgb, var(--orb-c) 88%, transparent) 0, transparent 46%),
-    radial-gradient(circle at 18% 84%, var(--orb-c) 0, transparent 45%),
-    radial-gradient(circle at 15% 12%, var(--color-orb-midnight) 0, transparent 55%),
-    linear-gradient(142deg, var(--orb-a), var(--orb-b));
-  background-size: 142% 142%;
-  background-position: 50% 50%;
+  contain: layout paint;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, var(--color-line));
+  background: var(--color-ink-950);
   transform: scale(1);
-  transition:
-    background-position 260ms var(--ease-firma),
-    transform 180ms var(--ease-firma);
+  transition: transform 180ms var(--ease-firma);
 }
 
-.identity-orb::before {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(circle at 31% 22%, rgb(255 255 255 / 0.52) 0, transparent 20%),
-    radial-gradient(circle at 65% 72%, transparent 34%, rgb(0 0 0 / 0.16) 78%);
-  content: '';
-}
-
-.identity-orb::after {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image:
-    repeating-radial-gradient(
-      circle at 35% 35%,
-      rgb(255 255 255 / 0.15) 0 0.35px,
-      transparent 0.5px 1.9px
-    ),
-    radial-gradient(circle at 62% 42%, transparent 34%, rgb(0 0 0 / 0.16) 100%);
-  mix-blend-mode: soft-light;
-  opacity: 0.55;
-  content: '';
-}
-
-.identity-orb--1 {
-  --orb-a: var(--color-orb-magenta);
-  --orb-b: var(--color-orb-periwinkle);
-  --orb-c: var(--color-orb-cobalt);
-}
-
-.identity-orb--2 {
-  --orb-a: var(--color-orb-teal);
-  --orb-b: var(--color-orb-ice);
-  --orb-c: var(--color-orb-violet);
-}
-
-.identity-orb--3 {
-  --orb-a: var(--color-orb-violet);
-  --orb-b: var(--color-orb-lilac);
-  --orb-c: var(--color-orb-rose);
-}
-
-.identity-orb--4 {
-  --orb-a: var(--color-orb-midnight);
-  --orb-b: var(--color-orb-cyan);
-  --orb-c: var(--color-orb-plum);
-}
-
-.identity-orb--5 {
-  --orb-a: var(--color-orb-plum);
-  --orb-b: var(--color-orb-sky);
-  --orb-c: var(--color-orb-magenta);
+.identity-orb [data-mesh-drift] {
+  transform: scale(1.12);
 }
 
 .identity-orb-surface:hover .identity-orb,
 .identity-orb-surface:focus-within .identity-orb {
-  background-position: 42% 58%;
   transform: scale(1.035);
 }
 

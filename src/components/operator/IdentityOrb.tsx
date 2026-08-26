@@ -1,3 +1,8 @@
+import { MeshDriftCanvas } from '@/components/visual/MeshDriftCanvas';
+import {
+  MESH_DRIFT_PALETTE_COUNT,
+  type MeshDriftPalette,
+} from '@/components/visual/mesh-drift-config';
 import { cn } from '@/lib/cn';
 
 interface IdentityOrbProps {
@@ -6,15 +11,6 @@ interface IdentityOrbProps {
   readonly className?: string;
 }
 
-const VARIANT_CLASSES = [
-  'identity-orb--0',
-  'identity-orb--1',
-  'identity-orb--2',
-  'identity-orb--3',
-  'identity-orb--4',
-  'identity-orb--5',
-] as const;
-
 const SIZE_CLASSES: Record<NonNullable<IdentityOrbProps['size']>, string> = {
   compact: 'size-6',
   card: 'size-9',
@@ -22,13 +18,13 @@ const SIZE_CLASSES: Record<NonNullable<IdentityOrbProps['size']>, string> = {
 };
 
 /** Stable visual variety without assigning semantic meaning to colour. */
-export function identityOrbVariant(memberId: string): number {
+export function identityOrbVariant(memberId: string): MeshDriftPalette {
   let hash = 2_166_136_261;
   for (const character of memberId) {
     hash ^= character.charCodeAt(0);
     hash = Math.imul(hash, 16_777_619);
   }
-  return (hash >>> 0) % VARIANT_CLASSES.length;
+  return ((hash >>> 0) % MESH_DRIFT_PALETTE_COUNT) as MeshDriftPalette;
 }
 
 /** Decorative member identity artwork. Names and statuses remain textual. */
@@ -42,10 +38,11 @@ export function IdentityOrb({ memberId, size = 'card', className }: IdentityOrbP
       data-orb-variant={variant}
       className={cn(
         'identity-orb shrink-0 rounded-full',
-        VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,
       )}
-    />
+    >
+      <MeshDriftCanvas palette={variant} />
+    </span>
   );
 }

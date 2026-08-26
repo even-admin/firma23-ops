@@ -38,9 +38,10 @@ not create status, earnings, XP or rank.
 
 ### Signature
 
-Preserve `MeshDriftCanvas` at full character on Home only. It is the sole moving
-gradient and grain environment. `IdentityOrb` is a small circular member marker,
-deterministic from `memberId`, with no initials, photo or semantic colour.
+Preserve `MeshDriftCanvas` at full environmental scale on Home only. Its exact
+shader pipeline also renders inside the bounded `IdentityOrb`, using five approved
+palettes selected deterministically from `memberId`. The orb has no initials,
+photo or semantic colour and never expands into an environmental wash.
 `ProjectCover` is the other bounded gradient exception: deterministic editorial
 artwork that identifies a project without encoding its status. No generic AI
 artwork, rainbow metrics or unbounded decorative wash is allowed.

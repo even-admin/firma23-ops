@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
 import { IdentityOrb, identityOrbVariant } from '@/components/operator/IdentityOrb';
 import { OperatorCard } from '@/components/operator/OperatorCard';
+import { MESH_DRIFT_PALETTES } from '@/components/visual/mesh-drift-config';
 import { copy } from '@/copy/es-MX';
 import { basisPoints, money } from '@/lib/money';
 import type { OperatorCardView } from '@/types/views';
@@ -90,17 +91,38 @@ describe('OperatorCard as the Player identity surface', () => {
 });
 
 describe('IdentityOrb palette selection', () => {
-  it('is stable and reaches the six tokenized variants', () => {
+  it('is stable and reaches the five approved mesh variants', () => {
     expect(identityOrbVariant(OPERATOR.memberId)).toBe(identityOrbVariant(OPERATOR.memberId));
     const variants = new Set(
       Array.from({ length: 80 }, (_, index) => identityOrbVariant(`member-${index}`)),
     );
-    expect([...variants].sort()).toEqual([0, 1, 2, 3, 4, 5]);
+    expect([...variants].sort()).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('renders no inline palette values', () => {
+  it('renders the matching welcome-shader canvas without inline values on the identity shell', () => {
     const { container } = render(<IdentityOrb memberId={OPERATOR.memberId} />);
-    expect(container.firstElementChild).not.toHaveAttribute('style');
+    const orb = container.firstElementChild;
+    const variant = identityOrbVariant(OPERATOR.memberId);
+
+    expect(orb).not.toHaveAttribute('style');
+    expect(orb?.querySelector('[data-mesh-drift]')).toHaveAttribute(
+      'data-mesh-palette',
+      String(variant),
+    );
+  });
+
+  it('locks the welcome field and four supplied recipes to their exact approved shades', () => {
+    const paletteBytes = MESH_DRIFT_PALETTES.map((palette) =>
+      palette.colors.slice(0, 12).map((channel) => Math.round(channel * 255)),
+    );
+
+    expect(paletteBytes).toEqual([
+      [3, 28, 38, 27, 108, 168, 90, 210, 244, 234, 249, 255],
+      [0, 18, 25, 0, 95, 115, 148, 210, 189, 233, 216, 166],
+      [16, 16, 16, 245, 245, 245, 176, 176, 176, 58, 58, 58],
+      [3, 18, 14, 14, 124, 90, 124, 229, 119, 244, 255, 199],
+      [16, 0, 43, 127, 0, 255, 51, 174, 185, 9, 32, 244],
+    ]);
   });
 });
 

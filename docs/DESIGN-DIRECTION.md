@@ -39,11 +39,12 @@ as built; `prefers-reduced-motion: reduce` freezes it on its current frame rathe
 than blanking it.
 
 `IdentityOrb` is a bounded gradient exception. It is a small circular,
-decorative member identifier with six tokenized palettes selected deterministically
+decorative member identifier with five approved palettes selected deterministically
 from `memberId`. It contains no initials or photo and never communicates role,
-availability, rank, earnings, money state, attention or failure. It uses CSS only,
-stays static by default, and removes its restrained hover/focus transform under
-reduced motion.
+availability, rank, earnings, money state, attention or failure. It uses the exact
+`MeshDriftCanvas` field, grain, blur and motion used by Home rather than a CSS
+approximation. Reduced motion freezes the rendered field without blanking it and
+removes the restrained hover/focus transform.
 
 `ProjectCover` is the third and final gradient exception. It is deterministic,
 CSS-only editorial artwork derived from project identity. It helps the studio

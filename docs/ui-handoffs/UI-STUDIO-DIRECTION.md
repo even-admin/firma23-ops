@@ -36,8 +36,10 @@ health. Finance and settlement remain neutral authority surfaces.
   outcomes remain visible; game progression waits for authoritative versioned
   `xp_events`.
 - Kept member discovery as an accessible coverflow with deterministic gradient
-  orbs and approved earnings only. Profile photos remain a later storage/model
-  feature rather than a fake local upload.
+  orbs and approved earnings only. The orbs now use the same WebGL mesh field,
+  grain and motion as Home across five approved palettes, replacing the rejected
+  CSS pseudo-texture. Profile photos remain a later storage/model feature rather
+  than a fake local upload.
 - Added deterministic project covers to the project record grammar and subtle
   inherited identity to opportunity rows. The palette is decorative and stable
   by project identifier.

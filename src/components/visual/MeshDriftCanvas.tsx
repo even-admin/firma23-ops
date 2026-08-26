@@ -2,6 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 
+import {
+  MESH_DRIFT_FIELD,
+  MESH_DRIFT_PALETTES,
+  type MeshDriftPalette,
+} from '@/components/visual/mesh-drift-config';
 import { cn } from '@/lib/cn';
 
 const VERTEX_SHADER = `
@@ -263,25 +268,9 @@ void main() {
 }
 `;
 
-const BLUE_MESH = {
-  colors: [
-    0.012, 0.11, 0.149, 0.106, 0.424, 0.659, 0.353, 0.824, 0.957, 0.918, 0.976, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ],
-  sceneSpeed: -1.37,
-  shape: [1.3, 0.56, 0.67, 0.19],
-  surface: [2.02, 1.17, 0, 1],
-  finish: [0, 0.15, 0.007, 0.1],
-  transform: [5069, 2.72, 0.15, 0],
-  space: [0.09, 0.15, 0, 0],
-  cursor: [0, 2, 0.65, 0.46],
-} as const;
-
-const TARGET_FALLBACK =
-  'radial-gradient(ellipse at 74% 16%, rgb(212 246 255), rgb(111 196 221) 24%, transparent 52%), radial-gradient(ellipse at 42% 92%, rgb(71 220 232), rgb(16 128 157) 31%, transparent 56%), radial-gradient(ellipse at 4% 12%, rgb(0 4 7) 0%, rgb(0 16 24) 38%, transparent 61%), radial-gradient(ellipse at 94% 98%, rgb(0 4 7) 0%, rgb(0 18 28) 41%, transparent 64%), linear-gradient(110deg, rgb(0 8 13), rgb(23 119 151) 44%, rgb(4 42 61) 100%)';
-
 interface MeshDriftCanvasProps {
   readonly className?: string;
+  readonly palette?: MeshDriftPalette;
 }
 
 function compileShader(gl: WebGLRenderingContext, type: number, source: string) {
@@ -296,8 +285,9 @@ function compileShader(gl: WebGLRenderingContext, type: number, source: string) 
   return shader;
 }
 
-export function MeshDriftCanvas({ className }: MeshDriftCanvasProps) {
+export function MeshDriftCanvas({ className, palette = 0 }: MeshDriftCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const meshPalette = MESH_DRIFT_PALETTES[palette] ?? MESH_DRIFT_PALETTES[0];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -353,13 +343,13 @@ export function MeshDriftCanvas({ className }: MeshDriftCanvasProps) {
       else gl.uniform4fv(location, packed);
     };
 
-    setUniform('u_colors', 3, BLUE_MESH.colors);
-    setUniform('u_shape', 4, BLUE_MESH.shape);
-    setUniform('u_surface', 4, BLUE_MESH.surface);
-    setUniform('u_finish', 4, BLUE_MESH.finish);
-    setUniform('u_transform', 4, BLUE_MESH.transform);
-    setUniform('u_space', 4, BLUE_MESH.space);
-    setUniform('u_cursor', 4, BLUE_MESH.cursor);
+    setUniform('u_colors', 3, meshPalette.colors);
+    setUniform('u_shape', 4, MESH_DRIFT_FIELD.shape);
+    setUniform('u_surface', 4, MESH_DRIFT_FIELD.surface);
+    setUniform('u_finish', 4, MESH_DRIFT_FIELD.finish);
+    setUniform('u_transform', 4, MESH_DRIFT_FIELD.transform);
+    setUniform('u_space', 4, MESH_DRIFT_FIELD.space);
+    setUniform('u_cursor', 4, MESH_DRIFT_FIELD.cursor);
 
     let frame = 0;
     const started = performance.now();
@@ -380,7 +370,7 @@ export function MeshDriftCanvas({ className }: MeshDriftCanvasProps) {
     const render = () => {
       const { width, height } = resize();
       const seconds = (performance.now() - started) / 1000;
-      gl.uniform4f(scene, width, height, seconds * BLUE_MESH.sceneSpeed, 4);
+      gl.uniform4f(scene, width, height, seconds * MESH_DRIFT_FIELD.sceneSpeed, 4);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       if (!reduceMotion && document.visibilityState === 'visible') {
         frame = window.requestAnimationFrame(render);
@@ -408,15 +398,16 @@ export function MeshDriftCanvas({ className }: MeshDriftCanvasProps) {
       gl.deleteShader(vertex);
       gl.deleteShader(fragment);
     };
-  }, []);
+  }, [meshPalette]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
       data-mesh-drift
+      data-mesh-palette={palette}
       className={cn('absolute inset-0 size-full', className)}
-      style={{ backgroundImage: TARGET_FALLBACK }}
+      style={{ backgroundImage: meshPalette.fallback }}
     />
   );
 }
