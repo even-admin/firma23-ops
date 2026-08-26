@@ -5,6 +5,7 @@
 - Branch: `ui-integrator-merge-six-lanes`.
 - Starting SHA: `9c5c05a8fdad80b1c80de68cff7289c3ab2652ef`.
 - Implementation SHA: `72bf48725499fe61ca6f87467ecbc78713a4d854`.
+- Acceptance repair SHA: `1bc6b67c841a7f79e87378badc73dd37d14ea339`.
 - Starting worktree: clean.
 - Runtime dependencies added: none.
 - Remote writes, deploys, Supabase changes, credentials, and external resources: none.
@@ -50,6 +51,21 @@ health. Finance and settlement remain neutral authority surfaces.
 - Fixed the Admin outcome-focus race with `useLayoutEffect` so visible completion
   and focus restoration cannot be observed out of order.
 
+## First exact-SHA acceptance repair
+
+The first production/synthetic acceptance run against handoff SHA `9d345b3`
+correctly rejected two presentation regressions. The repair at `1bc6b67`:
+
+- restores the visible global focus ring on the keyboard-operable member
+  coverflow; and
+- presents evidence submission as an explicitly disabled control with an
+  accessible unavailable explanation until a real write route exists, while
+  keeping founder-only opportunity navigation separate.
+
+That failed run remains immutable ignored evidence under
+`.context/qa/ui-integrator/9d345b3.../20260826T071427Z-32310/`; it is not cited
+as acceptance.
+
 ## Verification before this handoff
 
 - `npm run lint`: clean.
@@ -83,4 +99,3 @@ health. Finance and settlement remain neutral authority surfaces.
    semantics.
 3. Only after versioned event contracts exist: restrained player progression and
    compute/subscription evidence, with telemetry excluded from money and rank.
-
