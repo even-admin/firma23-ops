@@ -23,8 +23,9 @@ separate authorization gates.
 | Order | Work unit | Primary outcome | Builder | Gate before next unit |
 | --- | --- | --- | --- | --- |
 | 0 | Contract freeze | Accepted upload/extraction/persistence contracts and test fixtures | SOL + Fable | No unresolved schema, RLS, privacy or money HIGH/BLOCKER |
-| 1 | Upload truth | Real PDF/DOCX bytes reach private storage with immutable metadata | Terra/5.5 | Bytes, hash, key, limits, idempotency and failure cleanup proven locally |
-| 2 | Document text boundary | Sanitized, bounded PDF/DOCX text with page/section evidence | Terra/5.5 | Corrupt, encrypted, oversized and unsupported documents fail honestly |
+| 1A | Upload schema | Source-document states, RPCs, RLS, dedupe and cleanup policy | Terra/5.5 | Fable accepts DB harness evidence before browser work |
+| 1B | Upload truth | Real PDF/DOCX bytes reach private storage with immutable metadata | Terra/5.5 | Bytes, hash, key, limits, idempotency and failure cleanup proven |
+| 2 | Document input boundary | Native PDF input, bounded DOCX text and leased processing runs | Terra/5.5 | Corrupt, encrypted, oversized and unsupported documents fail honestly |
 | 3 | Evidence-backed draft | Provider/local extraction writes a reviewable draft, never authority | Terra/5.5 | Missing/ambiguous fields and provider-unavailable state proven |
 | 4 | Founder draft authority | Edit/discard/confirm creates canonical work and one audit trail | Terra/5.5 | Replay/idempotency and no-ledger-write invariants proven |
 | 5 | Canonical operational reads | Configured Home, Contracts, Network, Projects and Performance never fall back to synthetic data | Terra/5.5 | Founder/member/RLS positive and negative reads proven |
@@ -64,9 +65,9 @@ Admin intake components/actions, migrations `20260821090400` and
 **Stop:** produce a small tracked work packet and Fable review. Do not add a
 dependency, migration or remote configuration in WU-0.
 
-## WU-1: upload truth
+## WU-1A/1B: upload truth
 
-**Goal:** replace the filename-only intake with a real server-side upload path.
+**Goal:** replace the filename-only intake with direct, private, resumable upload.
 
 **Likely ownership:** `src/app/(network)/admin/intake-actions.ts`,
 `src/components/admin/DocumentIntakePanel.tsx`, intake repository contracts and
@@ -76,20 +77,25 @@ and focused tests. Exact ownership is frozen by WU-0.
 **Required behavior:**
 
 - accept only PDF/DOCX; validate filename, declared MIME and magic bytes;
-- enforce a 20 MB bound before storage; compute SHA-256 from actual bytes;
+- enforce a 20 MiB bound; compute SHA-256 from server-verified stored bytes;
 - use generated org-scoped object keys, never client filenames as authority;
-- make duplicate/retry semantics explicit; register metadata only after storage
-  succeeds, and remove an orphan only when it is known to be newly created;
+- make duplicate/retry semantics explicit; create only a pending metadata row
+  before upload, mark it stored only after server verification, and remove an
+  orphan only when its row is explicitly failed or duplicate;
 - represent upload/processing/error states honestly in the Admin UI;
 - do not call AI, write a ledger record or claim extraction succeeded.
 
 **Acceptance:** unit and DB tests prove bad type, spoofed MIME, bad signature,
 size limit, duplicate bytes, retry, founder/member denial and storage failure.
-The builder commits locally, then parks.
+The bytes must go browser-to-Supabase through signed TUS upload. They must not go
+through a Next.js Server Action or Vercel Function request. WU-1A lands the schema,
+RPC and DB harness first; WU-1B adds the client upload and UI only after Fable accepts
+WU-1A. Each builder commits locally, then parks.
 
-## WU-2: document text boundary
+## WU-2: document input boundary
 
-**Goal:** obtain bounded, sanitized text and locations from the stored bytes.
+**Goal:** obtain a bounded, provider-ready input and stable evidence locations
+from verified stored bytes.
 
 **Required behavior:**
 
@@ -157,21 +163,23 @@ authorized.
 
 ## First Terra prompt
 
-Use this only after WU-0 has an ACCEPT verdict:
+Use this only after WU-0 has an ACCEPT verdict. Replace `[1A or 1B]` with the
+released packet:
 
 ```text
-You are FIRMA23 WU-1 builder in the single active workspace.
+You are FIRMA23 WU-[1A or 1B] builder in the single active workspace.
 
 Read AGENTS.md, all docs/, docs/OPERATIONAL-V1-SHIP-PLAN.md,
 docs/OPERATIONAL-V1-WORK-QUEUE.md and the accepted WU-0 packet. Confirm the
 exact branch, HEAD, merge-base and clean worktree before editing.
 
-Implement WU-1 only: real private PDF/DOCX byte upload and truthful Admin
-upload state. Do not implement text parsing, AI extraction, canonical confirm,
-media, XP, finance changes or remote actions. Preserve every money invariant.
-Use FormData Server Actions and the existing Supabase/server repository
-patterns. Do not add a runtime dependency unless the accepted WU-0 packet
-explicitly allows it. Do not apply migrations remotely, push, deploy, create
+Implement only the released half of WU-1 from
+docs/work-packets/WU-0-DOCUMENT-INGESTION-CONTRACT.md. WU-1A is schema/RPC/RLS
+and DB evidence only. WU-1B is direct signed TUS upload and truthful Admin state;
+document bytes must never pass through Next/Vercel. Do not implement text parsing,
+AI extraction, canonical confirm, media, XP, finance changes or remote actions.
+Preserve every money invariant. Add only the dependency explicitly allowed by the
+accepted WU-0 packet. Do not apply migrations remotely, push, deploy, create
 credentials or use external services.
 
 Own only the files frozen in WU-0. Add focused tests and DB-harness scenarios.

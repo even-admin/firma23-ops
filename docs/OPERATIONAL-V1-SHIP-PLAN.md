@@ -59,38 +59,75 @@ the internal launch candidate; Production requires a separate explicit approval.
 
 ### WU-0 — Control reconstruction and schema freeze
 
-Owner: Opus control. Sequential, before builders.
+Owner: SOL control. Sequential, before builders.
 
 - Verify exact handoff HEAD, remote divergence, clean state and canonical project.
-- Freeze additive migrations for source processing, media metadata, canonical
-  read support and versioned XP.
-- Freeze repository/view contracts and exact acceptance fixtures.
+- Freeze the additive source-document, processing and confirmation contracts for
+  WU-1A through WU-4 plus exact acceptance fixtures.
 - Run adversarial architecture review before any remote apply.
+
+WU-5 through WU-8 each receive a separate small SOL packet before construction;
+their schemas are not being guessed inside the document-ingestion batch.
 
 Gate: zero unresolved blocker/high findings on schema, privacy, money or RLS.
 
-### WU-1 — Real document ingestion
+### WU-1A — Upload schema and authority
 
 Owner: bounded backend builder.
 
-- Replace filename-only input with a `FormData` Server Action handling real bytes.
-- Validate extension, MIME, magic bytes and 20MB bound; compute SHA-256.
-- Upload to `source-documents/<org>/<document-id>/<safe-name>`.
-- Parse PDF/DOCX; call a dedicated strict extraction tool; require evidence.
-- Persist source, run, draft, issues and provider metadata transactionally.
-- Implement retry/idempotency, unsupported/encrypted/error states and cleanup of
-  failed orphan uploads.
-- Make `confirm_contract_draft` create canonical records; no ledger writes.
+- Add source-document states, idempotency, hash dedupe, cleanup state and
+  founder/member/cross-org RLS.
+- Add prepare, finalize, fail and cleanup-result RPCs plus executable DB-harness
+  evidence.
+- Do not add packages, UI, provider calls or remote schema changes.
+
+Gate: Fable accepts state transitions, concurrency, RLS and cleanup semantics.
+
+### WU-1B — Real document upload and verification
+
+Owner: bounded upload builder after WU-1A acceptance.
+
+- Prepare a generated org/document object key through an authenticated Server
+  Action; never pass document bytes through a Vercel Function request.
+- Upload directly to private Supabase Storage with signed TUS, 6 MiB chunks and
+  visible progress.
+- Download under founder RLS to validate extension, MIME, magic bytes and the
+  20 MiB bound; compute the app-verified SHA-256 from stored bytes.
+- Persist final state and make failed/duplicate cleanup visible and retryable.
+
+Gate: real bytes, progress, retry, duplicate and failure behavior pass locally;
+Development Storage UAT remains a separately authorized remote action.
+
+### WU-2 — Document boundary and processing lease
+
+- Validate DOCX structure and convert it to bounded raw text server-side.
+- Define native PDF input without adding a PDF parser or flattening page context.
+- Add leased processing claims so a stale attempt cannot overwrite a retry.
+- Represent unsupported, encrypted, malformed and provider-unavailable states.
+
+### WU-3 — Evidence-backed draft
+
+- Send PDF as a native provider document so page/visual context survives.
+- Convert DOCX to bounded raw text server-side; never render generated HTML.
+- Call a dedicated strict extraction tool and require evidence for every value.
+- Persist run, draft, issues and provider metadata transactionally after the
+  external call through a leased attempt boundary.
+- Implement retry/idempotency and unsupported/encrypted/provider error states.
+
+### WU-4 — Founder confirmation
+
+- Make `confirm_contract_draft` append the reviewed project brief and audit event.
+- Create no cash event, allocation, settlement, payout, ranking result or XP.
 
 Gate: two supplied PDFs and two supplied DOCXs pass upload, extraction, review,
-discard, confirm and replay tests without invented fields.
+discard, confirm and replay tests without invented fields or synthetic fallback.
 
-### WU-2 — Canonical repository read cutover
+### WU-5 — Canonical operational read cutover
 
 Owner: bounded data builder after WU-0 contracts.
 
-- Complete Supabase member, opportunity, home, finance, settlement and leaderboard
-  read adapters.
+- Complete Supabase member, opportunity, home, project and performance read
+  adapters.
 - Route every configured-mode read through `active/**` selectors.
 - Empty canonical data renders honest empty states; it never falls back to demo.
 - Retain synthetic mode only for explicit local development without Supabase.
@@ -98,7 +135,18 @@ Owner: bounded data builder after WU-0 contracts.
 Gate: configured founder/member sessions show only remote canonical rows; RLS
 negative tests prove cross-member and founder-only boundaries.
 
-### WU-3 — Profile and project media
+### WU-6 — Finance read cutover
+
+Owner: bounded finance-data builder after WU-5.
+
+- Complete Supabase finance and settlement read adapters.
+- Preserve projected, approved, paid, reversed and correction-required states.
+- Keep member-visible summaries within the frozen privacy policy and all amounts
+  rendered through `Amount`.
+
+Gate: money regression, payout/reversal and cross-org denial evidence pass.
+
+### WU-7 — Profile and project media
 
 Owner: bounded media builder after WU-0 migration.
 
@@ -110,7 +158,7 @@ Owner: bounded media builder after WU-0 migration.
 Gate: owner/founder positive paths, member-negative paths, bad-file paths and
 expired signed-URL fallback pass.
 
-### WU-4 — Authoritative XP
+### WU-8 — Authoritative XP
 
 Owner: bounded game-system builder after WU-0 migration.
 
@@ -122,27 +170,16 @@ Owner: bounded game-system builder after WU-0 migration.
 
 Gate: duplicate, reversal, founder-exclusion and anti-inflation DB scenarios pass.
 
-### WU-5 — Advanced UI review and repair
+### WU-9 — Integration and launch acceptance
 
-Owner: Sonnet/Fable visual critic, then a bounded UI builder.
+Owner: SOL control only.
 
-- Review exact Home/Network visual output against approved direction.
-- Repair only evidence-backed hierarchy, responsive and interaction defects.
-- Do not change data contracts, financial semantics or introduce dependencies.
-- Preserve focus-reveal Network behavior unless Luis explicitly requests a flip.
-
-Gate: independent review records ACCEPT with exact screenshots and no false-green
-responsive cells.
-
-### WU-6 — Integration and launch acceptance
-
-Owner: Opus control only.
-
-- Integrate builders in dependency order: WU-1, WU-2, WU-3, WU-4, WU-5.
+- Integrate builders in dependency order: WU-1A through WU-8.
 - Run lint, typecheck, unit tests, DB harness and production build.
 - Run exact 375/767/768/1280 browser matrix in synthetic and configured modes.
 - Run real invited founder/member Auth, real document UAT and media UAT.
-- Obtain adversarial code/security/design reviews and repair until ACCEPT.
+- Obtain adversarial code/security/design reviews and repair until ACCEPT. Any
+  remaining visual repair is evidence-driven and bounded to the final candidate.
 - Push/Preview only with explicit authorization. Production remains blocked.
 
 ## Evidence ledger
