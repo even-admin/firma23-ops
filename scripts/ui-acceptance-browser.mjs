@@ -62,13 +62,18 @@ function monitorPage(page, scope, allowResponse = () => false) {
     events.push({ type: 'pageerror', scope, message: error.message, stack: error.stack });
   };
   const onRequestFailed = (request) => {
+    const failure = request.failure();
+    // Chromium may cancel a duplicate dev-font fetch when the matrix advances
+    // to the next document. HTTP failures still reach onResponse and any other
+    // aborted resource remains a gate failure.
+    if (request.resourceType() === 'font' && failure?.errorText === 'net::ERR_ABORTED') return;
     events.push({
       type: 'requestfailed',
       scope,
       url: request.url(),
       method: request.method(),
       resourceType: request.resourceType(),
-      failure: request.failure(),
+      failure,
     });
   };
   const onResponse = (response) => {
