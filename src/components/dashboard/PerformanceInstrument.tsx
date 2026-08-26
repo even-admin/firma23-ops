@@ -243,6 +243,7 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const titleId = useId();
   const definitionId = useId();
+  const chartId = useId().replace(/:/g, '');
   const series = performance.series.find((entry) => entry.key === metricKey) ?? performance.series[0];
   const geometry = useMemo(
     () => chartGeometry(series?.points ?? [], performance.asOf, period),
@@ -256,18 +257,47 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
   const projection = series.key === 'projected';
   const confirmedMoney = series.kind === 'money' && (series.key === 'approved' || series.key === 'paid' || series.key === 'approved_unpaid');
   const unavailable = series.historyAvailability === 'unavailable';
+  const canUseEventBars = geometry.visiblePoints.length >= 2;
+  const effectiveChartMode = chartMode === 'events' && !canUseEventBars ? 'balance' : chartMode;
+  const chartTone = confirmedMoney ? 'var(--color-money)' : 'var(--color-ink-strong)';
 
   return (
     <section
-      className="studio-focus border-line/70 bg-raised/20 flex min-w-0 flex-col overflow-hidden border"
+      className="border-line/60 bg-surface relative flex min-w-0 flex-col overflow-hidden rounded-[28px] border"
       aria-labelledby={titleId}
       aria-describedby={definitionId}
       data-performance-instrument
       data-mobile-nav-clearance
       data-selected-metric={series.key}
-      data-chart-mode={chartMode}
+      data-chart-mode={effectiveChartMode}
       data-projected-metric={projection ? '' : undefined}
     >
+      {!unavailable && geometry.hasPeriodEvents ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden md:block"
+          style={{
+            width: '62%',
+            background: `linear-gradient(to left, color-mix(in srgb, ${chartTone} 11%, transparent), transparent 75%)`,
+          }}
+          aria-hidden="true"
+        >
+          <svg
+            className={confirmedMoney ? 'size-full text-money/15' : 'size-full text-ink/10'}
+            style={{
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 55%)',
+              maskImage: 'linear-gradient(to right, transparent, black 55%)',
+            }}
+          >
+            <defs>
+              <pattern id={`dots-${chartId}`} width="14" height="14" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" fill="currentColor" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#dots-${chartId})`} />
+          </svg>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-6">
           <label className="relative min-w-0">
             <span className="sr-only">{copy.home.commandStrip.metricLabel}</span>
@@ -278,7 +308,7 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
                 setMetricKey(event.target.value as HomePerformanceMetricKey);
                 setActivePointId(null);
               }}
-              className="glass-action-button text-ink-strong min-h-11 max-w-full appearance-none rounded-full border py-2 pr-10 pl-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="text-ink-strong min-h-11 max-w-full appearance-none border-0 bg-transparent py-2 pr-8 pl-0 text-[17px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {METRIC_ORDER.map((key) => (
                 <option key={key} value={key}>{metricCopy(key).label}</option>
@@ -288,17 +318,18 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
           </label>
 
           <div className="flex items-center gap-2">
-            <div className="glass-action-button flex overflow-hidden rounded-full border p-0.5" role="group" aria-label={copy.home.commandStrip.chartModeLabel}>
+            <div className="border-line/70 bg-surface flex rounded-lg border p-0.5" role="group" aria-label={copy.home.commandStrip.chartModeLabel}>
               {(['balance', 'events'] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   aria-label={mode === 'balance' ? copy.home.commandStrip.balanceMode : copy.home.commandStrip.eventsMode}
-                  aria-pressed={chartMode === mode}
+                  aria-pressed={effectiveChartMode === mode}
+                  disabled={mode === 'events' && !canUseEventBars}
                   onClick={() => setChartMode(mode)}
-                  className={`ease-firma flex size-10 items-center justify-center rounded-full transition-colors duration-150 ${chartMode === mode ? 'bg-surface/85 text-ink-strong' : 'text-faint hover:text-ink'}`}
+                  className={`ease-firma relative flex size-11 items-center justify-center rounded-md transition-colors duration-150 before:absolute before:inset-2 before:rounded-md ${effectiveChartMode === mode ? 'text-ink-strong before:bg-raised/80' : 'text-faint hover:text-ink disabled:cursor-not-allowed disabled:opacity-35'}`}
                 >
-                  <ChartModeIcon mode={mode} />
+                  <span className="relative z-10"><ChartModeIcon mode={mode} /></span>
                 </button>
               ))}
             </div>
@@ -312,7 +343,7 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
                   setPeriod(event.target.value as PeriodKey);
                   setActivePointId(null);
                 }}
-                className="glass-action-button text-ink min-h-11 appearance-none rounded-full border py-2 pr-9 pl-4 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="text-muted min-h-11 appearance-none border-0 bg-transparent py-2 pr-7 pl-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 {PERIOD_ORDER.map((key) => (
                   <option key={key} value={key}>{periodLabel(key)}</option>
@@ -335,7 +366,7 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
           <p id={definitionId} className="text-faint mt-6 max-w-56 text-xs leading-5">{labels.definition}</p>
         </div>
 
-        <div className="relative min-h-64 overflow-hidden md:mr-5 md:min-h-72">
+        <div className="relative min-h-64 overflow-hidden md:min-h-72">
 
         {unavailable ? (
           <div className="bg-raised/25 relative flex h-full items-center justify-center rounded-tl-[var(--radius-object)] px-6 text-center">
@@ -350,21 +381,32 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
               role="img"
               aria-label={`${copy.home.commandStrip.chartLabel}: ${labels.label}`}
             >
-              {chartMode === 'balance' ? (
+              <defs>
+                <linearGradient id={`area-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="currentColor" stopOpacity="0.28" />
+                  <stop offset="55%" stopColor="currentColor" stopOpacity="0.07" />
+                  <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id={`bar-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="currentColor" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="currentColor" stopOpacity="0.32" />
+                </linearGradient>
+              </defs>
+              {effectiveChartMode === 'balance' ? (
                 <>
-                  <path key={`area:${series.key}:${period}`} className="instrument-area" d={geometry.areaPath} fill="currentColor" opacity="0.06" />
+                  <path key={`area:${series.key}:${period}`} className="instrument-area" d={geometry.areaPath} fill={`url(#area-${chartId})`} />
                   <path key={`line:${series.key}:${period}`} className="instrument-line" d={geometry.path} pathLength="1" fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                 </>
               ) : (
                 geometry.points.map(({ point, x, barTop, barHeight }) => (
                   <rect
                     key={`bar:${point.id}`}
-                    x={Math.max(0, x - Math.min(3.5, 36 / Math.max(1, geometry.points.length)))}
+                    x={Math.max(0, x - Math.min(2.25, 22 / Math.max(1, geometry.points.length)))}
                     y={barTop}
-                    width={Math.min(7, 72 / Math.max(1, geometry.points.length))}
+                    width={Math.min(4.5, 44 / Math.max(1, geometry.points.length))}
                     height={barHeight}
-                    rx="1"
-                    fill="currentColor"
+                    rx="1.4"
+                    fill={`url(#bar-${chartId})`}
                     opacity={pointDelta(point) < 0 ? 0.45 : 0.9}
                   />
                 ))
@@ -376,7 +418,7 @@ export function PerformanceInstrument({ performance, recovery }: PerformanceInst
                 key={point.id}
                 type="button"
                 className="group absolute z-10 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full"
-                style={{ left: `${x}%`, top: `${chartMode === 'balance' ? y : barTop}%` }}
+                style={{ left: `${x}%`, top: `${effectiveChartMode === 'balance' ? y : barTop}%` }}
                 onMouseEnter={() => setActivePointId(point.id)}
                 onFocus={() => setActivePointId(point.id)}
                 aria-label={`${formatDate(point.occurredAt)}, ${pointValueLabel(point)}, ${point.sourceLabel}`}

@@ -164,6 +164,21 @@ describe('PerformanceInstrument', () => {
     expect(container.querySelector('[data-chart-mode="events"] rect')).not.toBeNull();
   });
 
+  it('does not present a single source event as a complete bar chart', () => {
+    const singleEventHistory: HomePerformanceHistory = {
+      ...PERFORMANCE,
+      series: PERFORMANCE.series.map((series) =>
+        series.key === 'approved' ? { ...series, points: series.points.slice(0, 1) } : series,
+      ),
+    };
+    const { container } = render(
+      <PerformanceInstrument performance={singleEventHistory} recovery={money(0)} />,
+    );
+
+    expect(screen.getByRole('button', { name: copy.home.commandStrip.eventsMode })).toBeDisabled();
+    expect(container.querySelector('rect[fill^="url(#bar-"]')).toBeNull();
+  });
+
   it('keeps recovery visible as a distinct attention state', () => {
     render(<PerformanceInstrument performance={PERFORMANCE} recovery={money(25_000)} />);
     expect(screen.getByText(copy.home.commandStrip.recovery)).toBeInTheDocument();

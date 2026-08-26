@@ -195,7 +195,9 @@ must not create competing alert, toast or status systems.
 - Motion is causal, quick deceleration and never bounce or spring.
 - Reduced motion freezes causal effects without blanking their final state.
 - No gradients or shadows except `MeshDriftCanvas`, `IdentityOrb`, `ProjectCover`,
-  and the focus ring.
+  the tokenized chart tint and SVG area fill inside `PerformanceInstrument`, and
+  the focus ring. The chart exception is data-bound and may not imply unavailable
+  history, projection confidence or financial status that the source does not prove.
 - No hardcoded hex outside `src/app/tokens.css`.
 - No foreign branding, monograms, horses, generic AI decoration or accent colors.
 - Radius communicates hierarchy: 20px focused studio objects, 16px member/project

@@ -22,6 +22,11 @@ field and one truthful performance instrument. Keep `Siguientes pasos` and
   with the Progress Metric Card's line/event switch, floating readout and quiet
   summary footer. It rejects market language, demo data, fake percentages,
   Recharts and shadcn dependencies.
+- Its visual adaptation follows the reference mechanics directly: 28px object
+  radius, hairline edge, a 62% chart field, tokenized directional tint, masked
+  14px dot grid, 2px curve and bars capped to the reference's narrow proportion.
+  Event-bar mode is disabled when fewer than two real source events exist, so a
+  sparse ledger never becomes one misleading oversized slab.
 - `Ganado confirmado`, `Cobrado`, `Por cobrar` and `Cierres` replay dated,
   append-only source events. The balance curve connects only exact event balances;
   it does not create intermediate observations. Event mode exposes the signed
@@ -40,8 +45,9 @@ field and one truthful performance instrument. Keep `Siguientes pasos` and
 - Focusing or hovering an event exposes date, exact value and source label in a
   compact polite readout on the plot.
 - The desktop composition is approximately 35/65; below the desktop chamber it
-  stacks identity first. Metric and period selection use compact glass capsules;
-  there is no boxed tab footer.
+  stacks identity first. Metric and period selection use neutral, unboxed controls;
+  the view switch keeps a 28px visual target inside its 44px hit area, and there is
+  no boxed tab footer.
 - The line and area reveal once when the selected series changes. Reduced motion
   removes that reveal, while `MeshDriftCanvas` retains its existing frozen-frame
   behavior.
@@ -69,7 +75,7 @@ At the local delivery checkpoint:
   unit suite contains 400 passing tests.
 - `bash scripts/db-verify.sh` passes all 153 database scenarios from zero on a
   disposable PostgreSQL 17 instance.
-- Safari rendered the final glass-control line view and the event-bar switch from
+- Safari rendered the final neutral-control line view and the event-bar switch from
   `http://127.0.0.1:55131/` without horizontal overflow at its live desktop size.
   The advisory capture is ignored under
   `.context/dashboard-command-strip/home-safari-final.png`.

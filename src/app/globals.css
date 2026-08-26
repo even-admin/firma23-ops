@@ -220,7 +220,7 @@
 }
 
 .instrument-area {
-  animation: instrument-area-reveal 420ms var(--ease-firma) both;
+  animation: instrument-area-reveal 520ms var(--ease-firma) both;
 }
 
 /* Perspective is decorative; the active member remains the only interactive card. */
