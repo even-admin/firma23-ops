@@ -25,26 +25,30 @@ export function NextActionQueue({ actions }: NextActionQueueProps) {
   });
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ol className="relative flex flex-col before:absolute before:top-5 before:bottom-5 before:left-[1.1875rem] before:w-px before:bg-line">
       {ordered.map((action, index) => (
         <li
           key={action.key}
-          className="border-line bg-surface flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border p-4"
+          className="group relative grid min-h-16 grid-cols-[2.375rem_minmax(0,1fr)] items-center gap-3 py-2"
         >
-          <span className="label-micro text-faint tnum w-6 shrink-0">
+          <span className="border-line bg-surface label-micro text-faint tnum relative z-10 flex size-9 items-center justify-center rounded-full border">
             {String(index + 1).padStart(2, '0')}
           </span>
-          <span
-            aria-hidden="true"
-            className={cn(
-              'size-1.5 shrink-0 rounded-full',
-              action.tone === 'attention' ? 'bg-attention' : 'bg-steel-500',
-            )}
-          />
-          <span className="text-ink text-sm font-medium">{action.label}</span>
-          <span className="text-faint truncate text-xs">{action.detail}</span>
+          <span className="border-line bg-bg group-hover:border-line-strong min-w-0 rounded-lg border px-4 py-3 transition-colors duration-150">
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'size-1.5 shrink-0 rounded-full',
+                  action.tone === 'attention' ? 'bg-attention' : 'bg-steel-500',
+                )}
+              />
+              <span className="text-ink text-sm font-medium">{action.label}</span>
+            </span>
+            <span className="text-faint mt-1 block truncate text-xs">{action.detail}</span>
+          </span>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }

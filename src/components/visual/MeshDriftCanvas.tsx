@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { cn } from '@/lib/cn';
 
@@ -268,31 +268,17 @@ const BLUE_MESH = {
     0.012, 0.11, 0.149, 0.106, 0.424, 0.659, 0.353, 0.824, 0.957, 0.918, 0.976, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ],
-  sceneSpeed: -3.25,
+  sceneSpeed: -1.37,
   shape: [1.3, 0.56, 0.67, 0.19],
   surface: [2.02, 1.17, 0, 1],
   finish: [0, 0.15, 0.007, 0.1],
-  transform: [5069, 2.72, 0.34, 0],
+  transform: [5069, 2.72, 0.15, 0],
   space: [0.09, 0.15, 0, 0],
   cursor: [0, 2, 0.65, 0.46],
 } as const;
 
 const TARGET_FALLBACK =
   'radial-gradient(ellipse at 74% 16%, rgb(212 246 255), rgb(111 196 221) 24%, transparent 52%), radial-gradient(ellipse at 42% 92%, rgb(71 220 232), rgb(16 128 157) 31%, transparent 56%), radial-gradient(ellipse at 4% 12%, rgb(0 4 7) 0%, rgb(0 16 24) 38%, transparent 61%), radial-gradient(ellipse at 94% 98%, rgb(0 4 7) 0%, rgb(0 18 28) 41%, transparent 64%), linear-gradient(110deg, rgb(0 8 13), rgb(23 119 151) 44%, rgb(4 42 61) 100%)';
-
-const PLATE_STYLE = {
-  backgroundImage:
-    'radial-gradient(ellipse at 76% 15%, rgb(233 252 255 / 0.82), rgb(128 213 235 / 0.44) 31%, transparent 58%), radial-gradient(ellipse at 42% 91%, rgb(83 231 241 / 0.74), rgb(21 148 178 / 0.34) 34%, transparent 61%), radial-gradient(ellipse at 2% 11%, rgb(0 2 4 / 0.92), transparent 54%), radial-gradient(ellipse at 97% 97%, rgb(0 3 6 / 0.86), transparent 58%)',
-  animation: 'firma-mesh-plate 7s var(--ease-firma) infinite alternate',
-} satisfies CSSProperties;
-
-const GRAIN_STYLE = {
-  backgroundImage:
-    'radial-gradient(circle, rgb(255 255 255 / 0.42) 0 0.55px, transparent 0.7px), radial-gradient(circle, rgb(0 0 0 / 0.44) 0 0.5px, transparent 0.75px)',
-  backgroundPosition: '0 0, 1px 1px',
-  backgroundSize: '3px 3px, 4px 4px',
-  animation: 'firma-grain-shift 850ms steps(3, end) infinite',
-} satisfies CSSProperties;
 
 interface MeshDriftCanvasProps {
   readonly className?: string;
@@ -425,23 +411,12 @@ export function MeshDriftCanvas({ className }: MeshDriftCanvasProps) {
   }, []);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        className={cn('absolute inset-0 size-full', className)}
-        style={{ backgroundImage: TARGET_FALLBACK }}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-[8%] opacity-85 mix-blend-soft-light"
-        style={PLATE_STYLE}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-[12%] opacity-65 mix-blend-overlay"
-        style={GRAIN_STYLE}
-      />
-    </>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      data-mesh-drift
+      className={cn('absolute inset-0 size-full', className)}
+      style={{ backgroundImage: TARGET_FALLBACK }}
+    />
   );
 }

@@ -70,6 +70,7 @@ export interface PersonalHome {
     readonly displayName: string;
     readonly initials: string;
     readonly role: MemberRole;
+    readonly progression: ProgressionView;
   };
   readonly money: MemberMoney;
   readonly activeWorkCount: number;
@@ -245,6 +246,15 @@ export interface MemberStats {
   readonly acceptanceRateBp: BasisPoints | null;
 }
 
+export interface ProgressionView {
+  readonly rulesetVersion: number;
+  readonly level: number;
+  readonly xp: number;
+  readonly currentLevelXp: number;
+  readonly nextLevelXp: number | null;
+  readonly progressBp: BasisPoints;
+}
+
 export interface OperatorCardView {
   readonly memberId: string;
   readonly slug: string;
@@ -257,6 +267,8 @@ export interface OperatorCardView {
   readonly joinedAt: string;
   readonly skills: readonly SkillView[];
   readonly stats: MemberStats;
+  /** Versioned projection over verified outcome events; never money or ranking. */
+  readonly progression: ProgressionView;
   /** Approved earnings only. Projections never appear on a profile total. */
   readonly approvedEarnings: Money;
   readonly paidEarnings: Money;

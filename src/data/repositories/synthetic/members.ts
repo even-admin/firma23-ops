@@ -10,6 +10,7 @@ import {
   statsFor,
 } from '@/data/repositories/synthetic/shared';
 import { DataError } from '@/lib/result';
+import { deriveProgression } from '@/lib/progression';
 import type { Member } from '@/types/domain';
 import type {
   HomeAssignment,
@@ -53,6 +54,7 @@ function toCard(dataset: SyntheticDataset, member: Member): OperatorCardView {
   if (profile === undefined) {
     throw new DataError(`Member ${member.id} has no profile record`);
   }
+  const stats = statsFor(dataset, member.id);
   return {
     memberId: member.id,
     slug: member.slug,
@@ -64,7 +66,8 @@ function toCard(dataset: SyntheticDataset, member: Member): OperatorCardView {
     nextCapability: profile.nextCapability,
     joinedAt: profile.joinedAt,
     skills: skillsFor(dataset, member.id),
-    stats: statsFor(dataset, member.id),
+    stats,
+    progression: deriveProgression(stats),
     // Approved only. A profile never advertises a projection as earnings.
     approvedEarnings: approvedEarnings(dataset, member.id),
     paidEarnings: paidEarnings(dataset, member.id),

@@ -48,29 +48,38 @@ export function FilterChips({
   basePath,
 }: FilterChipsProps) {
   return (
-    <fieldset className="flex flex-wrap items-center gap-2">
-      <legend className="label-micro text-faint float-left mr-2 py-1">{legend}</legend>
-      {options.map((option) => {
-        const selected = option.value === active;
-        return (
-          <Link
-            key={option.value ?? '__all__'}
-            href={hrefFor(basePath, current, param, option.value)}
-            aria-current={selected ? 'true' : undefined}
-            className={cn(
-              'label-micro ease-firma flex min-h-11 items-center gap-1.5 rounded-sm border px-2.5 transition-colors duration-150',
-              selected
-                ? 'border-ink-950 bg-ink-950 text-paper-000'
-                : 'border-line bg-surface text-muted hover:border-line-strong hover:text-ink',
-            )}
-          >
-            {option.label}
-            {option.count === undefined ? null : (
-              <span className="text-faint tnum">{option.count}</span>
-            )}
-          </Link>
-        );
-      })}
+    <fieldset className="min-w-0">
+      <legend className="label-micro text-faint mb-2">{legend}</legend>
+      <div className="border-line bg-raised/55 no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border p-1">
+        {options.map((option) => {
+          const selected = option.value === active;
+          return (
+            <Link
+              key={option.value ?? '__all__'}
+              href={hrefFor(basePath, current, param, option.value)}
+              aria-current={selected ? 'true' : undefined}
+              className={cn(
+                'ease-firma text-muted flex min-h-11 shrink-0 items-center gap-2 rounded-md border px-3 text-xs transition-[background-color,border-color,color] duration-150',
+                selected
+                  ? 'border-line-strong bg-paper-000 text-ink-strong'
+                  : 'border-transparent hover:border-line hover:bg-paper-000/70 hover:text-ink',
+              )}
+            >
+              {option.label}
+              {option.count === undefined ? null : (
+                <span
+                  className={cn(
+                    'tnum flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px]',
+                    selected ? 'bg-raised text-ink' : 'text-faint',
+                  )}
+                >
+                  {option.count}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
     </fieldset>
   );
 }

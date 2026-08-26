@@ -16,9 +16,9 @@ const VARIANT_CLASSES = [
 ] as const;
 
 const SIZE_CLASSES: Record<NonNullable<IdentityOrbProps['size']>, string> = {
-  compact: 'size-8',
-  card: 'size-12',
-  hero: 'size-18 sm:size-20',
+  compact: 'size-6',
+  card: 'size-9',
+  hero: 'size-13 sm:size-14',
 };
 
 /** Stable visual variety without assigning semantic meaning to colour. */

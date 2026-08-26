@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { ChromeIcon, NavIcon } from '@/components/chrome/NavIcon';
+import { IdentityOrb } from '@/components/operator/IdentityOrb';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
 import { containsActive, isActive, type NavGroup, type NavLeaf } from '@/lib/nav';
@@ -192,6 +193,7 @@ function SidebarItem({ item, role, pathname, level = 0 }: SidebarItemProps) {
 
 interface OrgSwitcherProps {
   readonly role: ViewerRole;
+  readonly memberId: string;
   readonly viewerSwitcher: ReactNode;
 }
 
@@ -202,7 +204,7 @@ interface OrgSwitcherProps {
  * repositories are asked about, so the panel says so rather than implying an
  * account boundary that does not exist yet.
  */
-function OrgSwitcher({ role, viewerSwitcher }: OrgSwitcherProps) {
+function OrgSwitcher({ role, memberId, viewerSwitcher }: OrgSwitcherProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -225,12 +227,7 @@ function OrgSwitcher({ role, viewerSwitcher }: OrgSwitcherProps) {
       >
         <span className="flex min-w-0 items-center">
           <GlyphSlot>
-            <span
-              aria-hidden="true"
-              className="bg-ink-950 text-paper-000 flex size-9 shrink-0 items-center justify-center rounded-[6px] text-[13px] font-semibold tracking-[-0.055em]"
-            >
-              F23
-            </span>
+            <IdentityOrb memberId={memberId} size="card" />
           </GlyphSlot>
           <span className={cn('ml-3 flex min-w-0 translate-x-1 flex-col items-start', REVEAL)}>
             <span className="text-rail-ink mb-1 truncate text-[13px] leading-none font-medium">
@@ -269,17 +266,18 @@ function OrgSwitcher({ role, viewerSwitcher }: OrgSwitcherProps) {
 
 interface SidebarProps {
   readonly role: ViewerRole;
+  readonly memberId: string;
   readonly groups: readonly NavGroup[];
   readonly viewerSwitcher: ReactNode;
   readonly onOpenSearch: () => void;
 }
 
-export function Sidebar({ role, groups, viewerSwitcher, onOpenSearch }: SidebarProps) {
+export function Sidebar({ role, memberId, groups, viewerSwitcher, onOpenSearch }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <div className="on-rail border-rail-line bg-rail ease-firma mx-3 flex h-full flex-col overflow-hidden rounded-lg border p-2">
-      <OrgSwitcher role={role} viewerSwitcher={viewerSwitcher} />
+      <OrgSwitcher role={role} memberId={memberId} viewerSwitcher={viewerSwitcher} />
 
       <nav
         id="firma23-sidebar-nav"
@@ -342,12 +340,7 @@ export function Sidebar({ role, groups, viewerSwitcher, onOpenSearch }: SidebarP
       <div className="border-rail-line mt-auto flex flex-col gap-0.5 border-t pt-4">
         <div className="flex min-h-11 items-center px-0 py-[7px]">
           <GlyphSlot>
-            <span
-              aria-hidden="true"
-              className="border-rail-line-strong text-rail-ink flex size-8 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold uppercase"
-            >
-              {role === 'founder' ? 'F' : 'O'}
-            </span>
+            <IdentityOrb memberId={memberId} size="compact" className="size-8" />
           </GlyphSlot>
           <span className={cn('ml-3 flex min-w-0 translate-x-1 flex-col', REVEAL)}>
             <span className="label-micro text-rail-faint">{copy.nav.session}</span>

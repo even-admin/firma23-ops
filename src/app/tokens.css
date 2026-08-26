@@ -1,10 +1,11 @@
 /**
  * FIRMA23 Ops design tokens.
  *
- * Borders-first depth. No gradients beyond MeshDrift and IdentityOrb, no shadows
- * other than the focus ring, and no decorative colour outside those named
- * artworks. Ledger green appears only on confirmed money and primary completion;
- * amber only on items needing attention; red only on destructive or failed states.
+ * Borders-first depth. MeshDrift and IdentityOrb own decorative gradients; glass
+ * controls may borrow their palette through translucent token mixes. No shadows
+ * other than the focus ring. Ledger green appears only on confirmed money and
+ * primary completion; amber only on items needing attention; red only on
+ * destructive or failed states.
  *
  * Tailwind v4 keeps the theme in CSS rather than tailwind.config.
  */

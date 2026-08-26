@@ -68,6 +68,7 @@ function getServerSidebarMode(): SidebarMode {
 
 interface ChromeShellProps {
   readonly role: ViewerRole;
+  readonly memberId: string;
   readonly groups: readonly NavGroup[];
   readonly viewerSwitcher: ReactNode;
   readonly children: ReactNode;
@@ -78,7 +79,7 @@ interface ChromeShellProps {
  * mode, and whether the command palette is open. Everything below is either
  * presentational or reads the pathname for itself.
  */
-export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeShellProps) {
+export function ChromeShell({ role, memberId, groups, viewerSwitcher, children }: ChromeShellProps) {
   const pathname = usePathname();
   const sidebarMode = useSyncExternalStore(
     subscribeSidebarMode,
@@ -174,6 +175,7 @@ export function ChromeShell({ role, groups, viewerSwitcher, children }: ChromeSh
         >
           <Sidebar
             role={role}
+            memberId={memberId}
             groups={groups}
             viewerSwitcher={viewerSwitcher}
             onOpenSearch={openSearch}

@@ -35,26 +35,37 @@ async function HomeBody() {
     <>
       <OperationalHeader
         displayName={home.member.displayName}
-        memberId={home.member.id}
         money={home.money}
+        progression={home.member.progression}
         activeWorkCount={home.activeWorkCount}
         activeAssignmentCodes={home.assignments
           .filter((assignment) => assignment.active)
           .map((assignment) => assignment.code)}
-        primaryActionLabel={copy.home.primaryAction}
-        primaryActionEnabled={false}
-        primaryActionDescription={copy.home.primaryActionUnavailable}
       />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="label-micro text-faint">{copy.home.nextActions}</h2>
-        <NextActionQueue actions={home.nextActions} />
-      </section>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(22rem,1.18fr)]">
+        <section className="border-line bg-surface min-w-0 rounded-lg border p-5 sm:p-6">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="label-micro text-faint">{copy.home.commandCenter}</p>
+              <h2 className="text-ink-strong mt-1 text-xl font-medium">{copy.home.nextActions}</h2>
+            </div>
+            <span className="label-micro text-faint tnum">{home.nextActions.length}</span>
+          </div>
+          <NextActionQueue actions={home.nextActions} />
+        </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="label-micro text-faint">{copy.home.assignments}</h2>
-        <AssignmentQueue assignments={home.assignments} />
-      </section>
+        <section className="border-line bg-surface min-w-0 rounded-lg border p-5 sm:p-6">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="label-micro text-faint">{copy.home.workstream}</p>
+              <h2 className="text-ink-strong mt-1 text-xl font-medium">{copy.home.assignments}</h2>
+            </div>
+            <span className="label-micro text-faint tnum">{home.assignments.length}</span>
+          </div>
+          <AssignmentQueue assignments={home.assignments} />
+        </section>
+      </div>
     </>
   );
 }

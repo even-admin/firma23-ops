@@ -42,7 +42,8 @@ interface MobileTabBarProps {
  * the bar would end up hidden almost permanently on any content-bearing
  * page, defeating its purpose as the primary mobile nav.
  */
-function isLeafWithVisibleText(el: Element): boolean {
+function isMeaningfulContent(el: Element): boolean {
+  if (el.closest('[data-mobile-nav-clearance]') !== null) return true;
   return el.children.length === 0 && (el.textContent ?? '').trim().length > 0;
 }
 
@@ -85,7 +86,7 @@ function elementsBehindBar(nav: HTMLElement): boolean {
       return SAMPLE_FRACTIONS.some((xFraction) => {
         const x = rect.left + rect.width * xFraction;
         const hit = document.elementFromPoint(x, y);
-        return hit !== null && !nav.contains(hit) && isLeafWithVisibleText(hit);
+        return hit !== null && !nav.contains(hit) && isMeaningfulContent(hit);
       });
     });
   }

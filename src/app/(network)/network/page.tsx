@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 
 import { FilterChips, type FilterOption } from '@/components/filter/FilterChips';
-import { OperatorCard } from '@/components/operator/OperatorCard';
+import { MemberCoverflow } from '@/components/operator/MemberCoverflow';
 import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
@@ -88,13 +88,7 @@ async function NetworkBody({
       {operators.length === 0 ? (
         <EmptyState title={copy.network.noMembers} />
       ) : (
-        <ul className="grid min-w-0 gap-4 lg:grid-cols-2">
-          {operators.map((operator) => (
-            <li key={operator.memberId} className="min-w-0">
-              <OperatorCard operator={operator} />
-            </li>
-          ))}
-        </ul>
+        <MemberCoverflow operators={operators} />
       )}
     </div>
   );

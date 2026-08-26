@@ -44,7 +44,12 @@ export default async function NetworkLayout({ children }: { readonly children: R
   );
 
   return (
-    <AppShell role={viewer.role} groups={groups} viewerSwitcher={viewerSwitcher}>
+    <AppShell
+      role={viewer.role}
+      memberId={viewer.viewerId}
+      groups={groups}
+      viewerSwitcher={viewerSwitcher}
+    >
       <DataAuthorityNotice configured={configured} />
       {children}
     </AppShell>

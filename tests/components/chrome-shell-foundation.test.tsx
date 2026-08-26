@@ -52,6 +52,7 @@ function shell() {
   return (
     <ChromeShell
       role="founder"
+      memberId="a0000000-0000-4000-8000-000000000001"
       groups={buildNavGroups({ projects: [] })}
       viewerSwitcher={null}
     >

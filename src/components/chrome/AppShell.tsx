@@ -7,13 +7,14 @@ import type { ViewerRole } from '@/lib/viewer';
 
 interface AppShellProps {
   readonly role: ViewerRole;
+  readonly memberId: string;
   readonly groups: readonly NavGroup[];
   /** Rendered inside the sidebar's organisation panel. Server-owned form action. */
   readonly viewerSwitcher: ReactNode;
   readonly children: ReactNode;
 }
 
-export function AppShell({ role, groups, viewerSwitcher, children }: AppShellProps) {
+export function AppShell({ role, memberId, groups, viewerSwitcher, children }: AppShellProps) {
   return (
     <>
       {/* The rail is a long tab stop. Keyboard users get past it in one key. */}
@@ -23,7 +24,12 @@ export function AppShell({ role, groups, viewerSwitcher, children }: AppShellPro
       >
         {copy.nav.skipToContent}
       </a>
-      <ChromeShell role={role} groups={groups} viewerSwitcher={viewerSwitcher}>
+      <ChromeShell
+        role={role}
+        memberId={memberId}
+        groups={groups}
+        viewerSwitcher={viewerSwitcher}
+      >
         {children}
       </ChromeShell>
     </>

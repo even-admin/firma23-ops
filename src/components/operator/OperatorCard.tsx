@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Amount } from '@/components/money/Amount';
 import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
 import { IdentityOrb } from '@/components/operator/IdentityOrb';
+import { ProgressionMeter } from '@/components/operator/ProgressionMeter';
 import { SkillChips } from '@/components/operator/SkillChips';
 import { StatGrid } from '@/components/operator/StatGrid';
 import { copy } from '@/copy/es-MX';
@@ -85,6 +86,8 @@ export function OperatorCard({
       <p className="text-muted max-w-3xl text-sm leading-6">{operator.bio}</p>
 
       <SkillChips skills={operator.skills} limit={5} />
+
+      <ProgressionMeter progression={operator.progression} compact />
 
       <StatGrid stats={operator.stats} />
 

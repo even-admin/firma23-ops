@@ -11,8 +11,10 @@ import {
   payoutAllocatedFor,
   projectedEarnings,
   settlementLineBalances,
+  statsFor,
 } from '@/data/repositories/synthetic/shared';
 import { sumMoney, zeroMoney } from '@/lib/money';
+import { deriveProgression } from '@/lib/progression';
 import { DataError } from '@/lib/result';
 import { isFounder, type ViewerContext } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
@@ -86,6 +88,7 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
 
   const approved = approvedEarnings(dataset, member.id);
   const paid = paidEarnings(dataset, member.id);
+  const progression = deriveProgression(statsFor(dataset, member.id));
   const balances = settlementLineBalances(dataset).filter(
     (balance) => balance.line.memberId === member.id,
   );
@@ -122,6 +125,7 @@ export function buildPersonalHome(dataset: SyntheticDataset, viewer: ViewerConte
       displayName: member.displayName,
       initials: member.initials,
       role: member.role,
+      progression,
     },
     money: {
       approved,

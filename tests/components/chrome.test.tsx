@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
-import { money } from '@/lib/money';
+import { basisPoints, money } from '@/lib/money';
 import { buildNavGroups, NAV_ITEMS } from '@/lib/nav';
 import type { HomeAssignment, MemberMoney } from '@/types/views';
 
@@ -30,12 +30,16 @@ function header(overrides: Partial<Parameters<typeof OperationalHeader>[0]> = {}
   return (
     <OperationalHeader
       displayName="Sebastián Benítez"
-      memberId="b0000000-0000-4000-8000-000000000003"
       money={memberMoney}
+      progression={{
+        rulesetVersion: 1,
+        level: 2,
+        xp: 320,
+        currentLevelXp: 180,
+        nextLevelXp: 480,
+        progressBp: basisPoints(4_667),
+      }}
       activeWorkCount={2}
-      primaryActionLabel={copy.home.primaryAction}
-      primaryActionEnabled={false}
-      primaryActionDescription={copy.home.primaryActionUnavailable}
       {...overrides}
     />
   );
@@ -49,7 +53,7 @@ describe('OperationalHeader', () => {
 
   it('leads with approved money in the ledger colour', () => {
     render(header());
-    const block = screen.getByText(copy.home.approved).parentElement;
+    const block = screen.getByText(copy.home.approvedLedger).parentElement;
     const amount = block?.querySelector('[class*="text-money"]');
     expect(amount?.textContent).toBe('$1,794.54');
   });
@@ -71,17 +75,15 @@ describe('OperationalHeader', () => {
 
   it('separates projected money from approved money in the DOM, not just visually', () => {
     render(header());
-    const approvedLabel = screen.getByText(copy.home.approved);
+    const approvedLabel = screen.getByText(copy.home.approvedLedger);
     const projectedLabel = screen.getByText(copy.home.projectedAside);
     expect(approvedLabel.closest('div')).not.toBe(projectedLabel.closest('div'));
   });
 
-  it('keeps the unavailable primary action disabled with an accessible explanation', () => {
+  it('does not render an inert primary command before an authorized route exists', () => {
     render(header({ activeWorkCount: 2 }));
-    const button = screen.getByRole('button', { name: copy.home.primaryAction });
-    expect(button).toBeDisabled();
-    expect(button.className).toContain('cursor-not-allowed');
-    expect(button).toHaveAccessibleDescription(copy.home.primaryActionUnavailable);
+    expect(screen.queryByRole('button', { name: copy.home.primaryAction })).not.toBeInTheDocument();
+    expect(screen.getByText(copy.home.liveNow)).toBeInTheDocument();
   });
 });
 
@@ -94,6 +96,7 @@ function sidebar(role: 'founder' | 'member', pendingApprovals?: number) {
   return (
     <Sidebar
       role={role}
+      memberId="a0000000-0000-4000-8000-000000000001"
       groups={buildNavGroups({ projects: NAV_PROJECTS, pendingApprovals })}
       viewerSwitcher={null}
       onOpenSearch={() => undefined}
@@ -229,6 +232,23 @@ describe('MobileTabBar hides only for real text behind its footprint', () => {
     await waitFor(() => {
       expect(nav.className).toContain('opacity-0');
     });
+  });
+
+  it('hides over an explicitly protected visual instrument even between text leaves', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(navRect);
+    const instrument = document.createElement('article');
+    instrument.setAttribute('data-mobile-nav-clearance', '');
+    const gap = document.createElement('div');
+    instrument.append(gap);
+    document.body.append(instrument);
+    document.elementFromPoint = vi.fn().mockReturnValue(gap);
+
+    render(<MobileTabBar role="member" />);
+    await waitFor(() => {
+      expect(screen.getByRole('navigation', { name: copy.nav.mobile })).toHaveClass('opacity-0');
+    });
+
+    instrument.remove();
   });
 
   it('does not hide for a wrapping container that merely contains text elsewhere', async () => {
