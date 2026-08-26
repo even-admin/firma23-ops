@@ -239,6 +239,17 @@
     transform 360ms var(--ease-firma);
 }
 
+.member-cover-shell {
+  transition:
+    transform 220ms var(--ease-firma),
+    opacity 180ms var(--ease-firma);
+}
+
+.member-cover[data-selected='false'] .member-cover-shell:hover,
+.member-cover[data-selected='false'] .member-cover-shell:focus-visible {
+  transform: translateY(-4px) scale(1.012);
+}
+
 @media (max-width: 47.9375rem) {
   .member-cover {
     opacity: calc(1 - var(--cover-distance));
@@ -254,6 +265,13 @@
   }
 
   .member-cover {
+    transition: none;
+  }
+
+  .member-cover-shell,
+  .member-cover[data-selected='false'] .member-cover-shell:hover,
+  .member-cover[data-selected='false'] .member-cover-shell:focus-visible {
+    transform: none;
     transition: none;
   }
 

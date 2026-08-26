@@ -49,7 +49,8 @@ describe('MemberCoverflow', () => {
     const { container } = render(<MemberCoverflow operators={OPERATORS} />);
     expect(screen.getByRole('group', { name: copy.network.carouselLabel })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ana Norte' })).toHaveAttribute('href', '/network/ana-norte');
-    expect(container.querySelectorAll('[aria-hidden="false"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-selected="true"]')).toHaveLength(1);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
     expect(screen.queryByText(copy.money.projected)).not.toBeInTheDocument();
   });
 
@@ -59,15 +60,34 @@ describe('MemberCoverflow', () => {
     fireEvent.keyDown(carousel, { key: 'ArrowRight' });
 
     expect(screen.getByRole('link', { name: 'Beto Sur' })).toBeInTheDocument();
-    expect(container.querySelectorAll('[aria-hidden="false"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-selected="true"]')).toHaveLength(1);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('uses bare 48px directional controls without pagination chrome', () => {
     render(<MemberCoverflow operators={OPERATORS} />);
     expect(screen.getByRole('button', { name: copy.network.previousMember }).className).toContain('size-12');
     expect(screen.getByRole('button', { name: copy.network.nextMember }).className).toContain('size-12');
-    expect(screen.queryByRole('button', { name: `${copy.network.showMember}: Caro Este` })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Members' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Network' })).toHaveClass('sr-only');
+  });
+
+  it('moves an adjacent card into focus before its profile becomes the primary link', () => {
+    render(<MemberCoverflow operators={OPERATORS} />);
+
+    fireEvent.click(screen.getByRole('button', { name: `${copy.network.showMember}: Beto Sur` }));
+
+    expect(screen.getByRole('link', { name: 'Beto Sur' })).toHaveAttribute(
+      'href',
+      '/network/beto-sur',
+    );
+    expect(screen.getByRole('button', { name: `${copy.network.showMember}: Ana Norte` })).toBeInTheDocument();
+  });
+
+  it('does not frame the carousel with decorative top or bottom rules', () => {
+    render(<MemberCoverflow operators={OPERATORS} />);
+    expect(screen.getByRole('group', { name: copy.network.carouselLabel })).not.toHaveClass(
+      'border-y',
+    );
   });
 
   it('makes the complete selected card the member profile link', () => {

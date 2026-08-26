@@ -68,21 +68,21 @@ function OutcomeSummary({ operator }: { readonly operator: OperatorCardView }) {
 
 function InactiveMemberCover({ operator }: { readonly operator: OperatorCardView }) {
   return (
-    <article className="spatial-object border-line bg-surface flex h-full min-w-0 flex-col overflow-hidden border p-6">
-      <div className="identity-orb-surface flex flex-1 flex-col items-center justify-center text-center">
+    <span className="spatial-object border-line bg-surface hover:border-line-strong flex h-full min-w-0 flex-col overflow-hidden border p-6 text-left transition-colors duration-150">
+      <span className="identity-orb-surface flex flex-1 flex-col items-center justify-center text-center">
         <IdentityOrb memberId={operator.memberId} size="hero" />
-        <p className="text-ink-strong mt-5 max-w-[14rem] text-2xl leading-tight font-medium">
+        <span className="text-ink-strong mt-5 max-w-[14rem] text-2xl leading-tight font-medium">
           {operator.displayName}
-        </p>
-        <p className="text-faint mt-2 text-xs">
+        </span>
+        <span className="text-faint mt-2 text-xs">
           {operator.role === 'founder' ? copy.viewer.founder : copy.viewer.member}
-        </p>
-      </div>
-      <div className="border-line border-t pt-4">
-        <p className="label-micro text-faint">{copy.network.nextCapability}</p>
-        <p className="text-muted mt-1 line-clamp-2 text-sm">{operator.nextCapability}</p>
-      </div>
-    </article>
+        </span>
+      </span>
+      <span className="border-line block border-t pt-4">
+        <span className="label-micro text-faint block">{copy.network.nextCapability}</span>
+        <span className="text-muted mt-1 line-clamp-2 text-sm">{operator.nextCapability}</span>
+      </span>
+    </span>
   );
 }
 
@@ -131,14 +131,35 @@ function ActiveMemberCover({ operator }: { readonly operator: OperatorCardView }
   );
 }
 
-function MemberCover({ operator, selected }: { readonly operator: OperatorCardView; readonly selected: boolean }) {
+function MemberCover({
+  operator,
+  selected,
+  onSelect,
+}: {
+  readonly operator: OperatorCardView;
+  readonly selected: boolean;
+  readonly onSelect: () => void;
+}) {
+  if (!selected) {
+    return (
+      <button
+        type="button"
+        aria-label={`${copy.network.showMember}: ${operator.displayName}`}
+        onClick={onSelect}
+        className="member-cover-shell focus-ring block h-full w-full rounded-[var(--radius-object)]"
+      >
+        <InactiveMemberCover operator={operator} />
+      </button>
+    );
+  }
+
   return (
     <Link
       href={`/network/${operator.slug}`}
       aria-label={operator.displayName}
-      className="focus-ring block h-full rounded-[var(--radius-object)]"
+      className="member-cover-shell focus-ring block h-full rounded-[var(--radius-object)]"
     >
-      {selected ? <ActiveMemberCover operator={operator} /> : <InactiveMemberCover operator={operator} />}
+      <ActiveMemberCover operator={operator} />
     </Link>
   );
 }
@@ -177,12 +198,12 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
 
   return (
     <section aria-labelledby="network-coverflow-title" className="min-w-0">
-      <h2 id="network-coverflow-title" className="text-ink-strong mb-4 text-xl font-medium">
+      <h2 id="network-coverflow-title" className="sr-only">
         {copy.network.directoryTitle}
       </h2>
 
       <div
-        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden border-y border-line py-5 sm:min-h-[38rem]"
+        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden py-5 sm:min-h-[38rem]"
         role="group"
         aria-roledescription="carrusel"
         aria-label={copy.network.carouselLabel}
@@ -232,7 +253,7 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
               key={operator.memberId}
               className={cn(
                 'member-cover absolute top-5 left-1/2 h-[33.5rem] w-[min(84vw,28rem)] sm:h-[35.5rem]',
-                distance > 2 && 'invisible',
+                distance > 1 && 'invisible',
               )}
               style={
                 {
@@ -241,10 +262,15 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
                   zIndex: operators.length - distance,
                 } as CoverStyle
               }
-              aria-hidden={!selected}
-              inert={!selected}
+              aria-hidden={distance > 1}
+              inert={distance > 1}
+              data-selected={selected ? 'true' : 'false'}
             >
-              <MemberCover operator={operator} selected={selected} />
+              <MemberCover
+                operator={operator}
+                selected={selected}
+                onSelect={() => setActive(index)}
+              />
             </div>
           );
         })}

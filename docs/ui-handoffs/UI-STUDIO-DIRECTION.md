@@ -40,14 +40,17 @@ health. Finance and settlement remain neutral authority surfaces.
   grain and motion as Home across five approved palettes, replacing the rejected
   CSS pseudo-texture. Profile photos remain a later storage/model feature rather
   than a fake local upload.
-- Reduced the directory to a single `Members` section with no filter rails,
-  counter or pagination capsule. Member orbs have no frame, side navigation uses
-  bare pointers with 48px hit targets, and the complete active card links to the
+- Reduced the directory to a single `Network` surface with no filter rails,
+  counter, framing rules or pagination capsule. Member orbs have no frame, side
+  navigation uses bare pointers with 48px hit targets, adjacent cards are direct
+  selection controls, and only the complete active card links to the
   repository-backed member profile.
+- Navigation display language is `Home`, `Contracts`, `Network` and `Performance`;
+  existing route paths remain unchanged.
 - Added deterministic project covers to the project record grammar and subtle
   inherited identity to opportunity rows. The palette is decorative and stable
   by project identifier.
-- Recast Ranking as one ordered record instead of a grid of cards. Ranking still
+- Recast Performance as one ordered record instead of a grid of cards. Performance still
   uses approved earnings only; teammate paid/projected privacy remains enforced
   by the repository contract.
 - Removed black slab actions and permission panels in favor of bordered paper and

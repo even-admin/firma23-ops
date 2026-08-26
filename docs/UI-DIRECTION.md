@@ -79,7 +79,7 @@ artwork, rainbow metrics or unbounded decorative wash is allowed.
 
 ## V1 placement
 
-### Inicio
+### Home (`/`)
 
 Use one two-card Personal Command Strip above the existing action and assignment
 queues. The compact `MeshDriftCanvas` identity field carries only the member name,
@@ -89,13 +89,13 @@ Historical lines connect exact cumulative event balances, and event mode exposes
 the signed source movements; neither contains inferred daily values. Projection
 shows a current value without a line until dated projection events exist.
 
-### Oportunidades
+### Contracts (`/opportunities`)
 
 Use dense opportunity rows. Opportunity detail keeps Revenue Rail, assigned crew
 and one semantic milestone timeline. Project-wide health waits for a real
 aggregate model; no invented score or trend is permitted.
 
-### Red
+### Network (`/network`)
 
 Evolve Operator Card into the Player identity surface using only existing
 skills, outcomes, approved earnings and availability. Member artwork uses
@@ -103,7 +103,7 @@ the decorative `IdentityOrb` wherever a stable `memberId` already exists. No
 remote avatars, fake people or telemetry competition. Glass is reserved for
 lightweight controls and identity framing, never data records.
 
-### Ranking
+### Performance (`/leaderboard`)
 
 Use an ordered approved-earnings list with provenance. No podium theatrics,
 tokens, XP, projected rank or founder adjudication rules beyond the current
