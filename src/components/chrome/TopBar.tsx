@@ -37,7 +37,7 @@ export function TopBar({ sidebarOpen, onToggleSidebar, onOpenSearch, breadcrumb 
           />
         </button>
 
-        <span className="text-ink-strong shrink-0 text-sm font-semibold tracking-[-0.055em] md:hidden">
+        <span className="text-ink-strong shrink-0 text-sm font-semibold md:hidden">
           FIRMA23
         </span>
 

@@ -9,8 +9,20 @@
 @utility label-micro {
   font-size: var(--text-micro);
   line-height: var(--text-micro--line-height);
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.studio-focus {
+  border-radius: var(--radius-focus);
+}
+
+.spatial-object {
+  border-radius: var(--radius-object);
+}
+
+.authority-record {
+  border-radius: var(--radius-record);
 }
 
 /* The navigation rail scrolls without a visible track; its own border is the edge. */
@@ -149,6 +161,63 @@
   transform: scale(1.035);
 }
 
+/* Project identity is editorial artwork, not a status surface. */
+.project-cover {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, var(--project-b) 24%, var(--color-line));
+  background:
+    radial-gradient(circle at 78% 20%, color-mix(in srgb, var(--project-b) 80%, white) 0, transparent 30%),
+    radial-gradient(circle at 18% 84%, var(--project-c) 0, transparent 48%),
+    linear-gradient(142deg, var(--project-a), var(--project-b));
+}
+
+.project-cover::before,
+.project-cover::after {
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--color-paper-000) 58%, transparent);
+  border-radius: 50%;
+  content: '';
+}
+
+.project-cover::before {
+  width: 84%;
+  aspect-ratio: 1;
+  top: -62%;
+  left: 14%;
+}
+
+.project-cover::after {
+  width: 58%;
+  aspect-ratio: 1;
+  right: -22%;
+  bottom: -50%;
+}
+
+.project-cover--0 {
+  --project-a: var(--color-project-charcoal);
+  --project-b: var(--color-project-azure);
+  --project-c: var(--color-project-cobalt);
+}
+
+.project-cover--1 {
+  --project-a: var(--color-project-lilac);
+  --project-b: var(--color-project-ice);
+  --project-c: var(--color-project-cobalt);
+}
+
+.project-cover--2 {
+  --project-a: var(--color-project-moss);
+  --project-b: var(--color-project-cloud);
+  --project-c: var(--color-project-coral);
+}
+
+.project-cover--3 {
+  --project-a: var(--color-project-cobalt);
+  --project-b: var(--color-project-coral);
+  --project-c: var(--color-project-charcoal);
+}
+
 /*
  * Glass is reserved for actual lightweight controls and identity framing.
  * It uses translucent paper and borders instead of dark slabs or shadows.
@@ -187,22 +256,16 @@
   background: color-mix(in srgb, var(--color-paper-000) 78%, var(--color-orb-ice));
 }
 
-.progression-instrument--glass {
-  max-width: 18rem;
+.glass-action-button {
+  border-color: color-mix(in srgb, var(--color-orb-cobalt) 22%, var(--color-line-strong));
+  background: color-mix(in srgb, var(--color-paper-000) 82%, var(--color-orb-ice));
+  color: var(--color-ink-strong);
+  backdrop-filter: blur(14px) saturate(1.15);
 }
 
-.progression-level-orb {
-  position: relative;
-  isolation: isolate;
-}
-
-.progression-level-orb::after {
-  position: absolute;
-  inset: 4px;
-  z-index: -1;
-  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: inherit;
-  content: '';
+.glass-action-button:hover {
+  border-color: color-mix(in srgb, var(--color-orb-cobalt) 38%, var(--color-line-strong));
+  background: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-orb-ice));
 }
 
 /* Perspective is decorative; the active member remains the only interactive card. */
@@ -271,7 +334,7 @@
     font-size: 0.9375rem;
     font-weight: 400;
     line-height: 1.5;
-    letter-spacing: -0.006em;
+    letter-spacing: 0;
     /* No layout may scroll the page sideways. */
     overflow-x: hidden;
   }

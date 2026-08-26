@@ -31,10 +31,10 @@ export function NextActionQueue({ actions }: NextActionQueueProps) {
           key={action.key}
           className="group relative grid min-h-16 grid-cols-[2.375rem_minmax(0,1fr)] items-center gap-3 py-2"
         >
-          <span className="border-line bg-surface label-micro text-faint tnum relative z-10 flex size-9 items-center justify-center rounded-full border">
+          <span className="border-line bg-surface text-faint tnum relative z-10 flex size-9 items-center justify-center rounded-full border font-mono text-[11px]">
             {String(index + 1).padStart(2, '0')}
           </span>
-          <span className="border-line bg-bg group-hover:border-line-strong min-w-0 rounded-lg border px-4 py-3 transition-colors duration-150">
+          <span className="border-line bg-bg group-hover:border-line-strong min-w-0 rounded-[var(--radius-record)] border px-4 py-3 transition-colors duration-150">
             <span className="flex items-center gap-2">
               <span
                 aria-hidden="true"

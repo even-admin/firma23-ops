@@ -29,7 +29,7 @@ export function FinanceMetricCard({ totals, pendingApprovals }: FinanceMetricCar
             </h2>
             <p className="text-muted mt-2 max-w-sm text-sm">{copy.admin.subtitle}</p>
           </div>
-          <p className="text-ink-strong mt-8 text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
+          <p className="text-ink-strong mt-8 text-4xl font-medium sm:text-5xl">
             <Amount value={totals.cashReceived} />
           </p>
         </div>
@@ -37,13 +37,13 @@ export function FinanceMetricCard({ totals, pendingApprovals }: FinanceMetricCar
         <div className="border-line grid grid-cols-2 border-t lg:border-t-0 lg:border-l">
           <div className="border-line flex min-h-32 flex-col justify-between border-r p-5 sm:p-6 lg:min-h-56 lg:p-8">
             <p className="label-micro text-faint">{copy.finance.approvedBase}</p>
-            <p className="text-money mt-6 text-2xl font-medium tracking-[-0.03em] sm:text-3xl">
+            <p className="text-money mt-6 text-2xl font-medium sm:text-3xl">
               <Amount value={totals.distributableApproved} />
             </p>
           </div>
           <div className="flex min-h-32 flex-col justify-between p-5 sm:p-6 lg:min-h-56 lg:p-8">
             <p className="label-micro text-faint">{copy.finance.owed}</p>
-            <p className="text-ink mt-6 text-2xl font-medium tracking-[-0.03em] sm:text-3xl">
+            <p className="text-ink mt-6 text-2xl font-medium sm:text-3xl">
               <Amount value={totals.owed} />
             </p>
           </div>

@@ -29,7 +29,7 @@ The product should feel fast, ambitious, social, precise, and private. Take insp
 - Muted amber only for items requiring attention.
 - Muted red only for destructive actions or failed states.
 
-No gradients outside the two named signature exceptions below. No decorative
+No gradients outside the three named signature exceptions below. No decorative
 rainbow metrics. Use a borders-first depth system with quiet surface shifts.
 
 The shell's animated `MeshDriftCanvas` background
@@ -38,12 +38,18 @@ environment. Its approved palette, drift speed, grain, and WebGL fallback stay
 as built; `prefers-reduced-motion: reduce` freezes it on its current frame rather
 than blanking it.
 
-`IdentityOrb` is the only additional gradient exception. It is a small circular,
+`IdentityOrb` is a bounded gradient exception. It is a small circular,
 decorative member identifier with six tokenized palettes selected deterministically
 from `memberId`. It contains no initials or photo and never communicates role,
 availability, rank, earnings, money state, attention or failure. It uses CSS only,
 stays static by default, and removes its restrained hover/focus transform under
 reduced motion.
+
+`ProjectCover` is the third and final gradient exception. It is deterministic,
+CSS-only editorial artwork derived from project identity. It helps the studio
+recognize work at a glance but never communicates project status, money, health
+or completion. Uploaded project artwork and selected palettes require a future
+authorized storage/view-model contract; until then the fallback remains local.
 
 ## Signature component: Revenue Rail
 
@@ -73,7 +79,8 @@ Member identity is not a generic avatar and title. Each Operator Card combines v
 - Use a distinctive grotesk or editorial sans suitable for FIRMA23, selected from locally available or properly licensed web fonts.
 - Use tabular numerals for money.
 - Use a 4px base spacing unit with primary layout intervals on an 8px rhythm.
-- Keep radii restrained and consistent.
+- Use the approved hierarchy: 20px focused studio objects, 16px member/project
+  objects, 12px authority records and 10-12px controls.
 - Motion is quick deceleration, never bounce or spring.
 
 ## Required states

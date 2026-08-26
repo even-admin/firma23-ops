@@ -199,20 +199,19 @@ Foundation implements and tests one desktop model:
 If local storage is unavailable, fail to `compact` without a render crash or
 hydration mismatch.
 
-## Approved gradient exception
+## Approved bounded gradient exceptions
 
-`docs/DESIGN-DIRECTION.md` and the historical M1 handoff currently say “No
-gradients.” Foundation's first tracked documentation change narrows that rule:
+The original Foundation contract admitted only the Home environment. The later
+approved studio-direction pass narrows the current rule to three bounded uses:
 
-- no CSS gradients, decorative color washes, rainbow metrics, or additional
-  gradient components;
-- existing animated `MeshDriftCanvas` gradient/grain is the single approved shell
-  artwork exception;
+- no unbounded color washes, rainbow metrics, or additional gradient components;
+- animated `MeshDriftCanvas` is the Home environment;
+- `IdentityOrb` identifies members and `ProjectCover` identifies projects;
 - preserve its approved palette, speed, grain, reduced-motion static frame, and
   honest WebGL fallback.
 
-Documentation and implementation land together on Foundation. Route lanes may not
-add gradients.
+Route lanes may not add other gradients. The current authority is
+`docs/UI-DIRECTION.md` and `docs/DESIGN-DIRECTION.md`.
 
 ## Exact fixture routes
 
@@ -384,8 +383,8 @@ if the SHA differs from the reviewed bootstrap SHA stated in the handoff.
 
 Implement only Foundation ownership and the sidebar contract. Preserve paper-white
 field, compact black structure, Geist, borders-only depth, 4px spacing, 44px
-controls, causal motion, and mobile recomposition. Keep MeshDrift as the sole
-documented gradient/grain exception. Do not add other gradients, shadows,
+controls, causal motion, and mobile recomposition. Follow the bounded gradient
+exceptions in `docs/UI-DIRECTION.md`. Do not add other gradients, shadows,
 dependencies, fake data, foreign icons, or branding.
 
 Primary work:

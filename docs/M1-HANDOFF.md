@@ -53,10 +53,10 @@ These are product invariants, not style choices. Breaking one is a correctness b
    completion. Amber for attention, red for destructive or failed. Nothing else is
    coloured.
 3. **The leaderboard ranks on approved earnings only.** Projected is context.
-4. **No gradients, no shadows** except the focus ring. Depth comes from borders.
-   The one approved exception is the shell's animated `MeshDriftCanvas`
-   background — see `docs/DESIGN-DIRECTION.md`. No other component may add a
-   gradient or grain.
+4. **No gradients, no shadows** except the focus ring and the three bounded
+   identity/environment exceptions: Home's animated `MeshDriftCanvas`, member
+   `IdentityOrb`, and deterministic `ProjectCover`. See
+   `docs/DESIGN-DIRECTION.md`. No other component may add a gradient or grain.
 5. **Tabular numerals on every amount.** Use the `Amount` component; do not render
    money as bare text.
 6. **No hardcoded hex.** All colour lives in `src/app/tokens.css`. A grep for

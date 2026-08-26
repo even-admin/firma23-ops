@@ -10,7 +10,6 @@ import {
   statsFor,
 } from '@/data/repositories/synthetic/shared';
 import { DataError } from '@/lib/result';
-import { deriveProgression } from '@/lib/progression';
 import type { Member } from '@/types/domain';
 import type {
   HomeAssignment,
@@ -67,7 +66,6 @@ function toCard(dataset: SyntheticDataset, member: Member): OperatorCardView {
     joinedAt: profile.joinedAt,
     skills: skillsFor(dataset, member.id),
     stats,
-    progression: deriveProgression(stats),
     // Approved only. A profile never advertises a projection as earnings.
     approvedEarnings: approvedEarnings(dataset, member.id),
     paidEarnings: paidEarnings(dataset, member.id),

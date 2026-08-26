@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
-import { basisPoints, money } from '@/lib/money';
+import { money } from '@/lib/money';
 import { buildNavGroups, NAV_ITEMS } from '@/lib/nav';
 import type { HomeAssignment, MemberMoney } from '@/types/views';
 
@@ -29,17 +29,11 @@ const memberMoney: MemberMoney = {
 function header(overrides: Partial<Parameters<typeof OperationalHeader>[0]> = {}) {
   return (
     <OperationalHeader
+      memberId="m1"
       displayName="Sebastián Benítez"
       money={memberMoney}
-      progression={{
-        rulesetVersion: 1,
-        level: 2,
-        xp: 320,
-        currentLevelXp: 180,
-        nextLevelXp: 480,
-        progressBp: basisPoints(4_667),
-      }}
       activeWorkCount={2}
+      canOpenOpportunity
       {...overrides}
     />
   );
@@ -53,7 +47,7 @@ describe('OperationalHeader', () => {
 
   it('leads with approved money in the ledger colour', () => {
     render(header());
-    const block = screen.getByText(copy.home.approvedLedger).parentElement;
+    const block = screen.getByText(copy.home.approvedLedger).closest('[data-money-state="approved"]');
     const amount = block?.querySelector('[class*="text-money"]');
     expect(amount?.textContent).toBe('$1,794.54');
   });
@@ -80,10 +74,36 @@ describe('OperationalHeader', () => {
     expect(approvedLabel.closest('div')).not.toBe(projectedLabel.closest('div'));
   });
 
-  it('does not render an inert primary command before an authorized route exists', () => {
+  it('offers a real route instead of an inert command when no assignment is active', () => {
     render(header({ activeWorkCount: 2 }));
     expect(screen.queryByRole('button', { name: copy.home.primaryAction })).not.toBeInTheDocument();
-    expect(screen.getByText(copy.home.liveNow)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: copy.home.browseOpportunities })).toHaveAttribute(
+      'href',
+      '/opportunities',
+    );
+  });
+
+  it('never links a member to a founder-only opportunity route', () => {
+    render(
+      header({
+        canOpenOpportunity: false,
+        primaryAssignment: {
+          opportunityId: 'o1',
+          code: 'F23-001',
+          beneficiaryName: 'Beneficiaria',
+          beneficiaryLocation: 'Merida',
+          projectName: 'Proyecto',
+          serviceName: 'Servicio',
+          roleLabel: 'Entrega',
+          status: 'assigned',
+          active: true,
+          money: { kind: 'projected', amount: money(10_000) },
+        },
+      }),
+    );
+
+    expect(screen.queryByRole('link', { name: copy.home.openOpportunity })).not.toBeInTheDocument();
+    expect(screen.getByText(copy.home.nextMove)).toBeInTheDocument();
   });
 });
 

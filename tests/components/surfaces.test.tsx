@@ -106,24 +106,16 @@ const OPERATOR: OperatorCardView = {
     onTimeRateBp: basisPoints(5_000),
     acceptanceRateBp: basisPoints(10_000),
   },
-  progression: {
-    rulesetVersion: 1,
-    level: 3,
-    xp: 620,
-    currentLevelXp: 480,
-    nextLevelXp: 900,
-    progressBp: basisPoints(3_333),
-  },
   approvedEarnings: money(179_454),
   paidEarnings: money(0),
   activeWorkCount: 2,
 };
 
 describe('OperatorCard', () => {
-  it('shows approved and paid earnings, and no projection', () => {
+  it('shows approved earnings without exposing peer payout detail or projection', () => {
     render(<OperatorCard operator={OPERATOR} />);
     expect(screen.getByText('$1,794.54')).toBeInTheDocument();
-    expect(screen.getByText('$0.00')).toBeInTheDocument();
+    expect(screen.queryByText(copy.money.paid)).not.toBeInTheDocument();
     expect(screen.queryByText(copy.money.projected)).not.toBeInTheDocument();
   });
 

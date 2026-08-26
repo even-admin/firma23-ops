@@ -52,7 +52,7 @@ export function RailSegment({ segment, settled }: RailSegmentProps) {
       <Amount
         value={segment.amount}
         className={cn(
-          'text-xl font-medium tracking-[-0.025em]',
+          'text-xl font-medium',
           settled ? 'text-ink-strong' : 'text-muted',
         )}
       />

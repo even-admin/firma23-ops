@@ -70,7 +70,7 @@ export default async function SettlePage({
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
       <header className="flex flex-col gap-2">
         <p className="label-micro text-faint">{copy.settle.title}</p>
-        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+        <h1 className="text-ink-strong text-3xl font-medium sm:text-4xl">
           {preview.opportunity.beneficiaryName}
         </h1>
         <p className="text-faint text-sm">

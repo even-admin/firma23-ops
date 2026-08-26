@@ -1,11 +1,11 @@
 /**
  * FIRMA23 Ops design tokens.
  *
- * Borders-first depth. MeshDrift and IdentityOrb own decorative gradients; glass
- * controls may borrow their palette through translucent token mixes. No shadows
- * other than the focus ring. Ledger green appears only on confirmed money and
- * primary completion; amber only on items needing attention; red only on
- * destructive or failed states.
+ * Borders-first depth. MeshDrift, IdentityOrb, and ProjectCover own the three
+ * bounded decorative gradients; glass controls may borrow their palette through
+ * translucent token mixes. No shadows other than the focus ring. Ledger green
+ * appears only on confirmed money and primary completion; amber only on items
+ * needing attention; red only on destructive or failed states.
  *
  * Tailwind v4 keeps the theme in CSS rather than tailwind.config.
  */
@@ -40,6 +40,16 @@
   --color-orb-midnight: #273350;
   --color-orb-rose: #d073a5;
   --color-orb-periwinkle: #8094e8;
+
+  /* Decorative project covers. They identify work and never encode status. */
+  --color-project-cobalt: #204cc5;
+  --color-project-azure: #77b7e7;
+  --color-project-lilac: #a482d2;
+  --color-project-coral: #cf786f;
+  --color-project-moss: #667d68;
+  --color-project-ice: #d5e7e8;
+  --color-project-charcoal: #202a33;
+  --color-project-cloud: #ececf0;
 
   /* Semantic surfaces and text */
   --color-bg: var(--color-paper-000);
@@ -84,10 +94,14 @@
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1rem;
 
-  /* Restrained radii */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* Spatial hierarchy: controls, records, objects, and one focused field. */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-control: 12px;
+  --radius-record: 12px;
+  --radius-object: 16px;
+  --radius-focus: 20px;
 
   /* Motion: quick deceleration, never bounce */
   --ease-firma: cubic-bezier(0.16, 1, 0.3, 1);

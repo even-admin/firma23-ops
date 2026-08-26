@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { StatusPill } from '@/components/opportunity/StatusPill';
+import { ProjectCover } from '@/components/project/ProjectCover';
 import type { RailModel } from '@/lib/allocation';
 import type { Money } from '@/lib/money';
 import type { OpportunityStatus } from '@/types/domain';
@@ -40,8 +41,9 @@ export function OpportunityRow({
   cashReceived,
 }: OpportunityRowProps) {
   return (
-    <article className="border-line bg-surface/40 flex flex-col gap-4 rounded-lg border p-4 sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+    <article className="authority-record border-line bg-surface/40 flex flex-col gap-4 border p-4 sm:p-6">
+      <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[4rem_minmax(0,1fr)_auto]">
+        <ProjectCover projectId={projectName} size="thumbnail" />
         <div className="min-w-0">
           <h2 className="text-ink-strong truncate text-lg font-medium">
             <Link
@@ -55,7 +57,7 @@ export function OpportunityRow({
             {code} · {beneficiaryLocation} · {projectName} · {serviceName} v{serviceVersion}
           </p>
         </div>
-        <StatusPill status={status} />
+        <StatusPill status={status} className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1" />
       </div>
 
       <RailBaseExplainer

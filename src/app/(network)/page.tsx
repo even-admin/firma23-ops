@@ -7,6 +7,7 @@ import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { syntheticHomeRepository } from '@/data/repositories/synthetic/home';
+import { isFounder } from '@/lib/viewer';
 
 /*
  * Loading UI lives in a Suspense boundary inside the page, not in a segment-level
@@ -30,38 +31,45 @@ export default function HomePage() {
 async function HomeBody() {
   const viewer = await getViewer();
   const home = await syntheticHomeRepository.getPersonalHome(viewer);
+  const primaryAssignment = home.assignments.find((assignment) => assignment.active);
+  const primaryAction =
+    primaryAssignment === undefined
+      ? undefined
+      : home.nextActions.find(
+          (action) => action.key === `evidence:${primaryAssignment.opportunityId}`,
+        );
 
   return (
     <>
       <OperationalHeader
+        memberId={home.member.id}
         displayName={home.member.displayName}
         money={home.money}
-        progression={home.member.progression}
         activeWorkCount={home.activeWorkCount}
-        activeAssignmentCodes={home.assignments
-          .filter((assignment) => assignment.active)
-          .map((assignment) => assignment.code)}
+        primaryAssignment={primaryAssignment}
+        primaryAction={primaryAction}
+        canOpenOpportunity={isFounder(viewer)}
       />
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(22rem,1.18fr)]">
-        <section className="border-line bg-surface min-w-0 rounded-lg border p-5 sm:p-6">
+      <div className="grid min-w-0 gap-x-10 gap-y-8 border-t border-line pt-7 xl:grid-cols-[minmax(0,0.82fr)_minmax(22rem,1.18fr)]">
+        <section className="min-w-0">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="label-micro text-faint">{copy.home.commandCenter}</p>
+              <p className="text-faint text-xs">{copy.home.commandCenter}</p>
               <h2 className="text-ink-strong mt-1 text-xl font-medium">{copy.home.nextActions}</h2>
             </div>
-            <span className="label-micro text-faint tnum">{home.nextActions.length}</span>
+            <span className="text-faint tnum font-mono text-xs">{home.nextActions.length}</span>
           </div>
           <NextActionQueue actions={home.nextActions} />
         </section>
 
-        <section className="border-line bg-surface min-w-0 rounded-lg border p-5 sm:p-6">
+        <section className="min-w-0">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="label-micro text-faint">{copy.home.workstream}</p>
+              <p className="text-faint text-xs">{copy.home.workstream}</p>
               <h2 className="text-ink-strong mt-1 text-xl font-medium">{copy.home.assignments}</h2>
             </div>
-            <span className="label-micro text-faint tnum">{home.assignments.length}</span>
+            <span className="text-faint tnum font-mono text-xs">{home.assignments.length}</span>
           </div>
           <AssignmentQueue assignments={home.assignments} />
         </section>

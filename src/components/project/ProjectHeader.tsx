@@ -12,7 +12,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     <header className="flex flex-col gap-2">
       <p className="label-micro text-faint">{project.sponsorName}</p>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-        <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+        <h1 className="text-ink-strong text-3xl font-medium sm:text-4xl">
           {project.name}
         </h1>
         <span className="label-micro border-line-strong text-muted rounded-sm border px-2 py-0.5">

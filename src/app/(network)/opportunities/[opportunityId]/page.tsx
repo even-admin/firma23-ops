@@ -48,7 +48,7 @@ export default async function OpportunityDetailPage({
           · {detail.summary.serviceName} v{detail.summary.serviceVersion}
         </p>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h1 className="text-ink-strong text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+          <h1 className="text-ink-strong text-3xl font-medium sm:text-4xl">
             {detail.summary.beneficiaryName}
           </h1>
           <StatusPill status={detail.summary.status} />

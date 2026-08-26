@@ -7,7 +7,6 @@ import { ChromeIcon } from '@/components/chrome/NavIcon';
 import { Amount } from '@/components/money/Amount';
 import { AvailabilityBadge } from '@/components/operator/AvailabilityBadge';
 import { IdentityOrb } from '@/components/operator/IdentityOrb';
-import { ProgressionMeter } from '@/components/operator/ProgressionMeter';
 import { SkillChips } from '@/components/operator/SkillChips';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
@@ -47,7 +46,7 @@ function OutcomeSummary({ operator }: { readonly operator: OperatorCardView }) {
     <section className="border-line border-y py-4" aria-labelledby={`outcomes-${operator.memberId}`}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 id={`outcomes-${operator.memberId}`} className="label-micro text-faint">
-          {copy.progression.verifiedOutcomes}
+          {copy.network.verifiedOutcomes}
         </h3>
         {operator.activeWorkCount > 0 ? (
           <span className="text-muted tnum text-xs">
@@ -69,7 +68,7 @@ function OutcomeSummary({ operator }: { readonly operator: OperatorCardView }) {
 
 function InactiveMemberCover({ operator }: { readonly operator: OperatorCardView }) {
   return (
-    <article className="border-line bg-surface flex h-full min-w-0 flex-col overflow-hidden rounded-lg border p-6">
+    <article className="spatial-object border-line bg-surface flex h-full min-w-0 flex-col overflow-hidden border p-6">
       <div className="identity-orb-surface flex flex-1 flex-col items-center justify-center text-center">
         <IdentityOrb memberId={operator.memberId} size="hero" />
         <p className="text-ink-strong mt-5 max-w-[14rem] text-2xl leading-tight font-medium">
@@ -90,7 +89,7 @@ function InactiveMemberCover({ operator }: { readonly operator: OperatorCardView
 function ActiveMemberCover({ operator }: { readonly operator: OperatorCardView }) {
   return (
     <article
-      className="identity-orb-surface border-line/70 bg-surface flex h-full min-w-0 flex-col overflow-hidden rounded-lg border p-5 sm:p-6"
+      className="identity-orb-surface spatial-object border-line/70 bg-surface flex h-full min-w-0 flex-col overflow-hidden border p-5 sm:p-6"
       data-mobile-nav-clearance
     >
       <header className="flex min-w-0 items-start gap-4">
@@ -123,18 +122,14 @@ function ActiveMemberCover({ operator }: { readonly operator: OperatorCardView }
         <OutcomeSummary operator={operator} />
       </div>
 
-      <div className="mt-4">
-        <ProgressionMeter progression={operator.progression} compact />
-      </div>
-
-      <footer className="border-line mt-auto grid grid-cols-2 gap-4 border-t pt-4">
+      <footer className="border-line mt-auto grid grid-cols-[auto_minmax(0,1fr)] gap-6 border-t pt-4">
         <div>
           <p className="label-micro text-faint">{copy.money.approved}</p>
           <Amount value={operator.approvedEarnings} className="text-money mt-1 text-base font-medium" />
         </div>
-        <div className="text-right">
-          <p className="label-micro text-faint">{copy.money.paid}</p>
-          <Amount value={operator.paidEarnings} className="text-ink mt-1 text-base font-medium" />
+        <div className="min-w-0 text-right">
+          <p className="label-micro text-faint">{copy.network.nextCapability}</p>
+          <p className="text-muted mt-1 truncate text-sm">{operator.nextCapability}</p>
         </div>
       </footer>
     </article>
@@ -191,7 +186,7 @@ export function MemberCoverflow({ operators }: MemberCoverflowProps) {
       </div>
 
       <div
-        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden rounded-lg border-y border-line py-5 focus:outline-none sm:min-h-[38rem]"
+        className="member-coverflow relative min-h-[36rem] touch-pan-y overflow-hidden border-y border-line py-5 focus:outline-none sm:min-h-[38rem]"
         role="group"
         aria-roledescription="carrusel"
         aria-label={copy.network.carouselLabel}

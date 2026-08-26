@@ -19,14 +19,14 @@ interface LeaderboardRankRowProps {
 export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowProps) {
   return (
     <li
-      className="identity-orb-surface border-line bg-surface flex flex-col gap-3 rounded-lg border p-4 sm:p-5"
+      className="identity-orb-surface border-line bg-surface flex flex-col gap-3 border-b p-5 last:border-b-0 sm:p-6"
       data-leaderboard-member={row.slug}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="label-micro text-faint tnum w-6 shrink-0">
+      <div className="grid min-w-0 grid-cols-[3rem_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[3rem_auto_minmax(0,1fr)_auto]">
+        <span className="text-faint tnum row-span-2 font-mono text-3xl font-medium sm:row-span-1">
           {String(row.rank).padStart(2, '0')}
         </span>
-        <IdentityOrb memberId={row.memberId} size="compact" />
+        <IdentityOrb memberId={row.memberId} size="card" />
         <span className="min-w-0 flex-1">
           <Link
             href={`/network/${row.slug}`}
@@ -42,7 +42,7 @@ export function LeaderboardRankRow({ row, showProvenance }: LeaderboardRankRowPr
         </span>
 
         {/* The ranked figure. */}
-        <span className="text-right" data-money-state="approved">
+        <span className="col-start-3 text-left sm:col-start-4 sm:text-right" data-money-state="approved">
           <span className="label-micro text-faint block">{copy.leaderboard.approved}</span>
           <Amount value={row.approvedEarnings} className="text-money text-base font-medium" />
         </span>

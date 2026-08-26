@@ -4,9 +4,10 @@ Status: approved V1 direction.
 
 ## Design thesis
 
-FIRMA23 is an operational game whose authority surfaces behave like records,
-system surfaces behave like instruments, and player surfaces reward verified
-outcomes without turning telemetry into status.
+FIRMA23 is a young creative studio first and a private members club second.
+Its interface is an editorial atelier first and abstract spatial software second:
+authority surfaces behave like records, system surfaces behave like instruments,
+and player surfaces reward verified outcomes without turning telemetry into status.
 
 This is a private operating network, not the public FIRMA23 site. The interface
 must help a young operating team understand real work, permissions, evidence and
@@ -23,7 +24,7 @@ appears approved, earned or payable.
 
 ### Systems
 
-Use technical density, causal processing motion and selective dark chambers for
+Use technical density, causal processing motion and bounded atmospheric fields for
 intake, evidence and future connectors. A disconnected, degraded, synthetic or
 unavailable system must look like that state. Motion may never imply a live or
 healthy connection without provider evidence.
@@ -37,11 +38,12 @@ not create status, earnings, XP or rank.
 
 ### Signature
 
-Preserve `MeshDriftCanvas` at full character on Home only. It is the sole
-gradient and grain environment. `IdentityOrb` is the only other gradient
-exception: small, circular and deterministic from `memberId`, with no initials,
-photo or semantic colour. No other component may introduce gradients,
-decorative color washes, grain or generic AI artwork.
+Preserve `MeshDriftCanvas` at full character on Home only. It is the sole moving
+gradient and grain environment. `IdentityOrb` is a small circular member marker,
+deterministic from `memberId`, with no initials, photo or semantic colour.
+`ProjectCover` is the other bounded gradient exception: deterministic editorial
+artwork that identifies a project without encoding its status. No generic AI
+artwork, rainbow metrics or unbounded decorative wash is allowed.
 
 ## Product truth
 
@@ -75,9 +77,10 @@ decorative color washes, grain or generic AI artwork.
 
 ### Inicio
 
-Preserve `OperationalHeader` and `MeshDriftCanvas`. Refine next actions and
-assignments using the existing `PersonalHome` model. Do not replace the home
-surface with generic KPI cards or a marketing hero.
+Preserve `OperationalHeader` and `MeshDriftCanvas`, but compose Home as one focused
+work object with an active periphery: identity and orientation, active opportunity,
+one real route/action, private exact ledger, then remaining work. Do not replace
+the surface with generic KPI cards or a marketing hero.
 
 ### Oportunidades
 
@@ -88,9 +91,10 @@ aggregate model; no invented score or trend is permitted.
 ### Red
 
 Evolve Operator Card into the Player identity surface using only existing
-skills, outcomes, approved/paid earnings and availability. Member artwork uses
+skills, outcomes, approved earnings and availability. Member artwork uses
 the decorative `IdentityOrb` wherever a stable `memberId` already exists. No
-remote avatars, fake people, glass effects or telemetry competition.
+remote avatars, fake people or telemetry competition. Glass is reserved for
+lightweight controls and identity framing, never data records.
 
 ### Ranking
 
@@ -101,8 +105,10 @@ approved model.
 ### Proyectos
 
 Use a responsive record table at 768px and above and structured rows below 768px.
-Project detail adopts an exact header, services, opportunities and rule history
-from the existing view model.
+Every project receives deterministic editorial cover artwork until an authorized
+project image/palette model exists. Opportunity records inherit that identity
+subtly. Project detail adopts an exact header, services, opportunities and rule
+history from the existing view model.
 
 ### Admin
 
@@ -151,7 +157,8 @@ recomposed, never a horizontally scrolling desktop table.
 
 ### Spatial surfaces
 
-Object cards use one 8px outer boundary, generous internal rhythm and at most one
+Focused studio objects use a 20px boundary, member/project objects 16px, authority
+records 12px, and controls 10-12px. Object cards use generous internal rhythm and at most one
 structural divider between information zones. Internal facts group through space,
 alignment and quiet surface shifts instead of nested bordered cards. Compact tags
 use 4px radii and are filled or outlined only when the distinction is meaningful.
@@ -180,11 +187,13 @@ must not create competing alert, toast or status systems.
 - Dialogs make background controls inert, trap focus and restore the exact opener.
 - Motion is causal, quick deceleration and never bounce or spring.
 - Reduced motion freezes causal effects without blanking their final state.
-- No gradients or shadows except `MeshDriftCanvas`, `IdentityOrb`, and the focus ring.
+- No gradients or shadows except `MeshDriftCanvas`, `IdentityOrb`, `ProjectCover`,
+  and the focus ring.
 - No hardcoded hex outside `src/app/tokens.css`.
 - No foreign branding, monograms, horses, generic AI decoration or accent colors.
-- Cards use an 8px outer radius, 6px controls and 4px compact tags, and never nest
-  inside decorative cards.
+- Radius communicates hierarchy: 20px focused studio objects, 16px member/project
+  objects, 12px authority records and 10-12px controls. Cards never nest inside
+  decorative cards.
 - Mobile recomposes workflows and preserves the primary action and money state.
 
 ## Dependency policy

@@ -18,7 +18,7 @@ export function AssignmentRow({ assignment }: AssignmentRowProps) {
   const correctionRequired = assignment.money.kind === 'correction_required';
 
   return (
-    <li className="border-line bg-surface ease-firma hover:border-line-strong grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 rounded-md border p-4 transition-colors duration-150 sm:grid-cols-[1fr_auto_auto]">
+    <li className="border-line bg-surface ease-firma hover:border-line-strong grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 rounded-[var(--radius-record)] border p-4 transition-colors duration-150 sm:grid-cols-[1fr_auto_auto]">
       <div className="min-w-0 flex-1">
         <p className="text-ink truncate text-sm font-medium">{assignment.beneficiaryName}</p>
         <p className="text-faint truncate text-xs">

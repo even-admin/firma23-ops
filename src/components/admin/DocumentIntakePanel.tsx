@@ -235,7 +235,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="border-ink-950 bg-ink-950 text-paper-000 ease-firma hover:bg-ink-900 mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
+                className="glass-action-button ease-firma mt-1 flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
               >
                 {i.chooseFile}
               </button>
@@ -284,7 +284,7 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
                       'ease-firma flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150',
                       phase === 'processing'
                         ? 'border-line text-faint cursor-not-allowed'
-                        : 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900',
+                        : 'glass-action-button',
                     )}
                   >
                     {phase === 'processing'

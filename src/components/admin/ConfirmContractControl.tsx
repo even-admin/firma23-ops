@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from 'react';
 
 import Link from 'next/link';
 
@@ -70,7 +70,7 @@ export function ConfirmContractControl({
   const discardTriggerRef = useRef<HTMLButtonElement>(null);
   const statusId = useId();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (discarded || result !== null || discardResult !== null) outcomeRef.current?.focus();
   }, [discarded, discardResult, result]);
 
@@ -205,7 +205,7 @@ export function ConfirmContractControl({
             'ease-firma flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150 sm:w-auto',
             isPending || !readyToConfirm
               ? 'border-line text-faint cursor-not-allowed'
-              : 'border-ink-950 bg-ink-950 text-paper-000 hover:bg-ink-900',
+              : 'glass-action-button',
           )}
         >
           {matchedProjectSlug === null ? i.confirm : i.confirmMatched}

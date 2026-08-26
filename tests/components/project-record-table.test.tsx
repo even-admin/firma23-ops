@@ -41,6 +41,25 @@ describe('ProjectRecordTable', () => {
     expect(container.querySelector('.project-record-stats')).not.toHaveClass('sm:grid-cols-4');
   });
 
+  it('gives every project deterministic decorative artwork without encoding status', () => {
+    const first = render(<ProjectRecordTable projects={projects} />);
+    const firstVariants = [...first.container.querySelectorAll('[data-project-cover]')].map(
+      (cover) => cover.getAttribute('data-cover-variant'),
+    );
+    expect(firstVariants).toHaveLength(projects.length * 2);
+    expect(first.container.querySelectorAll('[data-project-cover][aria-hidden="true"]')).toHaveLength(
+      projects.length * 2,
+    );
+    first.unmount();
+
+    const second = render(<ProjectRecordTable projects={projects} />);
+    expect(
+      [...second.container.querySelectorAll('[data-project-cover]')].map((cover) =>
+        cover.getAttribute('data-cover-variant'),
+      ),
+    ).toEqual(firstVariants);
+  });
+
   it('never invents money: every displayed amount is the project approvedSettled value', () => {
     const { container } = render(<ProjectRecordTable projects={projects} />);
     const moneyNodes = container.querySelectorAll('[class*="money"] data');

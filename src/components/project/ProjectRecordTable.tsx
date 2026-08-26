@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Amount } from '@/components/money/Amount';
+import { ProjectCover } from '@/components/project/ProjectCover';
 import { copy } from '@/copy/es-MX';
 import type { ProjectSummary } from '@/types/views';
 
@@ -17,34 +18,34 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
   return (
     <div className="project-records" data-project-records>
       <div
-        className="project-record-table-shell border-line overflow-hidden rounded-lg border"
+        className="project-record-table-shell spatial-object border-line overflow-hidden border"
         data-record-view="table"
       >
         <table className="w-full table-fixed border-collapse">
           <caption className="sr-only">{copy.projects.title}</caption>
           <thead>
             <tr className="border-line bg-raised/45 border-b text-left">
-              <th scope="col" className="label-micro text-faint w-[30%] px-3 py-2 font-medium">
+              <th scope="col" className="label-micro text-faint w-[36%] px-3 py-2 font-medium">
                 <span>{copy.projects.filterProject}</span>
               </th>
-              <th scope="col" className="label-micro text-faint w-[13%] px-3 py-2 font-medium">
+              <th scope="col" className="label-micro text-faint w-[12%] px-3 py-2 font-medium">
                 <span>{copy.projects.filterStatus}</span>
               </th>
               <th
                 scope="col"
-                className="label-micro text-faint w-[12%] px-3 py-2 text-right font-medium"
+                className="label-micro text-faint w-[10%] px-3 py-2 text-right font-medium"
               >
                 <span>{copy.projects.services}</span>
               </th>
               <th
                 scope="col"
-                className="label-micro text-faint w-[15%] px-3 py-2 text-right font-medium"
+                className="label-micro text-faint w-[13%] px-3 py-2 text-right font-medium"
               >
                 <span>{copy.projects.opportunitiesCount}</span>
               </th>
               <th
                 scope="col"
-                className="label-micro text-faint w-[20%] px-3 py-2 text-right font-medium"
+                className="label-micro text-faint w-[19%] px-3 py-2 text-right font-medium"
               >
                 <span>{copy.projects.settledApproved}</span>
               </th>
@@ -62,13 +63,16 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
                 key={project.id}
                 className="border-line hover:bg-raised/20 border-b transition-colors last:border-b-0"
               >
-                <td className="min-w-0 px-3 py-4">
+                <td className="min-w-0 px-3 py-3">
                   <Link
                     href={`/projects/${project.slug}`}
-                    className="text-ink hover:text-ink-strong flex min-h-11 flex-col justify-center underline-offset-4 hover:underline"
+                    className="text-ink hover:text-ink-strong grid min-h-11 grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 underline-offset-4 hover:underline"
                   >
-                    <span className="truncate text-sm font-medium">{project.name}</span>
-                    <span className="text-faint block truncate text-xs">{project.sponsorName}</span>
+                    <ProjectCover projectId={project.id} size="thumbnail" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{project.name}</span>
+                      <span className="text-faint block truncate text-xs">{project.sponsorName}</span>
+                    </span>
                   </Link>
                 </td>
                 <td className="px-3 py-4">
@@ -100,9 +104,10 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
         {projects.map((project) => (
           <li
             key={project.id}
-            className="border-line bg-surface ease-firma hover:border-line-strong flex flex-col gap-5 rounded-lg border p-5 transition-colors sm:p-6"
+            className="spatial-object border-line bg-surface ease-firma hover:border-line-strong flex flex-col overflow-hidden border transition-colors"
           >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+            <ProjectCover projectId={project.id} size="card" className="rounded-none border-0" />
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-5 pt-1 sm:px-6">
               <div className="min-w-0">
                 <h2 className="text-ink-strong truncate text-lg font-medium">
                   <Link
@@ -119,7 +124,7 @@ export function ProjectRecordTable({ projects }: ProjectRecordTableProps) {
               </span>
             </div>
 
-            <dl className="project-record-stats border-line grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-4">
+            <dl className="project-record-stats border-line mx-5 mb-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-4 sm:mx-6 sm:mb-6">
               <div className="min-w-0">
                 <dt className="label-micro text-faint">{copy.projects.services}</dt>
                 <dd className="text-ink tnum text-sm">{project.serviceCount}</dd>
