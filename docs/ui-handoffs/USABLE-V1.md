@@ -48,21 +48,24 @@ This checkpoint implements the Usable V1 slice from `docs/USABLE-V1-MASTER-PLAN.
 
 ## Repair Verification
 
-Starting evidence was a clean worktree at
-`9dfba87c872bc82d93070a38964e815570578094` on
-`ui-integrator-merge-six-lanes`. The repair checkpoint is local-only; inspect
-`git rev-parse HEAD` and `git status --short` after the commit for its exact
-immutable identity and clean final state.
+The preceding repair receipt is bound to clean local candidate
+`1f39b620b37a6f2b3701210f0f10a4a70860010f` on
+`ui-integrator-merge-six-lanes`:
+`.context/qa/ui-integrator/1f39b620b37a6f2b3701210f0f10a4a70860010f/20260826T230516Z-29002`.
+Its `head-before.txt` and `head-after-build.txt` match that SHA; both recorded
+worktree-status files are empty. This document change requires a subsequent
+candidate receipt; do not treat the preceding receipt as proof for a later SHA.
 
-Fresh local receipts from the repaired source tree:
+The preceding local receipt recorded these commands with exit 0:
 
-- `npm run lint`: exit 0.
-- `npm run typecheck`: exit 0.
-- `npm test`: exit 0, 34 files and 405 tests.
-- `rm -rf .next && npm run build`: exit 0. Fresh `BUILD_ID`:
-  `qYm7811NrbFGPg0AHCQTB`.
-- `scripts/db-verify.sh`: exit 0. Disposable PostgreSQL 17.10 applied every
-  migration and seed from zero; 170 passed and 0 failed.
+- `git diff --check`, `npm run lint`, `npm run typecheck`, and `npm test`
+  (35 files, 406 tests).
+- `bash scripts/db-verify.sh`: disposable PostgreSQL 17.10 applied every
+  migration and seed from zero; 172 passed and 0 failed.
+- Fresh `npm run build`: `BUILD_ID=fqzmhMZT6uK2xpMIpomrI`.
+- Local synthetic browser matrix (`mode-s-browser`): exit 0. It covered
+  founder/member routes at 375, 767, 768, and 1280px, interaction states, and
+  expected 404s. Its result JSON is in the same receipt directory.
 
 The repair coverage includes configured leaderboard/provenance selection,
 projection-versus-cash settlement preview semantics, canonical request
@@ -74,9 +77,10 @@ correction state behavior.
 Unavailable evidence:
 
 - Real Development Supabase create/readback was not run because applying the new migration remotely and creating real canonical records are provider-backed mutations requiring fresh explicit authorization.
-- Configured-browser and Development QA were not run: they require an
-  authorized remote migration application and real canonical records. They are
-  unavailable evidence, not a substitute with synthetic fixtures.
+- Configured-browser and Development QA remain unavailable: they require an
+  authorized remote migration application and real canonical records. The
+  passing browser receipt above is explicitly local synthetic-mode evidence,
+  not a substitute for configured or Development proof.
 - No Production, Preview, deploy, or push evidence exists for this checkpoint.
 
 ## Operator Notes
