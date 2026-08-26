@@ -1,6 +1,7 @@
 # WU-0 document-ingestion contract
 
-Status: `READY_FOR_FABLE`, not yet released to Terra.
+Status: `DEFERRED`; not required by the founder-usable V1 in
+`docs/USABLE-V1-MASTER-PLAN.md`.
 
 - Control base: `9e7141b47a120874710d04efc998f3c42f41094b`
 - Owner: SOL control

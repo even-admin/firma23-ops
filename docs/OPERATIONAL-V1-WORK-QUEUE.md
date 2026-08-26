@@ -1,7 +1,8 @@
 # FIRMA23 operational V1 work queue
 
-Status: single-workspace execution queue. This converts the ship plan into
-bounded model handoffs. Base at creation: `c55d8076490ca9fe4bbec61f8162ab106406f368`.
+Status: deferred long-form queue. The immediate founder-usable release is governed
+by `docs/USABLE-V1-MASTER-PLAN.md`. Base at creation:
+`c55d8076490ca9fe4bbec61f8162ab106406f368`.
 
 ## Working rule
 

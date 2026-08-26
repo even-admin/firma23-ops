@@ -1,6 +1,7 @@
 # FIRMA23 operational V1 ship plan
 
-Status: execution contract for an internal Development/Preview launch.
+Status: deferred roadmap. The immediate founder-usable release is governed by
+`docs/USABLE-V1-MASTER-PLAN.md`.
 Target: usable by FIRMA23 tomorrow without synthetic-data misrepresentation.
 
 Session/model routing follows `docs/AGENT-OPERATING-MODEL.md`.
