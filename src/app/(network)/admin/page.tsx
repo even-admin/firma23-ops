@@ -10,8 +10,9 @@ import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
-import { syntheticProjectRepository } from '@/data/repositories/synthetic/projects';
+import { activeOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
+import { activeProjectRepository } from '@/data/repositories/active/projects';
+import { activeMemberRepository } from '@/data/repositories/active/members';
 import { isFounder } from '@/lib/viewer';
 
 async function AdminBody() {
@@ -27,9 +28,14 @@ async function AdminBody() {
     );
   }
 
-  const [overview, projects] = await Promise.all([
-    syntheticFinanceRepository.getOverview(viewer),
-    syntheticProjectRepository.list(viewer),
+  const [overview, projects, members] = await Promise.all([
+    activeOperationalFinanceRepository.getOverview(viewer),
+    activeProjectRepository.list(viewer),
+    'listAssignmentMembers' in activeMemberRepository
+      ? activeMemberRepository.listAssignmentMembers(viewer)
+      : activeMemberRepository.listDirectory({}, viewer).then((rows) =>
+          rows.map((row) => ({ memberId: row.memberId, displayName: row.displayName, role: row.role })),
+        ),
   ]);
 
   const attention = overview.rows.filter((row) => row.rail.kind !== 'settlement');
@@ -43,7 +49,7 @@ async function AdminBody() {
         <p className="text-muted text-sm">{copy.admin.subtitle}</p>
       </header>
 
-      <DocumentIntakePanel />
+      <DocumentIntakePanel assignmentMembers={members} />
 
       <FinanceMetricCard totals={overview.totals} pendingApprovals={overview.pendingApprovals} />
 

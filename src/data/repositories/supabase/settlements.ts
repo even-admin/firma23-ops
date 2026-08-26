@@ -21,6 +21,10 @@ import { copy } from '@/copy/es-MX';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { assertFounder, type ViewerContext } from '@/lib/viewer';
 import type { SettlementRepository } from '@/data/repositories/settlements';
+import {
+  loadOperationalSnapshot,
+  opportunityDetail,
+} from '@/data/repositories/supabase/operational-reads';
 import type {
   ApproveSettlementInput,
   ApproveSettlementResult,
@@ -103,6 +107,47 @@ export async function reverseSettlement(
 // interface — activeSettlementWriteRepository in active/settlements.ts
 // reflects that same, narrower scope.
 export const supabaseSettlementRepository = {
+  async listOpportunityRails(viewer: ViewerContext) {
+    assertFounder(viewer, 'listOpportunityRails');
+    const snapshot = await loadOperationalSnapshot(viewer);
+    return snapshot.opportunities.map((opportunity) => {
+      const detail = opportunityDetail(snapshot, opportunity.id);
+      if (detail === null) {
+        throw new Error(`Opportunity ${opportunity.id} disappeared while mapping rails`);
+      }
+      return {
+        opportunity: detail.summary,
+        rail: detail.rail,
+        distributableBase: {
+          base: detail.distributableBase,
+          policyLabel: detail.basePolicyLabel,
+          policyNote: detail.basePolicyNote,
+          included: [],
+          excluded: [],
+        },
+        cashReceived: detail.cashReceived,
+      };
+    });
+  },
+
+  async getOpportunityRail(opportunityId: string, viewer: ViewerContext) {
+    assertFounder(viewer, 'getOpportunityRail');
+    const detail = opportunityDetail(await loadOperationalSnapshot(viewer), opportunityId);
+    if (detail === null) return null;
+    return {
+      opportunity: detail.summary,
+      rail: detail.rail,
+      distributableBase: {
+        base: detail.distributableBase,
+        policyLabel: detail.basePolicyLabel,
+        policyNote: detail.basePolicyNote,
+        included: [],
+        excluded: [],
+      },
+      cashReceived: detail.cashReceived,
+    };
+  },
+
   approveSettlement,
   reverseSettlement,
-} satisfies Pick<SettlementRepository, 'approveSettlement' | 'reverseSettlement'>;
+} satisfies SettlementRepository;

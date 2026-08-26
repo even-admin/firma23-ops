@@ -8,11 +8,11 @@ const isSupabaseConfiguredMock = vi.fn(() => true);
 
 vi.mock('@/data/viewer-session', () => ({ getViewer: getViewerMock }));
 vi.mock('@/lib/backend', () => ({ isSupabaseConfigured: isSupabaseConfiguredMock }));
-vi.mock('@/data/repositories/synthetic/projects', () => ({
-  syntheticProjectRepository: { list: vi.fn().mockResolvedValue([]) },
+vi.mock('@/data/repositories/active/projects', () => ({
+  activeProjectRepository: { list: vi.fn().mockResolvedValue([]) },
 }));
-vi.mock('@/data/repositories/synthetic/finance', () => ({
-  syntheticFinanceRepository: {
+vi.mock('@/data/repositories/active/operational-finance', () => ({
+  activeOperationalFinanceRepository: {
     getOverview: vi.fn().mockResolvedValue({ pendingApprovals: 0 }),
   },
 }));
@@ -37,15 +37,15 @@ describe('configured network layout data authority', () => {
     ['founder', PROTOTYPE_FOUNDER],
     ['member', PROTOTYPE_MEMBER],
   ] as const)(
-    'keeps the noncanonical synthetic warning around every %s route child',
+    'keeps the canonical configured warning around every %s route child',
     async (_, viewer) => {
       getViewerMock.mockResolvedValue(viewer);
       render(await NetworkLayout({ children: <main data-testid="route-child">route</main> }));
 
       expect(screen.getByTestId('route-child')).toBeInTheDocument();
       const notice = screen.getByRole('status');
-      expect(notice).toHaveAttribute('data-data-authority', 'configured-synthetic');
-      expect(notice).toHaveTextContent(/ningún monto mostrado proviene del ledger de Supabase/i);
+      expect(notice).toHaveAttribute('data-data-authority', 'configured-canonical');
+      expect(notice).toHaveTextContent(/registros canónicos de Supabase/i);
     },
   );
 });

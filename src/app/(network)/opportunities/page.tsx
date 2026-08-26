@@ -7,7 +7,7 @@ import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticSettlementRepository } from '@/data/repositories/synthetic/settlements';
+import { activeSettlementRepository } from '@/data/repositories/active/settlements';
 import { isFounder } from '@/lib/viewer';
 import type { OpportunityStatus } from '@/types/domain';
 
@@ -36,7 +36,7 @@ async function OpportunitiesBody({
     );
   }
 
-  const all = await syntheticSettlementRepository.listOpportunityRails(viewer);
+  const all = await activeSettlementRepository.listOpportunityRails(viewer);
 
   // Counts come from the unfiltered set so a chip never reads zero for work that exists.
   const projectOptions: FilterOption[] = [

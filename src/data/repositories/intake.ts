@@ -4,6 +4,8 @@ import type {
   ConfirmContractDraftResult,
   DiscardContractDraftResult,
   IntakeRunView,
+  ManualContractSetupInput,
+  ManualContractSetupResult,
   RunIntakeInput,
 } from '@/types/views';
 
@@ -11,6 +13,8 @@ export type {
   ConfirmContractDraftInput,
   ConfirmContractDraftResult,
   DiscardContractDraftResult,
+  ManualContractSetupInput,
+  ManualContractSetupResult,
   RunIntakeInput,
 };
 
@@ -31,4 +35,10 @@ export interface IntakeRepository {
 
   /** Founder-only. The explicit rejection path for a draft that is wrong. */
   discardContractDraft(draftId: string, viewer: ViewerContext): Promise<DiscardContractDraftResult>;
+
+  /** Founder-only complete manual V1 setup, persisted atomically in Supabase. */
+  createManualContractSetup(
+    input: ManualContractSetupInput,
+    viewer: ViewerContext,
+  ): Promise<ManualContractSetupResult>;
 }

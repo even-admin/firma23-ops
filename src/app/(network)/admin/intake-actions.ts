@@ -6,6 +6,8 @@ import type {
   ConfirmContractDraftInput,
   ConfirmContractDraftResult,
   DiscardContractDraftResult,
+  ManualContractSetupInput,
+  ManualContractSetupResult,
   RunIntakeInput,
 } from '@/data/repositories/intake';
 import type { IntakeRunView } from '@/types/views';
@@ -37,4 +39,11 @@ export async function discardContractDraftAction(
 ): Promise<DiscardContractDraftResult> {
   const viewer = await getViewer();
   return activeIntakeRepository.discardContractDraft(draftId, viewer);
+}
+
+export async function createManualContractSetupAction(
+  input: ManualContractSetupInput,
+): Promise<ManualContractSetupResult> {
+  const viewer = await getViewer();
+  return activeIntakeRepository.createManualContractSetup(input, viewer);
 }

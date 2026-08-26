@@ -8,6 +8,8 @@ import type {
   ConfirmContractDraftResult,
   DiscardContractDraftResult,
   IntakeRepository,
+  ManualContractSetupInput,
+  ManualContractSetupResult,
   RunIntakeInput,
 } from '@/data/repositories/intake';
 import { SOURCE_DOCUMENT_KIND_LABELS } from '@/data/repositories/shared/intake-labels';
@@ -187,6 +189,14 @@ export const syntheticIntakeRepository: IntakeRepository = {
     viewer: ViewerContext,
   ): Promise<DiscardContractDraftResult> {
     assertFounder(viewer, 'discardContractDraft');
+    return { kind: 'unavailable', reason: copy.admin.intake.confirmBlockedReason };
+  },
+
+  async createManualContractSetup(
+    _input: ManualContractSetupInput,
+    viewer: ViewerContext,
+  ): Promise<ManualContractSetupResult> {
+    assertFounder(viewer, 'createManualContractSetup');
     return { kind: 'unavailable', reason: copy.admin.intake.confirmBlockedReason };
   },
 };

@@ -12,7 +12,7 @@ import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticOpportunityRepository } from '@/data/repositories/synthetic/opportunities';
+import { activeOpportunityRepository } from '@/data/repositories/active/opportunities';
 import { isFounder } from '@/lib/viewer';
 
 export default async function OpportunityDetailPage({
@@ -32,7 +32,7 @@ export default async function OpportunityDetailPage({
     );
   }
 
-  const detail = await syntheticOpportunityRepository.getById(opportunityId, viewer);
+  const detail = await activeOpportunityRepository.getById(opportunityId, viewer);
   if (detail === null) notFound();
 
   return (

@@ -9,6 +9,10 @@ import { PROTOTYPE_FOUNDER } from '@/data/prototype-viewers';
 import { syntheticIntakeRepository } from '@/data/repositories/synthetic/intake';
 import type { IntakeRunView } from '@/types/views';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 const RUN_INPUT = {
   sourceDocumentFilename: 'EVEN Collective Servicios SETY 2026.pdf',
   idempotencyKey: 'test-1',
@@ -372,11 +376,11 @@ describe('DocumentIntakePanel', () => {
     const opener = screen.getByRole('button', { name: copy.admin.intake.ctaManual });
     fireEvent.click(opener);
     expect(screen.getByText(copy.admin.intake.manualTitle)).toBeInTheDocument();
-    // Nothing may be confirmed until both fields are filled.
-    expect(screen.getByRole('button', { name: copy.admin.intake.confirm })).toBeDisabled();
+    // Nothing may be created until the complete V1 setup is valid.
+    expect(screen.getByRole('button', { name: copy.admin.intake.manualSubmit })).toBeDisabled();
     const sponsor = screen.getByRole('textbox', { name: copy.admin.intake.manualSponsorLabel });
     expect(document.activeElement).toBe(sponsor);
-    expect(sponsor).toHaveAttribute('name', 'sponsorName');
+    expect(sponsor).toHaveAttribute('name', 'clientName');
     expect(sponsor).toHaveAttribute('autocomplete', 'organization');
     fireEvent.click(screen.getByRole('button', { name: copy.admin.intake.manualCancel }));
     await waitFor(() => expect(document.activeElement).toBe(opener));

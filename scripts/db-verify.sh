@@ -1468,6 +1468,240 @@ else
 fi
 
 echo
+echo "=== scenario 21: founder-usable V1 manual contract setup ==="
+
+expect_success "manual setup: founder creates exactly one complete contract setup and no ledger/settlement/stat/XP rows" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+
+do $$
+declare
+  created record;
+begin
+  select * into created from public.create_manual_contract_setup(
+    'a0000000-0000-4000-8000-000000000001',
+    'Cliente V1',
+    'Contrato Manual V1',
+    'Servicio fundador V1 con alcance escrito por el fundador.',
+    123456,
+    'MXN',
+    3000,
+    jsonb_build_array(
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre y entrega', 'weightBp', 10000)
+    ),
+    'db-verify-manual-v1'
+  );
+
+  if created.replayed is distinct from false
+    or (select count(*) from public.projects p where p.id = created.project_id and p.status = 'active' and p.sponsor_name = 'Cliente V1') <> 1
+    or (select count(*) from public.service_versions sv where sv.project_id = created.project_id) <> 1
+    or (select count(*) from public.allocation_rule_versions arv where arv.project_id = created.project_id) <> 1
+    or (select count(*) from public.allocation_shares ash join public.allocation_rule_versions arv on arv.id = ash.rule_version_id where arv.project_id = created.project_id) <> 2
+    or (select coalesce(sum(weight_bp), 0) from public.allocation_shares ash join public.allocation_rule_versions arv on arv.id = ash.rule_version_id where arv.project_id = created.project_id) <> 10000
+    or (select count(*) from public.opportunities o where o.id = created.opportunity_id and o.status = 'assigned') <> 1
+    or (select count(*) from public.assignments a where a.opportunity_id = created.opportunity_id and a.status = 'approved' and a.weight_bp = 10000) <> 1
+    or (select count(*) from public.opportunity_projection_versions opv where opv.opportunity_id = created.opportunity_id and opv.version = 1 and opv.projected_base_centavos = 123456) <> 1
+    or (select count(*) from public.audit_events ae where ae.target_id = created.project_id and ae.action = 'create_manual_contract_setup') <> 1
+    or (select count(*) from public.manual_contract_setup_receipts r where r.opportunity_id = created.opportunity_id) <> 1
+    or (select count(*) from public.cash_events ce where ce.opportunity_id = created.opportunity_id) <> 0
+    or (select count(*) from public.settlements s where s.opportunity_id = created.opportunity_id) <> 0
+    or (select count(*) from public.stat_events se where se.opportunity_id = created.opportunity_id) <> 0
+  then
+    raise exception 'manual setup did not create exactly the expected rows';
+  end if;
+end;
+$$;
+SQL
+
+expect_success "manual setup: identical replay returns original ids without extra rows" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+
+do $$
+declare
+  project_count_before integer;
+  audit_count_before integer;
+  replayed record;
+begin
+  select count(*) into project_count_before from public.projects where sponsor_name = 'Cliente V1';
+  select count(*) into audit_count_before from public.audit_events where action = 'create_manual_contract_setup';
+
+  select * into replayed from public.create_manual_contract_setup(
+    'a0000000-0000-4000-8000-000000000001',
+    'Cliente V1',
+    'Contrato Manual V1',
+    'Servicio fundador V1 con alcance escrito por el fundador.',
+    123456,
+    'MXN',
+    3000,
+    jsonb_build_array(
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre y entrega', 'weightBp', 10000)
+    ),
+    'db-verify-manual-v1'
+  );
+
+  if replayed.replayed is distinct from true
+    or (select count(*) from public.projects where sponsor_name = 'Cliente V1') <> project_count_before
+    or (select count(*) from public.audit_events where action = 'create_manual_contract_setup') <> audit_count_before
+  then
+    raise exception 'manual setup replay wrote additional rows';
+  end if;
+end;
+$$;
+SQL
+
+expect_failure "manual setup: mismatched replay fails deterministically" "already used for a different contract setup request" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente V1',
+  'Contrato Manual V1 cambiado',
+  'Servicio fundador V1 con alcance escrito por el fundador.',
+  123456,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre y entrega', 'weightBp', 10000)
+  ),
+  'db-verify-manual-v1'
+);
+SQL
+
+expect_failure "manual setup: member cannot create" "founder access required" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente miembro',
+  'Contrato miembro',
+  'Alcance',
+  10000,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega', 'weightBp', 10000)
+  ),
+  'db-verify-member-denied'
+);
+SQL
+
+expect_failure "manual setup: cross-org assignment member is rejected" "not an active member of org" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente cross org',
+  'Contrato cross org',
+  'Alcance',
+  10000,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-0000000000ff', 'roleLabel', 'Entrega', 'weightBp', 10000)
+  ),
+  'db-verify-cross-org-member'
+);
+SQL
+
+expect_failure "manual setup: malformed team weights are rejected" "expected exactly 10000" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente peso',
+  'Contrato peso',
+  'Alcance',
+  10000,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega', 'weightBp', 9000)
+  ),
+  'db-verify-bad-weight'
+);
+SQL
+
+expect_failure "manual setup: duplicate assignment member is rejected" "does not permit the same member twice" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente duplicado',
+  'Contrato duplicado',
+  'Alcance',
+  10000,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega 1', 'weightBp', 5000),
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega 2', 'weightBp', 5000)
+  ),
+  'db-verify-duplicate-member'
+);
+SQL
+
+expect_failure "manual setup: invalid currency is rejected" "invalid currency" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente moneda',
+  'Contrato moneda',
+  'Alcance',
+  10000,
+  'mxn',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega', 'weightBp', 10000)
+  ),
+  'db-verify-bad-currency'
+);
+SQL
+
+expect_failure "manual setup: nonpositive projected amount is rejected" "positive amount" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente monto',
+  'Contrato monto',
+  'Alcance',
+  0,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Entrega', 'weightBp', 10000)
+  ),
+  'db-verify-bad-amount'
+);
+SQL
+
+expect_failure "manual setup: direct browser insert into projection table is unavailable" "violates row-level security policy" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+insert into public.opportunity_projection_versions (
+  org_id, opportunity_id, version, projected_base_centavos, currency, created_by_member_id
+) values (
+  'a0000000-0000-4000-8000-000000000001',
+  'f0000000-0000-4000-8000-000000000003',
+  99,
+  10000,
+  'MXN',
+  'b0000000-0000-4000-8000-000000000001'
+);
+SQL
+
+expect_failure "manual setup: projection rows are append-only" "append-only" <<'SQL'
+update public.opportunity_projection_versions
+set projected_base_centavos = 1
+where opportunity_id = (
+  select opportunity_id from public.manual_contract_setup_receipts
+  where idempotency_key = 'db-verify-manual-v1'
+);
+SQL
+
+echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then

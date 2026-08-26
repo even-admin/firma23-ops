@@ -7,7 +7,7 @@ import { SkillChips } from '@/components/operator/SkillChips';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { syntheticMemberRepository } from '@/data/repositories/synthetic/members';
+import { activeMemberRepository } from '@/data/repositories/active/members';
 import { cn } from '@/lib/cn';
 
 export default async function OperatorProfilePage({
@@ -17,7 +17,7 @@ export default async function OperatorProfilePage({
 }) {
   const { memberSlug } = await params;
   const viewer = await getViewer();
-  const profile = await syntheticMemberRepository.getProfileBySlug(memberSlug, viewer);
+  const profile = await activeMemberRepository.getProfileBySlug(memberSlug, viewer);
   if (profile === null) notFound();
 
   return (

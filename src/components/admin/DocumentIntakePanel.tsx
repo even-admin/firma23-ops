@@ -13,12 +13,18 @@ import { SourceDocumentCard } from '@/components/admin/SourceDocumentCard';
 import { runIntakeAction } from '@/app/(network)/admin/intake-actions';
 import { copy } from '@/copy/es-MX';
 import { cn } from '@/lib/cn';
-import type { ContractDraftView, IntakeRunView, RunIntakeInput } from '@/types/views';
+import type {
+  AssignmentPickerMember,
+  ContractDraftView,
+  IntakeRunView,
+  RunIntakeInput,
+} from '@/types/views';
 
 interface DocumentIntakePanelProps {
   /** Injectable for tests, which have no Next.js request scope for cookies()
    * to read inside the real Server Action. Defaults to the real action. */
   readonly runIntake?: (input: RunIntakeInput) => Promise<IntakeRunView>;
+  readonly assignmentMembers?: readonly AssignmentPickerMember[];
 }
 
 type Phase = 'idle' | 'selected' | 'processing' | 'ready' | 'error';
@@ -91,7 +97,10 @@ function stepStatuses(
  * explicitly; a live provider, once configured, would not have that
  * limitation, but neither exists as a credential in this environment.
  */
-export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentIntakePanelProps) {
+export function DocumentIntakePanel({
+  runIntake = runIntakeAction,
+  assignmentMembers = [],
+}: DocumentIntakePanelProps) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -202,7 +211,9 @@ export function DocumentIntakePanel({ runIntake = runIntakeAction }: DocumentInt
 
   return (
     <>
-      {showManualForm ? <ManualContractForm onCancel={closeManualForm} /> : null}
+      {showManualForm ? (
+        <ManualContractForm members={assignmentMembers} onCancel={closeManualForm} />
+      ) : null}
       <section
         hidden={showManualForm}
         aria-hidden={showManualForm || undefined}

@@ -611,6 +611,40 @@ export type DiscardContractDraftResult =
   | { readonly kind: 'unavailable'; readonly reason: string }
   | { readonly kind: 'error'; readonly message: string };
 
+export interface AssignmentPickerMember {
+  readonly memberId: string;
+  readonly displayName: string;
+  readonly role: MemberRole;
+}
+
+export interface ManualContractSetupAssignmentInput {
+  readonly memberId: string;
+  readonly roleLabel: string;
+  readonly weightBp: BasisPoints;
+}
+
+export interface ManualContractSetupInput {
+  readonly clientName: string;
+  readonly contractName: string;
+  readonly serviceScope: string;
+  readonly projectedBaseCentavos: number;
+  readonly currency: CurrencyCode;
+  readonly firma23ShareBp: BasisPoints;
+  readonly assignments: readonly ManualContractSetupAssignmentInput[];
+  readonly idempotencyKey: string;
+}
+
+export type ManualContractSetupResult =
+  | {
+      readonly kind: 'created';
+      readonly projectId: string;
+      readonly projectSlug: string;
+      readonly opportunityId: string;
+      readonly replayed: boolean;
+    }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
 export type IntakeRunStatus = 'idle' | 'processing' | 'ready' | 'error';
 
 export interface IntakeRunView {

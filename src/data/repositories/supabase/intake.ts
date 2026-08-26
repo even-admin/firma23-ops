@@ -25,6 +25,8 @@ import type {
   ConfirmContractDraftResult,
   DiscardContractDraftResult,
   IntakeRepository,
+  ManualContractSetupInput,
+  ManualContractSetupResult,
   RunIntakeInput,
 } from '@/data/repositories/intake';
 import {
@@ -452,5 +454,54 @@ export const supabaseIntakeRepository: IntakeRepository = {
       return { kind: 'error', message: rpcResult.error.message };
     }
     return { kind: 'discarded' };
+  },
+
+  async createManualContractSetup(
+    input: ManualContractSetupInput,
+    viewer: ViewerContext,
+  ): Promise<ManualContractSetupResult> {
+    assertFounder(viewer, 'createManualContractSetup');
+    const client = await createSupabaseServerClient();
+    if (client === null) {
+      return { kind: 'unavailable', reason: copy.admin.intake.confirmBlockedReason };
+    }
+
+    const rpcResult = await client.rpc('create_manual_contract_setup', {
+      p_org_id: viewer.orgId,
+      p_client_name: input.clientName,
+      p_contract_name: input.contractName,
+      p_service_scope: input.serviceScope,
+      p_projected_base_centavos: input.projectedBaseCentavos,
+      p_currency: input.currency,
+      p_firma23_share_bp: input.firma23ShareBp,
+      p_assignments: input.assignments.map((assignment) => ({
+        memberId: assignment.memberId,
+        roleLabel: assignment.roleLabel,
+        weightBp: assignment.weightBp,
+      })),
+      p_idempotency_key: input.idempotencyKey,
+    });
+
+    if (rpcResult.error !== null) {
+      return { kind: 'error', message: rpcResult.error.message };
+    }
+    const row = (
+      rpcResult.data as readonly {
+        project_id: string;
+        project_slug: string;
+        opportunity_id: string;
+        replayed: boolean;
+      }[]
+    )[0];
+    if (row === undefined) {
+      return { kind: 'error', message: 'create_manual_contract_setup returned no row.' };
+    }
+    return {
+      kind: 'created',
+      projectId: row.project_id,
+      projectSlug: row.project_slug,
+      opportunityId: row.opportunity_id,
+      replayed: row.replayed,
+    };
   },
 };
