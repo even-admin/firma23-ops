@@ -1756,6 +1756,22 @@ else
   FAIL=$((FAIL + 1)); FAILURES+=("member financial read model"); echo "FAIL: member financial read model returned no personal values"
 fi
 
+# The member now holds closer + delivery roles on one opportunity. The RPC is
+# deliberately opportunity-grained, so its approved/paid/recovery aggregate
+# must occur exactly once even through the existing partial-payout,
+# reversal/reissue, and transfer scenarios above.
+expect_success "dual-role fixture assigns one member to closer and delivery" <<'SQL'
+update public.assignments
+set member_id = 'b0000000-0000-4000-8000-000000000003'
+where id = '10000000-0000-4000-8000-000000000002';
+SQL
+DUAL_ROLE_FINANCE_ROWS="$(query_scalar "set role authenticated; set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222'; select count(*) from public.member_opportunity_financials() where opportunity_id = 'f0000000-0000-4000-8000-000000000001';" | tail -n 1)"
+if [ "$DUAL_ROLE_FINANCE_ROWS" = "1" ]; then
+  PASS=$((PASS + 1)); echo "PASS: dual-role member receives one opportunity-level financial aggregate, never one per role"
+else
+  FAIL=$((FAIL + 1)); FAILURES+=("dual-role member finance grain"); echo "FAIL: expected one dual-role financial row, got $DUAL_ROLE_FINANCE_ROWS"
+fi
+
 echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"

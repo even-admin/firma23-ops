@@ -586,6 +586,8 @@ as $$
     join public.members m on m.id = a.member_id
     join public.memberships ms on ms.member_id = m.id and ms.org_id = m.org_id
     where a.member_id = public.current_member_id() and a.status = 'approved' and ms.status = 'active'
+  ), mine_opportunities as (
+    select distinct opportunity_id, member_id from mine
   ), active_original as (
     select s.* from public.settlements s
     where s.status = 'approved' and s.kind = 'original'
@@ -606,18 +608,18 @@ as $$
     group by m.opportunity_id, lp.currency
   ), current_approved as (
     select m.opportunity_id, ao.currency, coalesce(sum(sl.amount_centavos),0) as amount
-    from mine m join active_original ao on ao.opportunity_id = m.opportunity_id
+    from mine_opportunities m join active_original ao on ao.opportunity_id = m.opportunity_id
     join public.settlement_lines sl on sl.settlement_id = ao.id and sl.member_id = m.member_id
     group by m.opportunity_id, ao.currency
   ), historical_paid as (
     select m.opportunity_id, sl.currency, coalesce(sum(slp.amount_centavos),0) as amount
-    from mine m join public.settlement_lines sl on sl.member_id = m.member_id
+    from mine_opportunities m join public.settlement_lines sl on sl.member_id = m.member_id
     join public.settlements s on s.id = sl.settlement_id and s.opportunity_id = m.opportunity_id and s.kind = 'original'
     join public.settlement_line_payouts slp on slp.settlement_line_id = sl.id
     group by m.opportunity_id, sl.currency
   ), active_paid as (
     select m.opportunity_id, sl.currency, coalesce(sum(slp.amount_centavos),0) as amount
-    from mine m join active_original ao on ao.opportunity_id = m.opportunity_id
+    from mine_opportunities m join active_original ao on ao.opportunity_id = m.opportunity_id
     join public.settlement_lines sl on sl.settlement_id = ao.id and sl.member_id = m.member_id
     left join public.settlement_line_payouts slp on slp.settlement_line_id = sl.id
     group by m.opportunity_id, sl.currency
@@ -630,7 +632,7 @@ as $$
     greatest(coalesce(ca.amount,0) - coalesce(ap.amount,0), 0),
     greatest(coalesce(hp.amount,0) - coalesce(ca.amount,0), 0),
     c.opportunity_id is not null
-  from mine m
+  from mine_opportunities m
   left join projected p on p.opportunity_id = m.opportunity_id
   left join current_approved ca on ca.opportunity_id = m.opportunity_id
   left join historical_paid hp on hp.opportunity_id = m.opportunity_id

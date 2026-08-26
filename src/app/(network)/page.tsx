@@ -6,7 +6,7 @@ import { PersonalCommandStrip } from '@/components/dashboard/PersonalCommandStri
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeHomeRepository } from '@/data/repositories/active/home';
+import { getActiveHomeRepository } from '@/data/repositories/active/home';
 
 /*
  * Loading UI lives in a Suspense boundary inside the page, not in a segment-level
@@ -29,7 +29,7 @@ export default function HomePage() {
 
 async function HomeBody() {
   const viewer = await getViewer();
-  const home = await activeHomeRepository.getPersonalHome(viewer);
+  const home = await (await getActiveHomeRepository()).getPersonalHome(viewer);
 
   return (
     <>

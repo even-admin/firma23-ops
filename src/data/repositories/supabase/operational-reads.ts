@@ -744,8 +744,16 @@ export function memberCards(snapshot: OperationalSnapshot): OperatorCardView[] {
 export function personalHome(snapshot: OperationalSnapshot, viewer: ViewerContext) {
   const member = snapshot.members.get(viewer.viewerId);
   if (member === undefined) throw new DataError(`Viewer ${viewer.viewerId} not found`);
-  const assignments: HomeAssignment[] = snapshot.assignments
-    .filter((assignment) => assignment.memberId === member.id)
+  const memberAssignments = snapshot.assignments.filter((assignment) => assignment.memberId === member.id);
+  // The member finance RPC is intentionally opportunity-grained to avoid
+  // leaking or duplicating line data. Show that one aggregate once when a
+  // member holds several roles on the same opportunity.
+  const assignmentRows = viewer.role === 'member'
+    ? memberAssignments.filter(
+        (assignment, index) => memberAssignments.findIndex((entry) => entry.opportunityId === assignment.opportunityId) === index,
+      )
+    : memberAssignments;
+  const assignments: HomeAssignment[] = assignmentRows
     .map((assignment) => {
       const opportunity = snapshot.opportunities.find((row) => row.id === assignment.opportunityId);
       if (opportunity === undefined) throw new DataError(`Assignment ${assignment.id} has no opportunity`);
@@ -773,7 +781,13 @@ export function personalHome(snapshot: OperationalSnapshot, viewer: ViewerContex
         beneficiaryLocation: opportunity.beneficiaryLocation,
         projectName: summary.projectName,
         serviceName: summary.serviceName,
-        roleLabel: assignment.roleLabel,
+        roleLabel:
+          viewer.role === 'member'
+            ? memberAssignments
+                .filter((entry) => entry.opportunityId === opportunity.id)
+                .map((entry) => entry.roleLabel)
+                .join(' · ')
+            : assignment.roleLabel,
         status: opportunity.status,
         active: ['draft', 'assigned', 'in_delivery', 'delivered'].includes(opportunity.status),
         money: privateFinancial?.correctionRequired
