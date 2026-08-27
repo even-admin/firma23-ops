@@ -89,3 +89,30 @@ Unavailable evidence:
 - The manual setup RPC intentionally writes no `cash_events`, `settlements`, `settlement_lines`, `payouts`, or `stat_events`.
 - The projection rail is visibly marked as projected and should not be treated as approved or payable money.
 - Synthetic mode remains available for local/demo use; configured mode must not rely on synthetic operational records.
+
+## Development-Parity Hardening
+
+- Added additive migration `20260827064837_manual_contract_assignment_visibility_hardening.sql`.
+- `assignments_select_self` now requires both the caller's matching member id and
+  `is_assigned_to_opportunity(opportunity_id)`, which enforces active membership
+  and approved assignment status at the database boundary.
+- `manual_contract_setup_request_fingerprint(...)` is now explicitly non-callable
+  by `PUBLIC`, `anon`, and `authenticated`; it remains available only inside the
+  `SECURITY DEFINER` manual setup RPC.
+- The disposable DB harness covers revoked self-assignment visibility denial and
+  anonymous fingerprint-helper execution denial. Local verification evidence and
+  the resulting exact SHA are recorded by the repair checkpoint; no remote
+  migration apply or configured-browser claim is implied.
+
+### Local Verification Before Checkpoint
+
+- Base candidate: `f6d053f0d67a4c8e00250ca6c85155e10e2457fb`, clean before the
+  additive migration was generated.
+- `npm run lint` and `npm run typecheck` passed.
+- `npm test` passed: 35 files and 406 tests.
+- Fresh `rm -rf .next && npm run build` passed with
+  `BUILD_ID=RRFuSwM8im-sXBM29Kqzg`.
+- `bash scripts/db-verify.sh` applied every migration and the seed from zero,
+  including this migration, then passed 174 checks with 0 failures.
+- No remote migration apply, Supabase call, browser/server run, push, Preview,
+  or Production action occurred.

@@ -1753,6 +1753,45 @@ insert into public.assignments (opportunity_id, member_id, role_key, role_label,
 values ('f0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000004','closer','Revocado',10000,'approved');
 SQL
 
+expect_success "revoked member cannot read an otherwise self-owned approved assignment" <<'SQL'
+update public.memberships
+set status = 'revoked'
+where member_id = 'b0000000-0000-4000-8000-000000000003';
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+do $$
+begin
+  if exists (
+    select 1
+    from public.assignments
+    where id = '10000000-0000-4000-8000-000000000001'
+  ) then
+    raise exception 'revoked member self-assignment was visible';
+  end if;
+end;
+$$;
+reset role;
+
+update public.memberships
+set status = 'active', activated_at = coalesce(activated_at, now())
+where member_id = 'b0000000-0000-4000-8000-000000000003';
+SQL
+
+expect_success "anon cannot execute the internal manual setup fingerprint helper" <<'SQL'
+do $$
+begin
+  if has_function_privilege(
+    'anon',
+    'public.manual_contract_setup_request_fingerprint(uuid,text,text,text,bigint,text,integer,jsonb)',
+    'execute'
+  ) then
+    raise exception 'anon retains execute on manual_contract_setup_request_fingerprint';
+  end if;
+end;
+$$;
+SQL
+
 MEMBER_PROJECTION_ROWS="$(query_scalar "set role authenticated; set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222'; select count(*) from public.opportunity_projection_versions;" | tail -n 1)"
 if [ "$MEMBER_PROJECTION_ROWS" = "0" ]; then
   PASS=$((PASS + 1)); echo "PASS: assigned member cannot read raw projected distributable bases"
