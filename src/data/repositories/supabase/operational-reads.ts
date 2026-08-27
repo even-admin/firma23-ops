@@ -384,6 +384,9 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
       },
     ]),
   );
+  const projectOrgIds = new Map<string, string>(
+    ((projects.data ?? []) as { id: string; org_id: string }[]).map((row) => [row.id, row.org_id]),
+  );
 
   const shareRows = (shares.data ?? []) as {
     rule_version_id: string;
@@ -411,7 +414,10 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
             recipientBehavior: share.recipient_behavior,
             label: share.label,
             weightBp: basisPoints(share.weight_bp),
-            recipientOrgId: share.recipient_org_id,
+            // Legacy project rules omitted the explicit house recipient. Its
+            // owning project organization is the canonical recipient; keep
+            // allocation.ts strict for every other unresolved reference.
+            recipientOrgId: share.recipient_org_id ?? projectOrgIds.get(row.project_id) ?? null,
           })),
       },
     ]),
