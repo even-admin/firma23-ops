@@ -9,12 +9,12 @@ const isSupabaseConfiguredMock = vi.fn(() => true);
 vi.mock('@/data/viewer-session', () => ({ getViewer: getViewerMock }));
 vi.mock('@/lib/backend', () => ({ isSupabaseConfigured: isSupabaseConfiguredMock }));
 vi.mock('@/data/repositories/active/projects', () => ({
-  activeProjectRepository: { list: vi.fn().mockResolvedValue([]) },
+  getActiveProjectRepository: vi.fn().mockResolvedValue({ list: vi.fn().mockResolvedValue([]) }),
 }));
 vi.mock('@/data/repositories/active/operational-finance', () => ({
-  activeOperationalFinanceRepository: {
+  getActiveOperationalFinanceRepository: vi.fn().mockResolvedValue({
     getOverview: vi.fn().mockResolvedValue({ pendingApprovals: 0 }),
-  },
+  }),
 }));
 vi.mock('@/lib/nav', () => ({ buildNavGroups: vi.fn(() => []) }));
 vi.mock('@/components/chrome/AppShell', () => ({

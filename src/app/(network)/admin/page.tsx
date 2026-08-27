@@ -10,8 +10,8 @@ import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
-import { activeProjectRepository } from '@/data/repositories/active/projects';
+import { getActiveOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
+import { getActiveProjectRepository } from '@/data/repositories/active/projects';
 import { activeMemberRepository } from '@/data/repositories/active/members';
 import { isFounder } from '@/lib/viewer';
 
@@ -28,9 +28,13 @@ async function AdminBody() {
     );
   }
 
+  const [financeRepository, projectRepository] = await Promise.all([
+    getActiveOperationalFinanceRepository(),
+    getActiveProjectRepository(),
+  ]);
   const [overview, projects, members] = await Promise.all([
-    activeOperationalFinanceRepository.getOverview(viewer),
-    activeProjectRepository.list(viewer),
+    financeRepository.getOverview(viewer),
+    projectRepository.list(viewer),
     'listAssignmentMembers' in activeMemberRepository
       ? activeMemberRepository.listAssignmentMembers(viewer)
       : activeMemberRepository.listDirectory({}, viewer).then((rows) =>

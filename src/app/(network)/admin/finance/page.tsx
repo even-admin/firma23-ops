@@ -10,7 +10,7 @@ import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
+import { getActiveOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
 import { isFounder } from '@/lib/viewer';
 
 async function FinanceBody() {
@@ -26,7 +26,7 @@ async function FinanceBody() {
     );
   }
 
-  const overview = await activeOperationalFinanceRepository.getOverview(viewer);
+  const overview = await (await getActiveOperationalFinanceRepository()).getOverview(viewer);
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">

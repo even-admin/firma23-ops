@@ -1,8 +1,9 @@
 import { isSupabaseConfigured } from '@/lib/backend';
 import type { FinanceRepository } from '@/data/repositories/finance';
 import { supabaseOperationalFinanceRepository } from '@/data/repositories/supabase/operational-finance';
-import { syntheticFinanceRepository } from '@/data/repositories/synthetic/finance';
 
-export const activeOperationalFinanceRepository: FinanceRepository = isSupabaseConfigured()
-  ? supabaseOperationalFinanceRepository
-  : syntheticFinanceRepository;
+export async function getActiveOperationalFinanceRepository(): Promise<FinanceRepository> {
+  if (isSupabaseConfigured()) return supabaseOperationalFinanceRepository;
+  const { syntheticFinanceRepository } = await import('@/data/repositories/synthetic/finance');
+  return syntheticFinanceRepository;
+}

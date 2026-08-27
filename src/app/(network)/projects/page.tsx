@@ -5,11 +5,11 @@ import { EmptyState } from '@/components/state/EmptyState';
 import { LoadingBlock } from '@/components/state/LoadingBlock';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeProjectRepository } from '@/data/repositories/active/projects';
+import { getActiveProjectRepository } from '@/data/repositories/active/projects';
 
 async function ProjectsBody() {
   const viewer = await getViewer();
-  const projects = await activeProjectRepository.list(viewer);
+  const projects = await (await getActiveProjectRepository()).list(viewer);
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">

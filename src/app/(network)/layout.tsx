@@ -7,8 +7,8 @@ import { ViewerSwitcher } from '@/components/chrome/ViewerSwitcher';
 import { DataAuthorityNotice } from '@/components/state/DataAuthorityNotice';
 import { switchPrototypeViewer } from '@/app/actions/viewer';
 import { getViewer } from '@/data/viewer-session';
-import { activeOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
-import { activeProjectRepository } from '@/data/repositories/active/projects';
+import { getActiveOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
+import { getActiveProjectRepository } from '@/data/repositories/active/projects';
 import { isSupabaseConfigured } from '@/lib/backend';
 import { buildNavGroups } from '@/lib/nav';
 import { isFounder } from '@/lib/viewer';
@@ -16,7 +16,7 @@ import { isFounder } from '@/lib/viewer';
 export default async function NetworkLayout({ children }: { readonly children: ReactNode }) {
   const viewer = await getViewer();
   const configured = isSupabaseConfigured();
-  const projects = await activeProjectRepository.list(viewer);
+  const projects = await (await getActiveProjectRepository()).list(viewer);
 
   /*
    * The rail's only badge is a real count of settlements awaiting a founder. It
@@ -25,7 +25,7 @@ export default async function NetworkLayout({ children }: { readonly children: R
    * every rail, which is free against the synthetic dataset and will not be.
    */
   const pendingApprovals = isFounder(viewer)
-    ? (await activeOperationalFinanceRepository.getOverview(viewer)).pendingApprovals
+    ? (await (await getActiveOperationalFinanceRepository()).getOverview(viewer)).pendingApprovals
     : undefined;
 
   const groups = buildNavGroups({

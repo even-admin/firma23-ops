@@ -7,7 +7,7 @@ import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
 import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
+import { getActiveOperationalFinanceRepository } from '@/data/repositories/active/operational-finance';
 import { cn } from '@/lib/cn';
 import { formatBasisPoints } from '@/lib/money';
 import { isFounder } from '@/lib/viewer';
@@ -37,7 +37,7 @@ export default async function SettlePage({
     );
   }
 
-  const preview = await activeOperationalFinanceRepository.getSettlementPreview(opportunityId, viewer);
+  const preview = await (await getActiveOperationalFinanceRepository()).getSettlementPreview(opportunityId, viewer);
   if (preview === null) notFound();
 
   const alreadyApproved = preview.rail.kind === 'settlement';

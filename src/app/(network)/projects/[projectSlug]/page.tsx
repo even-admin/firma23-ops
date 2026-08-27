@@ -7,7 +7,7 @@ import { ProjectRuleHistory } from '@/components/project/ProjectRuleHistory';
 import { EmptyState } from '@/components/state/EmptyState';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
-import { activeProjectRepository } from '@/data/repositories/active/projects';
+import { getActiveProjectRepository } from '@/data/repositories/active/projects';
 
 export default async function ProjectDetailPage({
   params,
@@ -16,7 +16,7 @@ export default async function ProjectDetailPage({
 }) {
   const { projectSlug } = await params;
   const viewer = await getViewer();
-  const project = await activeProjectRepository.getBySlug(projectSlug, viewer);
+  const project = await (await getActiveProjectRepository()).getBySlug(projectSlug, viewer);
   if (project === null) notFound();
 
   return (
