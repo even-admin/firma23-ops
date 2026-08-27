@@ -49,8 +49,10 @@ export function FilterChips({
 }: FilterChipsProps) {
   return (
     <fieldset className="min-w-0">
-      <legend className="label-micro text-faint mb-2">{legend}</legend>
-      <div className="border-line bg-raised/55 no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border p-1">
+      <legend className="label-micro text-muted mb-2 block tracking-[0.12em] uppercase">
+        {legend}
+      </legend>
+      <div className="border-line bg-surface no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-[var(--radius-control)] border p-1">
         {options.map((option) => {
           const selected = option.value === active;
           return (
@@ -59,18 +61,20 @@ export function FilterChips({
               href={hrefFor(basePath, current, param, option.value)}
               aria-current={selected ? 'true' : undefined}
               className={cn(
-                'ease-firma text-muted flex min-h-11 shrink-0 items-center gap-2 rounded-md border px-3 text-xs transition-[background-color,border-color,color] duration-150',
+                'ease-firma text-muted focus-visible:outline-focus flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border px-3 text-xs font-medium tracking-[0.01em] transition-[background-color,border-color,color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
                 selected
-                  ? 'border-line-strong bg-paper-000 text-ink-strong'
-                  : 'border-transparent hover:border-line hover:bg-paper-000/70 hover:text-ink',
+                  ? 'border-ink-950 bg-ink-950 text-paper-000'
+                  : 'border-transparent hover:border-line-strong hover:bg-black/5 hover:text-ink-strong',
               )}
             >
               {option.label}
               {option.count === undefined ? null : (
                 <span
                   className={cn(
-                    'tnum flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px]',
-                    selected ? 'bg-raised text-ink' : 'text-faint',
+                    'tnum flex min-w-5 items-center justify-center rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px] leading-none',
+                    selected
+                      ? 'border-paper-000/30 bg-paper-000/10 text-paper-000'
+                      : 'border-line bg-black/5 text-muted',
                   )}
                 >
                   {option.count}
