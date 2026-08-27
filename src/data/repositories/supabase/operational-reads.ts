@@ -409,7 +409,23 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
         immutable: true,
         shares: shareRows
           .filter((share) => share.rule_version_id === row.id)
-          .map((share) => ({
+          .map((share) => {
+            const recipientOrgId = share.recipient_org_id ?? projectOrgIds.get(row.project_id) ?? null;
+            // An org-recipient may belong to an external organization that the
+            // viewer cannot enumerate under organizations RLS. The allocation
+            // share's canonical label is the only display value we need here.
+            if (
+              share.recipient_behavior === 'org_recipient' &&
+              recipientOrgId !== null &&
+              !orgMap.has(recipientOrgId)
+            ) {
+              orgMap.set(recipientOrgId, {
+                id: recipientOrgId,
+                slug: `recipient-${recipientOrgId}`,
+                name: share.label,
+              });
+            }
+            return {
             key: share.key,
             recipientBehavior: share.recipient_behavior,
             label: share.label,
@@ -417,8 +433,9 @@ export async function loadOperationalSnapshot(viewer: ViewerContext): Promise<Op
             // Legacy project rules omitted the explicit house recipient. Its
             // owning project organization is the canonical recipient; keep
             // allocation.ts strict for every other unresolved reference.
-            recipientOrgId: share.recipient_org_id ?? projectOrgIds.get(row.project_id) ?? null,
-          })),
+              recipientOrgId,
+            };
+          }),
       },
     ]),
   );
