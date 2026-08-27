@@ -82,6 +82,9 @@
   overflow: hidden;
   isolation: isolate;
   contain: layout paint;
+  /* Keep the avatar geometry circular even when its interactive frame changes. */
+  aspect-ratio: 1;
+  border-radius: 50% !important;
   background: var(--color-ink-950);
   transform: scale(1);
   transition: transform 180ms var(--ease-firma);
@@ -92,7 +95,9 @@
 }
 
 .identity-orb-surface:hover .identity-orb,
-.identity-orb-surface:focus-within .identity-orb {
+.identity-orb-surface:focus-within .identity-orb,
+.identity-orb-surface:active .identity-orb {
+  border-radius: 50% !important;
   transform: scale(1.035);
 }
 
@@ -260,7 +265,9 @@
 @media (prefers-reduced-motion: reduce) {
   .identity-orb,
   .identity-orb-surface:hover .identity-orb,
-  .identity-orb-surface:focus-within .identity-orb {
+  .identity-orb-surface:focus-within .identity-orb,
+  .identity-orb-surface:active .identity-orb {
+    border-radius: 50% !important;
     transform: none;
   }
 
