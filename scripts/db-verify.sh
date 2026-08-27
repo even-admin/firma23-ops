@@ -155,6 +155,17 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
     echo "FATAL: migration failed: $f"; cat "$WORKDIR/setup.log"; exit 1;
   }
   echo "  applied $(basename "$f")"
+  if [[ "$(basename "$f")" = "20260821090000_identity.sql" ]]; then
+    psql_run <<'SQL'
+create schema if not exists extensions;
+create function extensions.digest(text, text)
+returns bytea
+language sql
+immutable
+strict
+as $$ select public.digest($1, $2) $$;
+SQL
+  fi
 done
 
 echo "=== applying seed.sql from zero ==="

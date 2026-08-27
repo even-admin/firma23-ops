@@ -447,7 +447,7 @@ immutable
 set search_path = public, pg_temp
 as $$
   select encode(
-    digest(
+    extensions.digest(
       jsonb_build_object(
         'assignments', (
           select jsonb_agg(
