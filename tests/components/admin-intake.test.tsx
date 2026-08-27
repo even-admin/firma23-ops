@@ -293,6 +293,7 @@ describe('DocumentIntakePanel', () => {
   it('starts idle with the primary upload action and no draft visible', () => {
     render(<DocumentIntakePanel runIntake={stubRunIntake(run)} />);
     expect(screen.getByRole('button', { name: copy.admin.intake.chooseFile })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: copy.admin.intake.ctaManual })).toBeInTheDocument();
     expect(screen.queryByText(copy.admin.intake.draftTitle)).not.toBeInTheDocument();
   });
 

@@ -398,7 +398,7 @@ export const copy = {
       discardPending: 'Descartando borrador…',
       retryDiscard: 'Reintentar descarte',
       retry: 'Reintentar',
-      manualCta: 'Crear manualmente',
+      manualCta: 'Crear contrato manual',
       manualTitle: 'Contrato manual',
       manualSubtitle: 'Crea un contrato real con equipo asignado y una bolsa proyectada no contable.',
       manualSponsorLabel: 'Cliente',

@@ -220,7 +220,20 @@ export function DocumentIntakePanel({
         className="border-line bg-surface flex flex-col gap-4 rounded-lg border p-4 sm:p-6"
       >
         <IntakeStepper statuses={stepStatuses(phase, errorKind, confirmed)} />
-        <h2 className="text-ink-strong text-lg font-medium">{i.ctaUpload}</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-ink-strong text-lg font-medium">{i.ctaUpload}</h2>
+            <p className="text-faint mt-1 max-w-xl text-sm">{i.ctaManualHint}</p>
+          </div>
+          <button
+            ref={manualOpenerRef}
+            type="button"
+            onClick={() => setShowManualForm(true)}
+            className="glass-action-button ease-firma flex min-h-11 shrink-0 items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
+          >
+            {i.ctaManual}
+          </button>
+        </div>
 
         <div
           onDragOver={(event) => {
@@ -322,17 +335,6 @@ export function DocumentIntakePanel({
           {phase === 'processing' ? i.processing : ''}
         </p>
 
-        <p className="text-faint text-xs">
-          <button
-            ref={manualOpenerRef}
-            type="button"
-            onClick={() => setShowManualForm(true)}
-            className="text-faint hover:text-ink inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4"
-          >
-            {i.ctaManual}
-          </button>{' '}
-          · {i.ctaManualHint}
-        </p>
       </section>
     </>
   );
