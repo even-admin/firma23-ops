@@ -2,12 +2,23 @@
 
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { createMemberInviteAction } from '@/app/(network)/admin/members/actions';
 import { copy } from '@/copy/es-MX';
+import { sha256Hex } from '@/lib/manual-contract-request';
 import type { CreateMemberInviteInput, CreateMemberInviteResult } from '@/types/views';
 
 interface InviteMemberFormProps {
   readonly createAction?: (input: CreateMemberInviteInput) => Promise<CreateMemberInviteResult>;
+}
+
+/**
+ * JSON keeps ["a|b"] distinct from ["a", "b"]; matches the manual-contract
+ * canonicalization so retries and reloads target the same stored key.
+ */
+function canonicalInviteRequest(displayName: string, email: string): string {
+  return JSON.stringify({ displayName: displayName.trim(), email: email.trim().toLowerCase() });
 }
 
 export function InviteMemberForm({ createAction = createMemberInviteAction }: InviteMemberFormProps) {
@@ -18,6 +29,8 @@ export function InviteMemberForm({ createAction = createMemberInviteAction }: In
   const nameId = useId();
   const emailId = useId();
   const outcomeRef = useRef<HTMLParagraphElement>(null);
+  const attemptByFingerprint = useRef(new Map<string, string>());
+  const router = useRouter();
 
   useEffect(() => {
     if (result !== null) outcomeRef.current?.focus();
@@ -27,16 +40,30 @@ export function InviteMemberForm({ createAction = createMemberInviteAction }: In
 
   function submit() {
     if (!ready) return;
+    const displayName = name.trim();
+    const trimmedEmail = email.trim();
     setResult(null);
     startTransition(async () => {
       try {
-        setResult(
-          await createAction({
-            displayName: name.trim(),
-            email: email.trim(),
-            idempotencyKey: crypto.randomUUID(),
-          }),
-        );
+        const fingerprint = await sha256Hex(canonicalInviteRequest(displayName, trimmedEmail));
+        const storageKey = `firma23.invite-member-attempt:${fingerprint}`;
+        const persisted = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(storageKey);
+        const idempotencyKey =
+          attemptByFingerprint.current.get(fingerprint) ?? persisted ?? crypto.randomUUID();
+        attemptByFingerprint.current.set(fingerprint, idempotencyKey);
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(storageKey, idempotencyKey);
+
+        const outcome = await createAction({
+          displayName,
+          email: trimmedEmail,
+          idempotencyKey,
+        });
+        setResult(outcome);
+        if (outcome.kind === 'created') {
+          attemptByFingerprint.current.delete(fingerprint);
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(storageKey);
+          router.refresh();
+        }
       } catch (error) {
         setResult({ kind: 'error', message: error instanceof Error ? error.message : copy.admin.members.error });
       }
