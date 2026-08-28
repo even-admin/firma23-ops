@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { Amount } from '@/components/money/Amount';
+import { ApproveSettlementControl } from '@/components/finance/ApproveSettlementControl';
 import { CashLedger } from '@/components/finance/CashLedger';
 import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
 import { RevenueRail } from '@/components/revenue-rail/RevenueRail';
@@ -15,8 +16,8 @@ import { isFounder } from '@/lib/viewer';
 /**
  * Rail context 4 of 5: settlement approval.
  *
- * Read-only. M1 has no write path of any kind, so the approve control is disabled
- * with the reason stated rather than wired to nothing.
+ * The browser submits only this opportunity id and an idempotency key. The
+ * audited Postgres RPC derives every monetary fact at the authority boundary.
  */
 export default async function SettlePage({
   params,
@@ -65,6 +66,12 @@ export default async function SettlePage({
       ok: preview.distributableBase.amount > 0,
     },
   ];
+  const readyToApprove = !alreadyApproved && checks.every((check) => check.ok);
+  const disabledReason = alreadyApproved
+    ? copy.settle.alreadyApproved
+    : readyToApprove
+      ? copy.settle.approvalReady
+      : copy.settle.approvalNotReady;
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
@@ -128,17 +135,11 @@ export default async function SettlePage({
             className="text-ink-strong text-lg font-medium"
           />
         </div>
-        <button
-          type="button"
-          disabled
-          aria-describedby="approval-blocked"
-          className="border-line text-faint min-h-11 w-full cursor-not-allowed rounded-md border px-4 py-3 text-sm font-medium sm:w-auto"
-        >
-          {copy.settle.approve}
-        </button>
-        <p id="approval-blocked" className="text-muted text-xs">
-          {alreadyApproved ? copy.settle.alreadyApproved : preview.approvalBlockedReason}
-        </p>
+        <ApproveSettlementControl
+          opportunityId={preview.opportunity.id}
+          readyToApprove={readyToApprove}
+          disabledReason={disabledReason}
+        />
       </section>
 
       <section className="flex flex-col gap-3">
