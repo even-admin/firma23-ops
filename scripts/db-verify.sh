@@ -1857,6 +1857,324 @@ insert into public.member_invites (member_id, email) values ('b0000000-0000-4000
 SQL
 
 echo
+echo "=== scenario 24: founder crew management (replace_opportunity_crew) ==="
+
+expect_success "crew fixtures: seed an invited (not yet active) member in org 1 for rejection tests" <<'SQL'
+insert into public.members (id, org_id, slug, display_name, initials, role) values
+  ('b0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'invited-member', 'Invited Member', 'IM', 'member');
+insert into public.memberships (org_id, member_id, status, invited_at) values
+  ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000007', 'invited', now());
+SQL
+
+expect_success "crew fixtures: create a fresh single-pool opportunity with no settlement via the existing manual setup RPC" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_manual_contract_setup(
+  'a0000000-0000-4000-8000-000000000001',
+  'Cliente Crew',
+  'Contrato Crew',
+  'Alcance para pruebas de gestión de equipo.',
+  100000,
+  'MXN',
+  3000,
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre inicial', 'weightBp', 10000)
+  ),
+  'db-verify-crew-setup'
+);
+SQL
+
+expect_success "crew management: founder replaces crew atomically and produces exactly one audit record, no financial rows" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare
+  v_opportunity_id uuid;
+  result record;
+begin
+  select opportunity_id into v_opportunity_id from public.manual_contract_setup_receipts
+  where idempotency_key = 'db-verify-crew-setup';
+
+  select * into result from public.replace_opportunity_crew(
+    'a0000000-0000-4000-8000-000000000001',
+    v_opportunity_id,
+    jsonb_build_array(
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 6000),
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000006', 'roleLabel', 'Producción', 'weightBp', 4000)
+    ),
+    'db-verify-crew-replace-1'
+  );
+
+  if result.replayed is distinct from false
+    or (select count(*) from public.assignments where opportunity_id = v_opportunity_id) <> 2
+    or (select coalesce(sum(weight_bp), 0) from public.assignments where opportunity_id = v_opportunity_id) <> 10000
+    or (select count(*) from public.assignments where opportunity_id = v_opportunity_id and member_id = 'b0000000-0000-4000-8000-000000000003' and weight_bp = 6000) <> 1
+    or (select count(*) from public.assignments where opportunity_id = v_opportunity_id and member_id = 'b0000000-0000-4000-8000-000000000006' and weight_bp = 4000) <> 1
+    or (select count(*) from public.audit_events where target_id = v_opportunity_id and action = 'replace_opportunity_crew') <> 1
+    or (select count(*) from public.opportunity_crew_receipts where opportunity_id = v_opportunity_id) <> 1
+    or (select count(*) from public.cash_events where opportunity_id = v_opportunity_id) <> 0
+    or (select count(*) from public.settlements where opportunity_id = v_opportunity_id) <> 0
+    or (select count(*) from public.stat_events where opportunity_id = v_opportunity_id) <> 0
+  then
+    raise exception 'crew replacement did not produce exactly the expected rows';
+  end if;
+end $$;
+SQL
+
+expect_success "crew management: same command replay returns the original result with no duplicate change or audit" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare
+  v_opportunity_id uuid;
+  assignment_count_before integer;
+  audit_count_before integer;
+  result record;
+begin
+  select opportunity_id into v_opportunity_id from public.manual_contract_setup_receipts
+  where idempotency_key = 'db-verify-crew-setup';
+  select count(*) into assignment_count_before from public.assignments where opportunity_id = v_opportunity_id;
+  select count(*) into audit_count_before from public.audit_events where target_id = v_opportunity_id and action = 'replace_opportunity_crew';
+
+  select * into result from public.replace_opportunity_crew(
+    'a0000000-0000-4000-8000-000000000001',
+    v_opportunity_id,
+    jsonb_build_array(
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 6000),
+      jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000006', 'roleLabel', 'Producción', 'weightBp', 4000)
+    ),
+    'db-verify-crew-replace-1'
+  );
+
+  if result.replayed is distinct from true
+    or (select count(*) from public.assignments where opportunity_id = v_opportunity_id) <> assignment_count_before
+    or (select count(*) from public.audit_events where target_id = v_opportunity_id and action = 'replace_opportunity_crew') <> audit_count_before
+  then
+    raise exception 'crew replacement replay wrote additional rows';
+  end if;
+end $$;
+SQL
+
+expect_failure "crew management: mismatched idempotency key reuse fails" "already used for a different crew replacement request" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-replace-1'
+);
+SQL
+
+expect_failure "crew management: member cannot replace crew" "founder access required" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-member-denied'
+);
+SQL
+
+expect_failure "crew management: anon cannot replace crew" "permission denied" <<'SQL'
+set role anon;
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-anon-denied'
+);
+SQL
+
+expect_failure "crew management: revoked founder cannot replace crew" "founder access required" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-8444-444444444444';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-revoked-founder-denied'
+);
+SQL
+
+expect_failure "crew management: cross-org founder cannot replace another org's opportunity crew" "founder access required" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-cross-org-founder-denied'
+);
+SQL
+
+expect_failure "crew management: an invited (not yet active) member cannot be assigned" "not an active member of org" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000007', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-invited-member'
+);
+SQL
+
+expect_failure "crew management: a revoked member cannot be assigned" "not an active member of org" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-0000000000fe', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-revoked-member'
+);
+SQL
+
+expect_failure "crew management: a cross-org member cannot be assigned" "not an active member of org" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-0000000000ff', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-cross-org-member'
+);
+SQL
+
+expect_failure "crew management: duplicate members in one replacement are rejected" "does not permit the same member twice" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre 1', 'weightBp', 5000),
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre 2', 'weightBp', 5000)
+  ),
+  'db-verify-crew-duplicate'
+);
+SQL
+
+expect_failure "crew management: an empty role label is rejected" "must be a non-empty label" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', '   ', 'weightBp', 10000)
+  ),
+  'db-verify-crew-empty-role'
+);
+SQL
+
+expect_failure "crew management: a zero weight is rejected" "1..10000 integer basis points" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 0)
+  ),
+  'db-verify-crew-zero-weight'
+);
+SQL
+
+expect_failure "crew management: a non-10000 total is rejected" "expected exactly 10000" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 9000)
+  ),
+  'db-verify-crew-bad-total'
+);
+SQL
+
+expect_failure "crew management: any settlement authority blocks the command" "already has settlement authority" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.replace_opportunity_crew(
+  'a0000000-0000-4000-8000-000000000001',
+  'f0000000-0000-4000-8000-000000000003',
+  jsonb_build_array(
+    jsonb_build_object('memberId', 'b0000000-0000-4000-8000-000000000003', 'roleLabel', 'Cierre', 'weightBp', 10000)
+  ),
+  'db-verify-crew-settled-blocked'
+);
+SQL
+
+expect_success "crew management: the blocked command above left the settled opportunity's crew unchanged" <<'SQL'
+do $$
+begin
+  if (select count(*) from public.assignments where opportunity_id = 'f0000000-0000-4000-8000-000000000003') <> 3 then
+    raise exception 'settled opportunity''s assignment count changed after a blocked crew replacement attempt';
+  end if;
+end $$;
+SQL
+
+expect_failure "crew management: direct authenticated assignment INSERT is denied after hardening" "row-level security policy" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+insert into public.assignments (opportunity_id, member_id, role_key, role_label, weight_bp, status) values (
+  (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup'),
+  'b0000000-0000-4000-8000-000000000005', 'team', 'Intruso', 10000, 'approved'
+);
+SQL
+
+expect_success "crew management: direct authenticated assignment UPDATE affects zero rows after hardening" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare
+  v_count integer;
+begin
+  update public.assignments set weight_bp = 1
+  where opportunity_id = (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup');
+  get diagnostics v_count = row_count;
+  if v_count <> 0 then
+    raise exception 'direct UPDATE on assignments affected % rows; RLS hardening failed', v_count;
+  end if;
+end $$;
+SQL
+
+expect_success "crew management: direct authenticated assignment DELETE affects zero rows after hardening" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare
+  v_count integer;
+begin
+  delete from public.assignments
+  where opportunity_id = (select opportunity_id from public.manual_contract_setup_receipts where idempotency_key = 'db-verify-crew-setup');
+  get diagnostics v_count = row_count;
+  if v_count <> 0 then
+    raise exception 'direct DELETE on assignments affected % rows; RLS hardening failed', v_count;
+  end if;
+end $$;
+SQL
+
+echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then

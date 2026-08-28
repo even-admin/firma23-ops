@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/date';
 import { Amount } from '@/components/money/Amount';
 import { CashLedger } from '@/components/finance/CashLedger';
 import { AssignmentList } from '@/components/opportunity/AssignmentList';
+import { CrewManager } from '@/components/opportunity/CrewManager';
 import { MilestoneChecklist } from '@/components/opportunity/MilestoneChecklist';
 import { StatusPill } from '@/components/opportunity/StatusPill';
 import { RailBaseExplainer } from '@/components/revenue-rail/RailBaseExplainer';
@@ -13,6 +14,7 @@ import { PermissionDenied } from '@/components/state/PermissionDenied';
 import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { activeOpportunityRepository } from '@/data/repositories/active/opportunities';
+import { activeMemberRepository } from '@/data/repositories/active/members';
 import { isFounder } from '@/lib/viewer';
 
 export default async function OpportunityDetailPage({
@@ -34,6 +36,15 @@ export default async function OpportunityDetailPage({
 
   const detail = await activeOpportunityRepository.getById(opportunityId, viewer);
   if (detail === null) notFound();
+
+  const assignmentMembers =
+    'listAssignmentMembers' in activeMemberRepository
+      ? await activeMemberRepository.listAssignmentMembers(viewer)
+      : (await activeMemberRepository.listDirectory({}, viewer)).map((row) => ({
+          memberId: row.memberId,
+          displayName: row.displayName,
+          role: row.role,
+        }));
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
@@ -71,7 +82,14 @@ export default async function OpportunityDetailPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="label-micro text-faint">{copy.detail.assignments}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="label-micro text-faint">{copy.detail.assignments}</h2>
+          <CrewManager
+            opportunityId={detail.summary.id}
+            currentAssignments={detail.assignments}
+            members={assignmentMembers}
+          />
+        </div>
         <AssignmentList assignments={detail.assignments} pools={detail.pools} />
       </section>
 

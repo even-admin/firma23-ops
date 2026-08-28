@@ -673,6 +673,23 @@ export type ManualContractSetupResult =
   | { readonly kind: 'unavailable'; readonly reason: string }
   | { readonly kind: 'error'; readonly message: string };
 
+export interface ReplaceOpportunityCrewAssignmentInput {
+  readonly memberId: string;
+  readonly roleLabel: string;
+  readonly weightBp: BasisPoints;
+}
+
+export interface ReplaceOpportunityCrewInput {
+  readonly opportunityId: string;
+  readonly assignments: readonly ReplaceOpportunityCrewAssignmentInput[];
+  readonly idempotencyKey: string;
+}
+
+export type ReplaceOpportunityCrewResult =
+  | { readonly kind: 'replaced'; readonly opportunityId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
 export type IntakeRunStatus = 'idle' | 'processing' | 'ready' | 'error';
 
 export interface IntakeRunView {
