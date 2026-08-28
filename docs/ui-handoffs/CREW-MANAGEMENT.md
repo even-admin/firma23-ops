@@ -5,7 +5,7 @@
 - Workspace: `/Users/racosta/conductor/workspaces/firma23-ops/overnight-ui-ops`
 - Branch: `overnight-ui-ops`
 - Required starting SHA (verified exact before editing): `d005714d48b631b188209837575e1851686d514a`
-- Commit produced by this build: pending — see "Commit" below (created immediately after this document, as one logical checkpoint `feat(ops): add audited founder crew management`).
+- Commit produced by this build: `ce6a3ff` (`feat(ops): add audited founder crew management`).
 - Verified before editing: `git rev-parse HEAD` matched the required SHA exactly, branch was `overnight-ui-ops`, `git status --short` was empty, and no `.git/index.lock` or running `next dev`/`vitest`/`npm run` process was found.
 
 ## Changed files
