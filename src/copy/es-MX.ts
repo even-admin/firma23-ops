@@ -285,6 +285,10 @@ export const copy = {
       unavailable: 'Gestionar el equipo requiere un backend de Supabase configurado.',
       required: 'Agrega al menos un integrante, un rol para cada uno y pesos que sumen 100%.',
       noMembers: 'No hay integrantes activos disponibles para asignar.',
+      history: 'Historial del equipo',
+      historyEmpty: 'Aún no hay cambios de equipo registrados.',
+      previousCrew: 'Antes',
+      replacementCrew: 'Después',
     },
   },
   network: {

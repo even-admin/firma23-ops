@@ -1,7 +1,16 @@
 import type { ViewerContext } from '@/lib/viewer';
-import type { ReplaceOpportunityCrewInput, ReplaceOpportunityCrewResult } from '@/types/views';
+import type {
+  CrewChangeReceiptView,
+  ReplaceOpportunityCrewInput,
+  ReplaceOpportunityCrewResult,
+} from '@/types/views';
 
 export interface CrewRepository {
+  listOpportunityCrewReceipts(
+    opportunityId: string,
+    viewer: ViewerContext,
+  ): Promise<readonly CrewChangeReceiptView[]>;
+
   replaceOpportunityCrew(
     input: ReplaceOpportunityCrewInput,
     viewer: ViewerContext,

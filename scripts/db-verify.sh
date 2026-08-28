@@ -1961,6 +1961,33 @@ begin
 end $$;
 SQL
 
+expect_success "crew management: a founder can read the immutable receipt evidence through the authenticated API grant" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+begin
+  if (select count(*) from public.opportunity_crew_receipts where opportunity_id = 'f0000000-0000-4000-8000-000000000099') <> 1 then
+    raise exception 'founder could not read the crew receipt evidence through authenticated Data API privileges';
+  end if;
+end $$;
+SQL
+
+expect_success "crew management: an active non-founder reads zero crew receipt rows" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
+do $$
+begin
+  if (select count(*) from public.opportunity_crew_receipts) <> 0 then
+    raise exception 'non-founder could read crew receipt evidence';
+  end if;
+end $$;
+SQL
+
+expect_failure "crew management: anon cannot select crew receipt evidence" "permission denied" <<'SQL'
+set role anon;
+select * from public.opportunity_crew_receipts;
+SQL
+
 expect_success "crew management: replaying the same multi-pool command returns the original result, writes no additional receipt or audit row" <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';

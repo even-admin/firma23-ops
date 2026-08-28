@@ -253,6 +253,21 @@ export interface PoolWeightView {
   readonly balanced: boolean;
 }
 
+/** Immutable founder-audit evidence for one pool-scoped crew replacement. */
+export interface CrewChangeAssignmentView {
+  readonly memberId: string;
+  readonly roleLabel: string;
+  readonly weightBp: BasisPoints;
+}
+
+export interface CrewChangeReceiptView {
+  readonly id: string;
+  readonly roleKey: string;
+  readonly beforeAssignments: readonly CrewChangeAssignmentView[];
+  readonly afterAssignments: readonly CrewChangeAssignmentView[];
+  readonly createdAt: string;
+}
+
 export interface OpportunityDetail {
   readonly summary: OpportunitySummary;
   readonly rail: RailModel;

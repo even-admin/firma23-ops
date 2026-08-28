@@ -62,6 +62,15 @@ create policy opportunity_crew_receipts_select_founder on public.opportunity_cre
   for select
   using (public.is_active_founder(org_id));
 
+-- RLS decides which rows an authenticated caller may see; the explicit table
+-- grant makes that founder-only audit trail reachable through Supabase's Data
+-- API. The earlier least-privilege migration revokes all authenticated table
+-- access before granting a reviewed allowlist, so omitting this would leave a
+-- correct policy behind an inaccessible table.
+revoke all on table public.opportunity_crew_receipts from public;
+revoke all on table public.opportunity_crew_receipts from anon;
+grant select on table public.opportunity_crew_receipts to authenticated;
+
 -- No insert policy: only replace_opportunity_crew (SECURITY DEFINER) writes
 -- this table.
 

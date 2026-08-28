@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/date';
 
 import { Amount } from '@/components/money/Amount';
 import { CashLedger } from '@/components/finance/CashLedger';
+import { CrewChangeHistory } from '@/components/opportunity/CrewChangeHistory';
 import { AssignmentList } from '@/components/opportunity/AssignmentList';
 import { CrewManager } from '@/components/opportunity/CrewManager';
 import { MilestoneChecklist } from '@/components/opportunity/MilestoneChecklist';
@@ -15,6 +16,7 @@ import { copy } from '@/copy/es-MX';
 import { getViewer } from '@/data/viewer-session';
 import { activeOpportunityRepository } from '@/data/repositories/active/opportunities';
 import { activeMemberRepository } from '@/data/repositories/active/members';
+import { activeCrewRepository } from '@/data/repositories/active/crew';
 import { isFounder } from '@/lib/viewer';
 
 export default async function OpportunityDetailPage({
@@ -45,6 +47,12 @@ export default async function OpportunityDetailPage({
           displayName: row.displayName,
           role: row.role,
         }));
+  const [crewReceipts, memberDirectory] = await Promise.all([
+    activeCrewRepository.listOpportunityCrewReceipts(detail.summary.id, viewer),
+    activeMemberRepository.listDirectory({}, viewer),
+  ]);
+  const memberNames = new Map(memberDirectory.map((member) => [member.memberId, member.displayName]));
+  const poolLabels = new Map(detail.pools.map((pool) => [pool.key, pool.label]));
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
@@ -91,6 +99,8 @@ export default async function OpportunityDetailPage({
         />
         <AssignmentList assignments={detail.assignments} pools={detail.pools} />
       </section>
+
+      <CrewChangeHistory receipts={crewReceipts} poolLabels={poolLabels} memberNames={memberNames} />
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-3">
