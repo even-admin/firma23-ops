@@ -285,8 +285,6 @@ export const copy = {
       unavailable: 'Gestionar el equipo requiere un backend de Supabase configurado.',
       required: 'Agrega al menos un integrante, un rol para cada uno y pesos que sumen 100%.',
       noMembers: 'No hay integrantes activos disponibles para asignar.',
-      multiplePools:
-        'Esta oportunidad reparte entre más de un grupo (por ejemplo cierre y producción por separado). La gestión de equipo todavía no soporta varios grupos en una misma oportunidad.',
     },
   },
   network: {

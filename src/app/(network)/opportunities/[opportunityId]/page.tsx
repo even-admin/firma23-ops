@@ -82,14 +82,13 @@ export default async function OpportunityDetailPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="label-micro text-faint">{copy.detail.assignments}</h2>
-          <CrewManager
-            opportunityId={detail.summary.id}
-            currentAssignments={detail.assignments}
-            members={assignmentMembers}
-          />
-        </div>
+        <h2 className="label-micro text-faint">{copy.detail.assignments}</h2>
+        <CrewManager
+          opportunityId={detail.summary.id}
+          pools={detail.pools}
+          assignments={detail.assignments}
+          members={assignmentMembers}
+        />
         <AssignmentList assignments={detail.assignments} pools={detail.pools} />
       </section>
 

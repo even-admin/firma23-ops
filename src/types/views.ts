@@ -681,6 +681,7 @@ export interface ReplaceOpportunityCrewAssignmentInput {
 
 export interface ReplaceOpportunityCrewInput {
   readonly opportunityId: string;
+  readonly roleKey: string;
   readonly assignments: readonly ReplaceOpportunityCrewAssignmentInput[];
   readonly idempotencyKey: string;
 }

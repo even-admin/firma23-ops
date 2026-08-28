@@ -28,6 +28,7 @@ export const supabaseCrewRepository: CrewRepository = {
     const rpcResult = await client.rpc('replace_opportunity_crew', {
       p_org_id: viewer.orgId,
       p_opportunity_id: input.opportunityId,
+      p_role_key: input.roleKey,
       p_assignments: input.assignments.map((assignment) => ({
         memberId: assignment.memberId,
         roleLabel: assignment.roleLabel,

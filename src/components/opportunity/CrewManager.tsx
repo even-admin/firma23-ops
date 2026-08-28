@@ -10,13 +10,15 @@ import { sha256Hex } from '@/lib/manual-contract-request';
 import type {
   AssignmentPickerMember,
   AssignmentView,
+  PoolWeightView,
   ReplaceOpportunityCrewInput,
   ReplaceOpportunityCrewResult,
 } from '@/types/views';
 
 interface CrewManagerProps {
   readonly opportunityId: string;
-  readonly currentAssignments: readonly AssignmentView[];
+  readonly pools: readonly PoolWeightView[];
+  readonly assignments: readonly AssignmentView[];
   readonly members: readonly AssignmentPickerMember[];
   readonly replaceAction?: (input: ReplaceOpportunityCrewInput) => Promise<ReplaceOpportunityCrewResult>;
 }
@@ -45,11 +47,18 @@ function bpToPercent(bp: number): string {
 /**
  * JSON, not delimiter concatenation, so a role label containing "|" can
  * never collide with a different member/weight split — same rationale as
- * canonicalManualContractSetupRequest.
+ * canonicalManualContractSetupRequest. roleKey is included so the same
+ * idempotency key reused against a different pool produces a different
+ * fingerprint, matching the RPC's own fingerprint shape exactly.
  */
-function canonicalCrewRequest(opportunityId: string, assignments: readonly { memberId: string; roleLabel: string; weightBp: number }[]): string {
+function canonicalCrewRequest(
+  opportunityId: string,
+  roleKey: string,
+  assignments: readonly { memberId: string; roleLabel: string; weightBp: number }[],
+): string {
   return JSON.stringify({
     opportunityId,
+    roleKey,
     assignments: [...assignments]
       .map((assignment) => ({
         memberId: assignment.memberId,
@@ -77,12 +86,56 @@ function initialRows(currentAssignments: readonly AssignmentView[], members: rea
   return [{ key: 'row-1', memberId: members[0]?.memberId ?? '', roleLabel: '', weightPercent: '100' }];
 }
 
+/**
+ * One independent editor per real pool (a member_pool allocation share on
+ * the opportunity's own rule version, from the existing view-model data —
+ * never inferred from which pools happen to have assignments today). Each
+ * instance owns its own React state, so editing one pool cannot mutate
+ * another's rows, totals, pending state, or idempotency key by
+ * construction — there is no shared state between instances.
+ */
 export function CrewManager({
   opportunityId,
-  currentAssignments,
+  pools,
+  assignments,
   members,
   replaceAction = replaceOpportunityCrewAction,
 }: CrewManagerProps) {
+  if (pools.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-4">
+      {pools.map((pool) => (
+        <PoolCrewManager
+          key={pool.key}
+          opportunityId={opportunityId}
+          poolKey={pool.key}
+          poolLabel={pool.label}
+          currentAssignments={assignments.filter((assignment) => assignment.roleKey === pool.key)}
+          members={members}
+          replaceAction={replaceAction}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface PoolCrewManagerProps {
+  readonly opportunityId: string;
+  readonly poolKey: string;
+  readonly poolLabel: string;
+  readonly currentAssignments: readonly AssignmentView[];
+  readonly members: readonly AssignmentPickerMember[];
+  readonly replaceAction?: (input: ReplaceOpportunityCrewInput) => Promise<ReplaceOpportunityCrewResult>;
+}
+
+function PoolCrewManager({
+  opportunityId,
+  poolKey,
+  poolLabel,
+  currentAssignments,
+  members,
+  replaceAction = replaceOpportunityCrewAction,
+}: PoolCrewManagerProps) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<CrewRowState[]>(() => initialRows(currentAssignments, members));
   const [result, setResult] = useState<ReplaceOpportunityCrewResult | null>(null);
@@ -143,14 +196,14 @@ export function CrewManager({
     setResult(null);
     startTransition(async () => {
       try {
-        const fingerprint = await sha256Hex(canonicalCrewRequest(opportunityId, assignments));
+        const fingerprint = await sha256Hex(canonicalCrewRequest(opportunityId, poolKey, assignments));
         const storageKey = `firma23.crew-replace-attempt:${fingerprint}`;
         const persisted = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(storageKey);
         const idempotencyKey = attemptByFingerprint.current.get(fingerprint) ?? persisted ?? crypto.randomUUID();
         attemptByFingerprint.current.set(fingerprint, idempotencyKey);
         if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(storageKey, idempotencyKey);
 
-        const outcome = await replaceAction({ opportunityId, assignments, idempotencyKey });
+        const outcome = await replaceAction({ opportunityId, roleKey: poolKey, assignments, idempotencyKey });
         setResult(outcome);
         if (outcome.kind === 'replaced') {
           attemptByFingerprint.current.delete(fingerprint);
@@ -164,14 +217,8 @@ export function CrewManager({
     });
   }
 
-  const distinctPools = new Set(currentAssignments.map((assignment) => assignment.roleKey));
-
   if (members.length === 0) {
     return <p className="text-faint text-sm">{c.noMembers}</p>;
-  }
-
-  if (distinctPools.size > 1) {
-    return <p className="text-faint text-sm">{c.multiplePools}</p>;
   }
 
   if (!open) {
@@ -181,7 +228,7 @@ export function CrewManager({
         onClick={() => setOpen(true)}
         className="border-line-strong text-ink hover:bg-raised ease-firma flex min-h-11 w-fit items-center rounded-md border px-4 text-sm font-medium transition-colors duration-150"
       >
-        {c.manage}
+        {c.manage} · {poolLabel}
       </button>
     );
   }
@@ -195,7 +242,7 @@ export function CrewManager({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id={headingId} className="text-ink-strong text-lg font-medium">
-            {c.title}
+            {c.title} · {poolLabel}
           </h2>
           <p className="text-faint text-sm">{c.subtitle}</p>
         </div>
