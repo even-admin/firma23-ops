@@ -105,11 +105,8 @@
 .project-cover {
   position: relative;
   isolation: isolate;
-  border: 1px solid color-mix(in srgb, var(--project-b) 24%, var(--color-line));
-  background:
-    radial-gradient(circle at 78% 20%, color-mix(in srgb, var(--project-b) 80%, white) 0, transparent 30%),
-    radial-gradient(circle at 18% 84%, var(--project-c) 0, transparent 48%),
-    linear-gradient(142deg, var(--project-a), var(--project-b));
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-ink-900);
 }
 
 .project-cover::before,
@@ -134,30 +131,6 @@
   bottom: -50%;
 }
 
-.project-cover--0 {
-  --project-a: var(--color-project-charcoal);
-  --project-b: var(--color-project-azure);
-  --project-c: var(--color-project-cobalt);
-}
-
-.project-cover--1 {
-  --project-a: var(--color-project-lilac);
-  --project-b: var(--color-project-ice);
-  --project-c: var(--color-project-cobalt);
-}
-
-.project-cover--2 {
-  --project-a: var(--color-project-moss);
-  --project-b: var(--color-project-cloud);
-  --project-c: var(--color-project-coral);
-}
-
-.project-cover--3 {
-  --project-a: var(--color-project-cobalt);
-  --project-b: var(--color-project-coral);
-  --project-c: var(--color-project-charcoal);
-}
-
 /*
  * Glass is reserved for actual lightweight controls and identity framing.
  * It uses translucent paper and borders instead of dark slabs or shadows.
@@ -166,7 +139,7 @@
   position: relative;
   isolation: isolate;
   border: 1px solid color-mix(in srgb, var(--color-line-strong) 68%, transparent);
-  background: color-mix(in srgb, var(--color-paper-000) 78%, var(--color-orb-ice));
+  background: color-mix(in srgb, var(--color-paper-000) 78%, var(--color-raised));
   color: var(--color-ink-strong);
   backdrop-filter: blur(14px) saturate(1.2);
   transition:
@@ -186,21 +159,21 @@
 }
 
 .glass-orb-button:hover {
-  border-color: color-mix(in srgb, var(--color-orb-cobalt) 36%, var(--color-line-strong));
-  background-color: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-orb-sky));
+  border-color: var(--color-ink-900);
+  background-color: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-raised));
   transform: translateY(-1px);
 }
 
 .glass-action-button {
-  border-color: color-mix(in srgb, var(--color-orb-cobalt) 22%, var(--color-line-strong));
-  background: color-mix(in srgb, var(--color-paper-000) 82%, var(--color-orb-ice));
+  border-color: var(--color-line-strong);
+  background: color-mix(in srgb, var(--color-paper-000) 82%, var(--color-raised));
   color: var(--color-ink-strong);
   backdrop-filter: blur(14px) saturate(1.15);
 }
 
 .glass-action-button:hover {
-  border-color: color-mix(in srgb, var(--color-orb-cobalt) 38%, var(--color-line-strong));
-  background: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-orb-ice));
+  border-color: var(--color-ink-900);
+  background: color-mix(in srgb, var(--color-paper-000) 68%, var(--color-raised));
 }
 
 @keyframes instrument-line-reveal {

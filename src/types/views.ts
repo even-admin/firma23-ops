@@ -621,6 +621,30 @@ export interface AssignmentPickerMember {
   readonly role: MemberRole;
 }
 
+/** Founder-only roster entry. An invite is a local access record, not proof
+ * that an email was sent or that the recipient has activated their account. */
+export interface MemberInviteView {
+  readonly inviteId: string;
+  readonly memberId: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly membershipStatus: 'invited' | 'active' | 'revoked';
+  readonly invitedAt: string;
+  readonly expiresAt: string;
+  readonly redeemedAt: string | null;
+}
+
+export interface CreateMemberInviteInput {
+  readonly displayName: string;
+  readonly email: string;
+  readonly idempotencyKey: string;
+}
+
+export type CreateMemberInviteResult =
+  | { readonly kind: 'created'; readonly memberId: string; readonly inviteId: string; readonly replayed: boolean }
+  | { readonly kind: 'unavailable'; readonly reason: string }
+  | { readonly kind: 'error'; readonly message: string };
+
 export interface ManualContractSetupAssignmentInput {
   readonly memberId: string;
   readonly roleLabel: string;

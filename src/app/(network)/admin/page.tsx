@@ -51,6 +51,9 @@ async function AdminBody() {
           {copy.admin.title}
         </h1>
         <p className="text-muted text-sm">{copy.admin.subtitle}</p>
+        <Link href="/admin/members" className="text-ink hover:text-ink-strong mt-2 flex min-h-11 w-fit items-center text-sm underline-offset-4 hover:underline">
+          {copy.admin.members.manage}
+        </Link>
       </header>
 
       <DocumentIntakePanel assignmentMembers={members} />

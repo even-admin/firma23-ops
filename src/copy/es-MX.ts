@@ -351,6 +351,16 @@ export const copy = {
     portfolio: 'Cartera',
     attention: 'Requiere atención',
     nothingPending: 'Nada pendiente',
+    members: {
+      manage: 'Administrar integrantes', pageTitle: 'Integrantes',
+      pageSubtitle: 'Crea accesos pendientes para integrantes de esta organización.',
+      title: 'Agregar integrante', subtitle: 'Crea la invitación local y el acceso pendiente de la persona.',
+      nameLabel: 'Nombre', emailLabel: 'Correo de invitación', create: 'Crear invitación', creating: 'Creando invitación…',
+      created: 'Invitación creada. El acceso queda pendiente de activación.', deliveryNote: 'Crear una invitación no envía un correo automáticamente.',
+      roster: 'Invitaciones y accesos', empty: 'No hay invitaciones todavía.',
+      status: { invited: 'Pendiente de activación', active: 'Activo', revoked: 'Revocado' },
+      backendUnavailable: 'Crear integrantes requiere un backend de Supabase configurado.', error: 'No pudimos crear la invitación.',
+    },
     intake: {
       ctaUpload: 'Subir propuesta',
       ctaManual: 'Crear manualmente',

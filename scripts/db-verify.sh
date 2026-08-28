@@ -1823,6 +1823,40 @@ else
 fi
 
 echo
+echo "=== scenario 23: founder-managed member invitations ==="
+expect_success "founder creates a normalized pending invite" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$ declare created record; begin
+  select * into created from public.create_member_invite('a0000000-0000-4000-8000-000000000001', 'Diego Martínez', ' DIEGO@EXAMPLE.COM ', 'db-verify-invite-diego');
+  if not exists (select 1 from public.member_invites where id = created.invite_id and email = 'diego@example.com') then raise exception 'email was not normalized'; end if;
+  if (select count(*) from public.audit_events where action = 'create_member_invite' and target_id = created.invite_id) <> 1 then raise exception 'expected exactly one audit row'; end if;
+  if exists (select 1 from public.cash_events where idempotency_key = 'db-verify-invite-diego') or exists (select 1 from public.settlements where idempotency_key = 'db-verify-invite-diego') or exists (select 1 from public.stat_events where source_id = created.invite_id) then raise exception 'invite created money or stat data'; end if;
+end $$;
+SQL
+expect_success "same invite command is idempotently replayed" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_member_invite('a0000000-0000-4000-8000-000000000001', 'Diego Martínez', 'diego@example.com', 'db-verify-invite-diego');
+SQL
+expect_failure "invite fingerprint rejects an unambiguous collision replay" "already used for a different" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+select * from public.create_member_invite('a0000000-0000-4000-8000-000000000001', 'A|B', 'C@example.com', 'db-verify-invite-collision');
+select * from public.create_member_invite('a0000000-0000-4000-8000-000000000001', 'A', 'B|C@example.com', 'db-verify-invite-collision');
+SQL
+expect_failure "member cannot create an invitation" "founder access required" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+select * from public.create_member_invite('a0000000-0000-4000-8000-000000000001', 'No Founder', 'no-founder@example.com', 'db-verify-invite-non-founder');
+SQL
+expect_failure "direct invite inserts are blocked" "permission denied" <<'SQL'
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+insert into public.member_invites (member_id, email) values ('b0000000-0000-4000-8000-000000000003', 'direct-insert@example.com');
+SQL
+
+echo
 echo "======================================================================"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then
