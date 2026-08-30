@@ -50,6 +50,7 @@ describe('ApproveSettlementControl', () => {
 
     fireEvent.click(button);
     await waitFor(() => expect(approveAction).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('temporary failure'));
     fireEvent.click(button);
     await waitFor(() => expect(approveAction).toHaveBeenCalledTimes(2));
 

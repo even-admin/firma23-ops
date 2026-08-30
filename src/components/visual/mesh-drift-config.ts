@@ -13,10 +13,8 @@ function packColors(colors: readonly Rgb[]): readonly number[] {
 }
 
 function paletteFallback(colors: readonly Rgb[]): string {
-  const [, middle] = colors.map(
-    ([red, green, blue]) => `rgb(${red} ${green} ${blue})`,
-  );
-  return middle;
+  const [red, green, blue] = colors[1] ?? colors[0] ?? [26, 26, 26];
+  return `rgb(${red} ${green} ${blue})`;
 }
 
 const WELCOME_FALLBACK =
